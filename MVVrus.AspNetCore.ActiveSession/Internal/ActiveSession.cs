@@ -5,11 +5,13 @@
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
-        readonly ISession? _session;
-        readonly ILogger<ActiveSession> _logger;
+        readonly ISession _session;
+        readonly ILogger<ActiveSession> _logger; //TODO - extract from scoped SP?
         bool _disposed;
         bool _isFresh = true;
+        private Int32 _lastKey;
         readonly CancellationTokenSource _completionTokenSource;
+        readonly CountdownEvent _runnersCounter;
 
         public CancellationToken CompletionToken { get {return _completionTokenSource.Token; } }
 
@@ -20,7 +22,7 @@
         public ActiveSession(
             IServiceScope SessionScope
             , IActiveSessionStore Store
-            , ISession? Session
+            , ISession Session
             , ILogger<ActiveSession> Logger
         )
         {
@@ -30,6 +32,7 @@
             _session = Session;
             _logger=Logger;
             _completionTokenSource = new CancellationTokenSource();
+            _runnersCounter=new CountdownEvent(1);
             //TODO LogTrace?
         }
 
@@ -37,7 +40,7 @@
         {
             _isFresh = false;
             //TODO LogTrace?
-            return _store.CreateRunner<TRequest, TResult>(this, _services);
+            return _store.CreateRunner<TRequest, TResult>(this, Request);
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey)
@@ -74,7 +77,37 @@
         {
             if (_disposed) return;
             _disposed = true;
-            _scope.Dispose();
+            SignalCompletion(); //Just in case, usually this is called by post-eviction proc.
+            Task.Run(CompleteDispose);
         }
+
+        const Int32 RUNNERS_TIMEOUT_MSEC= 10000;
+
+        private void CompleteDispose()
+        {
+            _runnersCounter.Signal();
+            _runnersCounter.Wait(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
+            _scope.Dispose();
+            _completionTokenSource.Dispose();
+            Dispose();
+        }
+
+        public void RegisterRunner ()
+        {
+            _runnersCounter.AddCount();    
+        }
+        public void UnregisterRunner()
+        {
+            _runnersCounter.Signal();
+        }
+
+        public Int32 GetNewKey()
+        {
+            return ++_lastKey;
+        }
+
+        public IServiceProvider Services { get { return _services; } }
+
+        public ISession Session { get { return _session; } }
     }
 }

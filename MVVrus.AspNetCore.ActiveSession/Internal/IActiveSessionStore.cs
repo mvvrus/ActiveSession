@@ -5,7 +5,7 @@
         public ActiveSession FetchOrCreate(ISession Session);
         public IActiveSessionRunner<TResult> FetchRunner<TResult>(ActiveSession Session, int KeyRequested);
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ActiveSession Session,
-            IServiceProvider Services);
+            TRequest Request);
         public Task CommitAsync(ActiveSession Session, CancellationToken cancellationToken);
     }
 }
