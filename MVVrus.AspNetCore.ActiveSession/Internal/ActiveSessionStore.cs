@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
@@ -7,6 +8,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     //TODO Implement
     internal class ActiveSessionStore : IActiveSessionStore, IDisposable
     {
+        const string TYPE_KEY_PART = "_Type";
+
         readonly IMemoryCache _memoryCache;
         readonly IServiceProvider _rootServiceProvider;
         readonly string _prefix;
@@ -16,6 +19,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly TimeSpan _idleTimeout;
         readonly TimeSpan _maxLifetime;
         bool _disposed = false;
+        static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
+
+        public static void RegisterTResult(Type TResult)
+        {
+            s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
+        }
 
         public ActiveSessionStore(
             IMemoryCache Cache,
@@ -39,7 +48,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
                 catch
                 {
-                    //TODO LogError Cannot create our own cache
+                    //TODO LogError Cannot create our own cache ?
                     throw;
                 }
             }
@@ -69,7 +78,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CheckDisposed();
 
             ActiveSession result;
-            string key = _prefix + "_" + Session.Id;
+            String key = SessionKey(Session);
             if (_memoryCache.TryGetValue(key, out result))
             {
                 //TODO LogTrace Return existing ActiveSession for the session
@@ -100,28 +109,28 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        Task IActiveSessionStore.CommitAsync(ActiveSession Session, CancellationToken cancellationToken)
+        Task IActiveSessionStore.CommitAsync(ActiveSession RunnerSession, CancellationToken cancellationToken)
         {
             //TODO
             throw new NotImplementedException();
         }
 
         KeyedActiveSessionRunner<TResult> IActiveSessionStore.CreateRunner<TRequest, TResult>(
-            ActiveSession Session
-            ,TRequest Request
+            ActiveSession RunnerSession
+            , TRequest Request
         )
         {
-            IActiveSessionRunnerFactory<TRequest, TResult> factory= 
+            IActiveSessionRunnerFactory<TRequest, TResult> factory =
                 _rootServiceProvider.GetRequiredService<IActiveSessionRunnerFactory<TRequest, TResult>>();
-            IActiveSessionRunner<TResult>? runner = factory.Create(Request, Session.Services);
+            IActiveSessionRunner<TResult>? runner = factory.Create(Request, RunnerSession.Services);
             if (runner==null) {
                 //TODO Log the failure
-                throw new InvalidOperationException("Cannot create the runner");
+                throw new InvalidOperationException("Cannot create the runner: the factory returned null");
             }
-            Int32 runner_number = Session.GetNewKey();
+            Int32 runner_number = RunnerSession.GetNewKey();
 
             //Store the runner in the cache
-            String runner_key = CacheKey(Session, runner_number);
+            String runner_key = RunnerKey(RunnerSession,runner_number);
             ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key);
             new_entry.SlidingExpiration=_idleTimeout;
             new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
@@ -129,26 +138,62 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             new_entry.Value=runner;
             PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
             end_activesession.EvictionCallback=RunnerEvictionCallback;
-            end_activesession.State=Session;
+            end_activesession.State =
+                new ActiveSessionRunnerInfo (RunnerSession, runner as IDisposable, runner_number, true);
             new_entry.PostEvictionCallbacks.Add(end_activesession);
-            Session.RegisterRunner();
+            RunnerSession.RegisterRunner(); //TODO Register the runner with the number
+            RegisterRunnerInSession(RunnerSession.Session, runner_key, typeof(TResult));
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, Key=runner_number };
+        }
+
+        private void RegisterRunnerInSession(ISession Session, String RunnerKey, Type ResultType)
+        {
+            //Key-value pairs to register
+            // ( {RuunerKey}=_prefix+"_"+Session.Id+"_"+RunnerNumber.ToString() )
+            // {RunnerKey} = _hostId
+            // {RunnerKey}+"_Type" = ResultType
+            Session.SetString(RunnerKey, _hostId); //TODO Check for duplicates
+            Session.SetString(RunnerKey+TYPE_KEY_PART, ResultType.FullName!);
         }
 
         private void RunnerEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
-            try {
-                IDisposable? runner_disposable = value as IDisposable;
-                if (runner_disposable!=null) runner_disposable.Dispose();
-            }
-            finally { 
-                ActiveSession? active_session = state as ActiveSession;
-                if (active_session!=null) active_session.UnregisterRunner();
-            }
+            ActiveSessionRunnerInfo runner_info = (ActiveSessionRunnerInfo)state;
+            IDisposable? runner_disposable = value as IDisposable;
+            if (runner_disposable!=null) runner_disposable.Dispose();
+            //TODO Unregister key-value pairs in ISession
+            runner_info.Session.UnregisterRunner(); //TODO Unregister the runner with the number
         }
 
-        public IActiveSessionRunner<TResult> FetchRunner<TResult>(ActiveSession Session, int KeyRequested)
+        public IActiveSessionRunner<TResult> FetchRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
         {
+            String runner_key = RunnerKey(RunnerSession, KeyRequested);
+            String? host_id;
+            host_id=RunnerSession.Session.GetString(runner_key);
+            if(host_id==null) {
+                //TODO? log that runner does not exist
+                return null;
+            }
+            String? runner_type_name = RunnerSession.Session.GetString(runner_key+TYPE_KEY_PART);
+            if(runner_type_name==null) {
+                //TODO? Log that runner has unknown type
+                return null;
+            }
+            Type runner_type;
+            if (host_id==_hostId) {
+                //TODO Search local runner object in the cache
+            }
+            else { 
+                ;
+                if (!s_ResultTypesDictionary.TryGetValue(runner_type_name, out runner_type)) {
+                    //TODO? Log that type is unregistered
+                    throw new InvalidOperationException(); //TODO Add message
+                }
+                if (runner_type.IsAssignableTo(typeof(TResult)) ){ } //TODO
+            }
+
+            
+            
             //TODO
             throw new NotImplementedException();
         }
@@ -158,10 +203,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new NotImplementedException();
         }
 
-        String CacheKey(ActiveSession Session, Int32 RunnerNumber)
+        String SessionKey(ISession Session)
         {
-            //TODO
-            throw new NotImplementedException();
+            return $"{_prefix}_{Session.Id}";
+        }
+
+        String RunnerKey(ActiveSession RunnerSession, Int32 RunnerNumber)
+        {
+            return $"{SessionKey(RunnerSession.Session)}_{RunnerNumber}";
         }
 
     }

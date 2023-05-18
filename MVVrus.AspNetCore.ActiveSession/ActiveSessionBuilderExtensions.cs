@@ -29,6 +29,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory)
         {
             AddActiveSessionsInfrastructure(Services);
+            ActiveSessionStore.RegisterTResult(typeof(TResult));
             return Services.AddSingleton<IActiveSessionRunnerFactory<TRequest, TResult>>(
                 sp=>new DelegateRunnerFactory<TRequest, TResult>(Factory)
                 );
@@ -91,8 +92,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             //Add to service list (Services) implementations of IActiveSessionRunnerFactory<TRequest,TResult>
             // via the class TypeRunnerFactory<TRequest,TResult>
             // for all combinations of request and result types 
-            foreach (Type request_type in unique_first_param_types) {
-                foreach(Type result_type in result_types) {
+            foreach (Type result_type in result_types) {
+                ActiveSessionStore.RegisterTResult(result_type);
+                foreach (Type request_type in unique_first_param_types) {
                     Type[] type_args = new Type[] { request_type, result_type };
                     Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>)
                         .MakeGenericType(type_args);
