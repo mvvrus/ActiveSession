@@ -18,6 +18,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger<ActiveSession> _logger;
         readonly TimeSpan _idleTimeout;
         readonly TimeSpan _maxLifetime;
+        readonly Boolean _throwOnRemoteRunner;
         bool _disposed = false;
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
 
@@ -62,6 +63,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _prefix = options.Prefix ?? "";
             _idleTimeout = SessionOptions.Value.IdleTimeout;
             _maxLifetime = options.MaxLifetime ?? ActiveSessionOptions.DEFAULT_MAX_LIFETIME;
+            _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             //TODO Implement remaining logic, if any
         }
 
@@ -165,7 +167,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             runner_info.Session.UnregisterRunner(); //TODO Unregister the runner with the number
         }
 
-        public IActiveSessionRunner<TResult> FetchRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
+        public IActiveSessionRunner<TResult>? FetchRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
         {
             String runner_key = RunnerKey(RunnerSession, KeyRequested);
             String? host_id;
@@ -174,29 +176,38 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 //TODO? log that runner does not exist
                 return null;
             }
-            String? runner_type_name = RunnerSession.Session.GetString(runner_key+TYPE_KEY_PART);
-            if(runner_type_name==null) {
-                //TODO? Log that runner has unknown type
-                return null;
-            }
-            Type runner_type;
             if (host_id==_hostId) {
                 //TODO Search local runner object in the cache
+                throw new NotImplementedException();
             }
-            else { 
-                ;
-                if (!s_ResultTypesDictionary.TryGetValue(runner_type_name, out runner_type)) {
-                    //TODO? Log that type is unregistered
-                    throw new InvalidOperationException(); //TODO Add message
-                }
-                if (runner_type.IsAssignableTo(typeof(TResult)) ){ } //TODO
+            else {
+                //TODO Trace remote runner
+                return MakeRemoteRunner<TResult>(RunnerSession, runner_key);
             }
 
-            
-            
-            //TODO
-            throw new NotImplementedException();
         }
+
+        private IActiveSessionRunner<TResult>? MakeRemoteRunner<TResult>(ActiveSession RunnerSession, String RunnerKey)
+        {
+            if (_throwOnRemoteRunner) {
+                //TODO Log that remote runner is not allowed?
+                throw new InvalidOperationException("Using remote runners is not allowed");
+            }
+            return null; //Just now I do not want to implement remote runner
+            //String? runner_type_name = RunnerSession.Session.GetString(RunnerKey+TYPE_KEY_PART);
+            //if (runner_type_name==null) {
+            //    //TODO? Log that runner has unknown type
+            //    return null;
+            //}
+            //if (!s_ResultTypesDictionary.TryGetValue(runner_type_name, out runner_type)) {
+            //    //TODO? Log that type is unregistered
+            //    throw new InvalidOperationException(); //TODO Add message
+            //}
+            //if (runner_type.IsAssignableTo(typeof(TResult))) { } //TODO
+            //                                                     //TODO
+            //throw new NotImplementedException();
+        }
+
         private void CheckDisposed()
         {
             //TODO
