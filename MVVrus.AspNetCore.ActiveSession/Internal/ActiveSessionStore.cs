@@ -184,7 +184,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 //TODO Trace remote runner
                 return MakeRemoteRunner<TResult>(RunnerSession, runner_key);
             }
-
         }
 
         private IActiveSessionRunner<TResult>? MakeRemoteRunner<TResult>(ActiveSession RunnerSession, String RunnerKey)
