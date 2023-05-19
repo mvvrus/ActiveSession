@@ -10,6 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public TimeSpan? MaxLifetime { get; set; } = DEFAULT_MAX_LIFETIME;
         public Boolean? UseOwnCache { get; set; } = false;
         public MemoryCacheOptions? OwnCacheOptions { get; set; } = null;
+        public Boolean ThrowOnRemoteRunner { get; set; } = true;
 
         public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
     }
@@ -22,5 +23,6 @@ namespace MVVrus.AspNetCore.ActiveSession
  *   HostId (string) - this host identifier
  *   Prefix (string) - prefix for all keys of key-value pairs in the Session store for the ActiveSession variables
  *   UseOwnCache(Boolean) - flag to use own (not shared) MemoryCache instance as a storage
- *   OwnCaheOptions(MemoryCacheOptions) - options used to set up own MemoryCache instance (ignored for shared cache)
+ *   ThrowOnRemoteRunner(Boolean) - Throw exception if the runner is found on thr remote server
+ *   OwnCaheOptions(nested of type MemoryCacheOptions) - options used to set up own MemoryCache instance (ignored for shared cache)
  */ 
