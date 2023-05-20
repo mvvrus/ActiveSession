@@ -6,5 +6,7 @@
         Stalled,
         Progressed,
         Complete,
+        Failed,
+        Aborted,
     }
 }

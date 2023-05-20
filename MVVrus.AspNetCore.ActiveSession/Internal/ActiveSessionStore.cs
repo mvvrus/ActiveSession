@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
@@ -144,11 +145,37 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
             end_activesession.EvictionCallback=RunnerEvictionCallback;
             end_activesession.State =
-                new ActiveSessionRunnerInfo (RunnerSession, runner as IDisposable, runner_number, true);
+                new RunnerPostEvictionInfo (RunnerSession, runner as IDisposable, runner_number, true);
+            //TODO Add callback for the runner completion
+            IChangeToken runner_completion_token = runner.GetCompletionToken();
+            if(runner_completion_token.ActiveChangeCallbacks) {
+                //TODO Create state info for the callback
+                runner_completion_token.RegisterChangeCallback(
+                    RunnerCompletionCallback, 
+                    new RunnerPostCompletionInfo(runner,runner_key)
+                ); 
+            }
             new_entry.PostEvictionCallbacks.Add(end_activesession);
             RunnerSession.RegisterRunner(); //TODO Register the runner with the number
             RegisterRunnerInSession(RunnerSession.Session, runner_key, typeof(TResult));
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, Key=runner_number };
+        }
+
+        private void RunnerCompletionCallback(Object obj)
+        {
+            RunnerPostCompletionInfo? runner_info = obj as RunnerPostCompletionInfo;
+            if(runner_info == null) {
+                //TODO Log warning?
+                return;
+            }
+            ActiveSessionRunnerState state = runner_info.Runner.State;
+            switch (state) {
+                case ActiveSessionRunnerState.Aborted:
+                    _memoryCache.Remove(runner_info.RunnerKey);
+                    break;
+                //TODO Add other completion states if required
+                default: break;
+            }
         }
 
         private void RegisterRunnerInSession(ISession Session, String RunnerKey, Type ResultType)
@@ -163,7 +190,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void RunnerEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
-            ActiveSessionRunnerInfo runner_info = (ActiveSessionRunnerInfo)state;
+            RunnerPostEvictionInfo runner_info = (RunnerPostEvictionInfo)state;
             if (runner_info.Disposable!=null)  runner_info.Disposable.Dispose();
             //TODO Unregister key-value pairs in ISession
             runner_info.RunnerSession.UnregisterRunner(); //TODO Unregister the runner with the number
@@ -263,6 +290,33 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             else {
                 //TODO Trace remote runner
                 return await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key);
+            }
+        }
+
+        internal class RunnerPostEvictionInfo
+        {
+            public ActiveSession RunnerSession;
+            public IDisposable? Disposable;
+            public Int32 Number;
+            public Boolean UnregisterNumber;
+            public RunnerPostEvictionInfo(ActiveSession RunnerSession, IDisposable? Disposable, Int32 Number, Boolean UnregisterNumber)
+            {
+                this.RunnerSession=RunnerSession;
+                this.Disposable=Disposable;
+                this.Number=Number;
+                this.UnregisterNumber=UnregisterNumber;
+            }
+        }
+
+        private class RunnerPostCompletionInfo
+        {
+            internal String RunnerKey;
+            internal IActiveSessionRunner Runner;
+
+            public RunnerPostCompletionInfo(IActiveSessionRunner Runner, String RunnerKey)
+            {
+                this.Runner=Runner;
+                this.RunnerKey=RunnerKey;
             }
         }
     }
