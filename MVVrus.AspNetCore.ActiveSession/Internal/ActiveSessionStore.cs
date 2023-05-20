@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
@@ -19,6 +20,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly TimeSpan _idleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
+        readonly Boolean _cacheAsTask;
         bool _disposed = false;
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
 
@@ -64,6 +66,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _idleTimeout = SessionOptions.Value.IdleTimeout;
             _maxLifetime = options.MaxLifetime ?? ActiveSessionOptions.DEFAULT_MAX_LIFETIME;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
+            _cacheAsTask=options.CacheRunnerAsTask;
             //TODO Implement remaining logic, if any
         }
 
@@ -137,7 +140,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             new_entry.SlidingExpiration=_idleTimeout;
             new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
             new_entry.Size=1; //TODO Size from config?
-            new_entry.Value=runner;
+            new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
             PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
             end_activesession.EvictionCallback=RunnerEvictionCallback;
             end_activesession.State =
@@ -161,38 +164,55 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         private void RunnerEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
             ActiveSessionRunnerInfo runner_info = (ActiveSessionRunnerInfo)state;
-            IDisposable? runner_disposable = value as IDisposable;
-            if (runner_disposable!=null) runner_disposable.Dispose();
+            if (runner_info.Disposable!=null)  runner_info.Disposable.Dispose();
             //TODO Unregister key-value pairs in ISession
-            runner_info.Session.UnregisterRunner(); //TODO Unregister the runner with the number
+            runner_info.RunnerSession.UnregisterRunner(); //TODO Unregister the runner with the number
         }
 
-        public IActiveSessionRunner<TResult>? FetchRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
         {
-            String runner_key = RunnerKey(RunnerSession, KeyRequested);
             String? host_id;
+            String runner_key = RunnerKey(RunnerSession, KeyRequested);
             host_id=RunnerSession.Session.GetString(runner_key);
             if(host_id==null) {
                 //TODO? log that runner does not exist
                 return null;
             }
             if (host_id==_hostId) {
-                //TODO Search local runner object in the cache
-                throw new NotImplementedException();
+                return ExtractRunnerFromCache<TResult>(runner_key);
             }
             else {
                 //TODO Trace remote runner
-                return MakeRemoteRunner<TResult>(RunnerSession, runner_key);
+                return MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key).GetAwaiter().GetResult();
             }
         }
 
-        private IActiveSessionRunner<TResult>? MakeRemoteRunner<TResult>(ActiveSession RunnerSession, String RunnerKey)
+        private IActiveSessionRunner<TResult>? ExtractRunnerFromCache<TResult>(String runner_key)
+        {
+            Object? value_from_cache;
+            if (_memoryCache.TryGetValue(runner_key, out value_from_cache)) {
+                //TODO LogTrace Return existing ActiveSession for the session
+                return _cacheAsTask ?
+                    (value_from_cache as Task<IActiveSessionRunner<TResult>?>)?.Result :
+                    value_from_cache as IActiveSessionRunner<TResult>;
+            }
+            else {
+                //TODO Unregister key-value pairs in ISession
+                return null;
+            }
+        }
+
+        private Task<IActiveSessionRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
+            ActiveSession RunnerSession, 
+            String RunnerKey,
+            CancellationToken Token=default
+        )
         {
             if (_throwOnRemoteRunner) {
                 //TODO Log that remote runner is not allowed?
                 throw new InvalidOperationException("Using remote runners is not allowed");
             }
-            return null; //Just now I do not want to implement remote runner
+            return Task.FromResult<IActiveSessionRunner<TResult>?>(null); //Just now I do not want to implement remote runner
             //String? runner_type_name = RunnerSession.Session.GetString(RunnerKey+TYPE_KEY_PART);
             //if (runner_type_name==null) {
             //    //TODO? Log that runner has unknown type
@@ -223,5 +243,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return $"{SessionKey(RunnerSession.Session)}_{RunnerNumber}";
         }
 
+        public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+            ActiveSession RunnerSession, 
+            Int32 KeyRequested, 
+            CancellationToken Token
+        )
+        {
+            await RunnerSession.LoadAsync(Token);
+            String? host_id;
+            String runner_key = RunnerKey(RunnerSession, KeyRequested);
+            host_id=RunnerSession.Session.GetString(runner_key);
+            if (host_id==null) {
+                //TODO? log that runner does not exist
+                return null;
+            }
+            if (host_id==_hostId) {
+                return ExtractRunnerFromCache<TResult>(runner_key);
+            }
+            else {
+                //TODO Trace remote runner
+                return await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key);
+            }
+        }
     }
 }

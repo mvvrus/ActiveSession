@@ -9,7 +9,7 @@
             ) 
         {
             KeyedActiveSessionRunner<TResult> runner_and_key;
-            runner_and_key= ActiveSession.GetRunner<TRequest,TResult> (Request);
+            runner_and_key= ActiveSession.CreateRunner<TRequest,TResult> (Request);
             Key=runner_and_key.Key;
             return runner_and_key.Runner;
         }

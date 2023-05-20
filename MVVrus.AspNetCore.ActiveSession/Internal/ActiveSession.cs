@@ -36,7 +36,7 @@
             //TODO LogTrace?
         }
 
-        public KeyedActiveSessionRunner<TResult> GetRunner<TRequest, TResult>(TRequest Request)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request)
         {
             _isFresh = false;
             //TODO LogTrace?
@@ -45,16 +45,16 @@
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey)
         {
-            IActiveSessionRunner<TResult>? fetched = _store.FetchRunner<TResult>(this, RequestedKey);
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey);
             _isFresh = false;
-            if (fetched != null)
-            {
-                if (typeof(IActiveSessionRunner<TResult>).IsAssignableFrom(fetched.GetType()))
-                    return fetched as IActiveSessionRunner<TResult>;
-                else //TODO Implement error logging
-                    throw new InvalidCastException();
-            }
-            else return null;
+            return fetched;
+        }
+
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, CancellationToken Token)
+        {
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, Token);
+            _isFresh=false;
+            return fetched;
         }
 
         public bool IsAvailable { get { return _session?.IsAvailable ?? false; } }

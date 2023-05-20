@@ -11,7 +11,7 @@
             return Task.CompletedTask;
         }
 
-        public KeyedActiveSessionRunner<TResult> GetRunner<TRequest, TResult>(TRequest Request)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request)
         {
             throw new NotImplementedException();
         }

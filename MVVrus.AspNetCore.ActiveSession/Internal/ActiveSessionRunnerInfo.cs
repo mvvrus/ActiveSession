@@ -2,13 +2,13 @@
 {
     internal class ActiveSessionRunnerInfo
     {
-        public ActiveSession Session;
+        public ActiveSession RunnerSession;
         public IDisposable? Disposable;
         public Int32 Number;
         public Boolean UnregisterNumber;
-        public ActiveSessionRunnerInfo(ActiveSession Session, IDisposable? Disposable, Int32 Number, Boolean UnregisterNumber)
+        public ActiveSessionRunnerInfo(ActiveSession RunnerSession, IDisposable? Disposable, Int32 Number, Boolean UnregisterNumber)
         {
-            this.Session = Session;
+            this.RunnerSession = RunnerSession;
             this.Disposable = Disposable;
             this.Number = Number;
             this.UnregisterNumber = UnregisterNumber;
