@@ -9,7 +9,9 @@
         readonly ILogger<ActiveSession> _logger; //TODO - extract from scoped SP?
         bool _disposed;
         bool _isFresh = true;
-        private Int32 _lastKey;
+        Int32 _newRunnerNumber;
+        Byte[] ? _keyMap;
+        readonly Int32 _minRunnerNumber, _maxRunnerNumber;
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
 
@@ -24,6 +26,8 @@
             , IActiveSessionStore Store
             , ISession Session
             , ILogger<ActiveSession> Logger
+            , Int32 MinRunnerNumber = 0
+            , Int32 MaxRunnerNumber = Int32.MaxValue
         )
         {
             _scope = SessionScope;
@@ -33,6 +37,11 @@
             _logger=Logger;
             _completionTokenSource = new CancellationTokenSource();
             _runnersCounter=new CountdownEvent(1);
+            _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
+            _maxRunnerNumber=MaxRunnerNumber;
+            if (MaxRunnerNumber!=Int32.MaxValue) { 
+                //TODO Implement runner number reusage
+            }
             //TODO LogTrace?
         }
 
@@ -92,18 +101,20 @@
             Dispose();
         }
 
-        public void RegisterRunner ()
+        public void RegisterRunner (int Key)
         {
             _runnersCounter.AddCount();    
         }
-        public void UnregisterRunner()
+        public void UnregisterRunner(int Key)
         {
             _runnersCounter.Signal();
         }
 
-        public Int32 GetNewKey()
+        public Int32 GetNewRunnerNumber()
         {
-            return ++_lastKey;
+            if (_newRunnerNumber>_maxRunnerNumber)
+                throw new InvalidOperationException("Runner number reusage is not implmented yet");
+            return _newRunnerNumber++;
         }
 
         public IServiceProvider Services { get { return _services; } }

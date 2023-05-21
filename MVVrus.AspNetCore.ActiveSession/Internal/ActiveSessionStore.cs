@@ -133,7 +133,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 //TODO Log the failure
                 throw new InvalidOperationException("Cannot create the runner: the factory returned null");
             }
-            Int32 runner_number = RunnerSession.GetNewKey();
+            Int32 runner_number = RunnerSession.GetNewRunnerNumber();
 
             //Store the runner in the cache
             String runner_key = RunnerKey(RunnerSession,runner_number);
@@ -156,7 +156,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 ); 
             }
             new_entry.PostEvictionCallbacks.Add(end_activesession);
-            RunnerSession.RegisterRunner(); //TODO Register the runner with the number
+            RunnerSession.RegisterRunner(runner_number); 
             RegisterRunnerInSession(RunnerSession.Session, runner_key, typeof(TResult));
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, Key=runner_number };
         }
@@ -193,7 +193,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             RunnerPostEvictionInfo runner_info = (RunnerPostEvictionInfo)state;
             if (runner_info.Disposable!=null)  runner_info.Disposable.Dispose();
             //TODO Unregister key-value pairs in ISession
-            runner_info.RunnerSession.UnregisterRunner(); //TODO Unregister the runner with the number
+            runner_info.RunnerSession.UnregisterRunner(runner_info.Number); 
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
