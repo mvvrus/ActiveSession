@@ -10,6 +10,5 @@
             ActiveSession RunnerSession, 
             Int32 KeyRequested, CancellationToken Token
         );
-        public Task CommitAsync(ActiveSession RunnerSession, CancellationToken cancellationToken);
     }
 }

@@ -115,12 +115,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        Task IActiveSessionStore.CommitAsync(ActiveSession RunnerSession, CancellationToken cancellationToken)
-        {
-            //TODO
-            throw new NotImplementedException();
-        }
-
         KeyedActiveSessionRunner<TResult> IActiveSessionStore.CreateRunner<TRequest, TResult>(
             ActiveSession RunnerSession
             , TRequest Request

@@ -10,7 +10,7 @@
         bool _disposed;
         bool _isFresh = true;
         Int32 _newRunnerNumber;
-        Byte[] ? _keyMap;
+        readonly Byte[] ? _keyMap;
         readonly Int32 _minRunnerNumber, _maxRunnerNumber;
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
@@ -76,10 +76,9 @@
             throw new NotImplementedException();
         }
 
-        public Task CommitAsync(CancellationToken cancellationToken)
+        public Task CommitAsync(CancellationToken CancellationToken)
         {
-            //TODO Is needed at all?
-            return _store.CommitAsync(this, cancellationToken);
+            return _session.CommitAsync(CancellationToken);
         }
 
         public void Dispose()

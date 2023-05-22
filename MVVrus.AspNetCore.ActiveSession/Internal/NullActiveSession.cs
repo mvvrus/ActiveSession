@@ -21,10 +21,13 @@
             return new NullActiveSessionRunner<TResult>();
         }
 
-        public Task LoadAsync(CancellationToken cancellationToken = default)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return new ValueTask<IActiveSessionRunner<TResult>?>(
+                Task<IActiveSessionRunner<TResult>?>.FromResult(
+                    (IActiveSessionRunner<TResult>?) new NullActiveSessionRunner<TResult>()
+                )
+            );
         }
-
     }
 }

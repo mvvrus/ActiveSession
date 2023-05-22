@@ -14,8 +14,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         );
         Boolean IsAvailable { get; }
         Boolean IsFresh { get; }
-        Task LoadAsync(CancellationToken cancellationToken = default); //TODO Is it really needed?
-        Task CommitAsync(CancellationToken cancellationToken = default); //TODO Is it really needed?
-
+        Task CommitAsync(CancellationToken CancellationToken = default); 
     }
 }
