@@ -6,7 +6,7 @@
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
         readonly ISession _session;
-        readonly ILogger<ActiveSession> _logger; //TODO - extract from scoped SP?
+        readonly ILogger _logger; //TODO - extract from scoped SP?
         bool _disposed;
         bool _isFresh = true;
         Int32 _newRunnerNumber;
@@ -25,7 +25,7 @@
             IServiceScope SessionScope
             , IActiveSessionStore Store
             , ISession Session
-            , ILogger<ActiveSession> Logger
+            , ILogger Logger
             , Int32 MinRunnerNumber = 0
             , Int32 MaxRunnerNumber = Int32.MaxValue
         )

@@ -11,9 +11,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public ActiveSessionMiddleware(RequestDelegate Next, IActiveSessionStore Store, ILoggerFactory LoggerFactory)
         {
-            _next = Next;
-            _store = Store;
-            _logger = LoggerFactory.CreateLogger<ActiveSession>();
+            _next=Next??throw new ArgumentNullException(nameof(Next));
+            _store=Store??throw new ArgumentNullException(nameof(Store));
+            if (LoggerFactory is null) throw new ArgumentNullException(nameof(LoggerFactory));
+            _logger = LoggerFactory.CreateLogger("MVVrus.AspNetCore.ActiveSession"); //TODO Define category name via a constant
         }
 
         public async Task Invoke(HttpContext context)

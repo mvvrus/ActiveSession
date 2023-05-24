@@ -17,7 +17,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly string _prefix;
         readonly string _hostId;
         readonly bool _useOwnCache;
-        readonly ILogger<ActiveSession> _logger;
+        readonly ILogger _logger;
         readonly TimeSpan _idleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
@@ -38,8 +38,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ILoggerFactory LoggerFactory
         )
         {
-            _logger = LoggerFactory.CreateLogger<ActiveSession>();
-            _rootServiceProvider = RootServiceProvider;
+            if (Options is null)
+                throw new ArgumentNullException(nameof(Options));
+            if (SessionOptions is null)
+                throw new ArgumentNullException(nameof(SessionOptions));
+            if (LoggerFactory is null)
+                throw new ArgumentNullException(nameof(LoggerFactory));
+            _logger=LoggerFactory.CreateLogger("MVVrus.AspNetCore.ActiveSession");
+            _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             ActiveSessionOptions options = Options.Value;
             //TODO LogTrace options
             _useOwnCache = options.UseOwnCache ?? false;
