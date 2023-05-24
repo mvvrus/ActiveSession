@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
@@ -44,11 +43,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw new ArgumentNullException(nameof(SessionOptions));
             if (LoggerFactory is null)
                 throw new ArgumentNullException(nameof(LoggerFactory));
-            _logger=LoggerFactory.CreateLogger("MVVrus.AspNetCore.ActiveSession");
+            _logger=LoggerFactory.CreateLogger(LOGGING_CATEGORY_NAME);
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             ActiveSessionOptions options = Options.Value;
             //TODO LogTrace options
-            _useOwnCache = options.UseOwnCache ?? false;
+            _useOwnCache=options.UseOwnCache;
             if (_useOwnCache)
             {
                 //TODO LogTrace options.OwnCacheOptions
@@ -71,7 +70,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _hostId = options.HostId!;
             _prefix = options.Prefix ?? "";
             _idleTimeout = SessionOptions.Value.IdleTimeout;
-            _maxLifetime = options.MaxLifetime ?? ActiveSessionOptions.DEFAULT_MAX_LIFETIME;
+            _maxLifetime = options.MaxLifetime;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
             //TODO Implement remaining logic, if any

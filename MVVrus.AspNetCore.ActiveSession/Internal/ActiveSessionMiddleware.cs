@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Options;
+using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
@@ -14,7 +14,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _next=Next??throw new ArgumentNullException(nameof(Next));
             _store=Store??throw new ArgumentNullException(nameof(Store));
             if (LoggerFactory is null) throw new ArgumentNullException(nameof(LoggerFactory));
-            _logger = LoggerFactory.CreateLogger("MVVrus.AspNetCore.ActiveSession"); //TODO Define category name via a constant
+            _logger = LoggerFactory.CreateLogger(LOGGING_CATEGORY_NAME); 
         }
 
         public async Task Invoke(HttpContext context)

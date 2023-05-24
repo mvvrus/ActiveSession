@@ -1,19 +1,18 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
     public class ActiveSessionOptions
     {
-        public const String CONFIG_KEY_NAME = "MVVrus.ActiveSessions";
-        public String? HostId { get; set; } = "localhost";
-        public String? Prefix { get; set; } = "##ActiveSession##";
-        public TimeSpan? MaxLifetime { get; set; } = DEFAULT_MAX_LIFETIME;
-        public Boolean? UseOwnCache { get; set; } = false;
-        public MemoryCacheOptions? OwnCacheOptions { get; set; } = null;
+        public String HostId { get; set; } = DEFAULT_HOST_NAME;
+        public String Prefix { get; set; } = DEFAULT_SESSION_KEY_PREFIX;
+        public TimeSpan MaxLifetime { get; set; } = DEFAULT_MAX_LIFETIME;
+        public Boolean UseOwnCache { get; set;}
+        public MemoryCacheOptions? OwnCacheOptions { get; set; } 
         public Boolean ThrowOnRemoteRunner { get; set; } = true;
-        public Boolean CacheRunnerAsTask { get; set; } = false;
+        public Boolean CacheRunnerAsTask { get; set; } 
 
-        public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
     }
 }
 

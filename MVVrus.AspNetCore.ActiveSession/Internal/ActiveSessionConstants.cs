@@ -1,0 +1,12 @@
+﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
+{
+    internal static class ActiveSessionConstants
+    {
+        public const String CONFIG_KEY_NAME = "MVVrus.ActiveSessions";
+        public const String LOGGING_CATEGORY_NAME = "MVVrus.AspNetCore.ActiveSession";
+        public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
+        public static readonly String DEFAULT_HOST_NAME = "localhost";
+        public static readonly String DEFAULT_SESSION_KEY_PREFIX = "##ActiveSession##";
+
+    }
+}
