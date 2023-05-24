@@ -10,7 +10,9 @@
         bool _disposed;
         bool _isFresh = true;
         Int32 _newRunnerNumber;
+#pragma warning disable CS0169 // The field 'ActiveSession._keyMap' is never used
         readonly Byte[] ? _keyMap;
+#pragma warning restore CS0169 // The field 'ActiveSession._keyMap' is never used
         readonly Int32 _minRunnerNumber, _maxRunnerNumber;
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
