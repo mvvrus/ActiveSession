@@ -3,7 +3,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
-    public class ActiveSessionOptions
+    public record ActiveSessionOptions
     {
         public String HostId { get; set; } = DEFAULT_HOST_NAME;
         public String Prefix { get; set; } = DEFAULT_SESSION_KEY_PREFIX;
