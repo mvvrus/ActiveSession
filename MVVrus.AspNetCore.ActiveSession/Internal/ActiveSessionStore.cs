@@ -288,7 +288,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else {
                 //TODO Trace remote runner
-                return await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key);
+                return await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key, Token);
             }
         }
 

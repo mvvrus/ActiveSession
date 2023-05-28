@@ -37,6 +37,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        static IChangeToken s_NullChangeToken = new NullChangeToken();
+        static readonly IChangeToken s_NullChangeToken = new NullChangeToken();
     }
 }
