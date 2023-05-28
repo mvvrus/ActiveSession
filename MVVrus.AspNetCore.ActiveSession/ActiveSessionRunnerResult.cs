@@ -1,9 +1,8 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession
 {
-    public struct ActiveSessionRunnerResult<TResult> 
-    {
-        public TResult Result;
-        public ActiveSessionRunnerState State;
-        public Int32 Position;
-    }
+    public record struct ActiveSessionRunnerResult<TResult>(
+        TResult Result, 
+        ActiveSessionRunnerState State, 
+        Int32 Position
+     ); 
 }
