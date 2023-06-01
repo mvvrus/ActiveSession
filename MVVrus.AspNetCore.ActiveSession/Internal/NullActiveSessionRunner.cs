@@ -25,6 +25,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return new ValueTask<ActiveSessionRunnerResult<TResult>>(Task.FromResult<ActiveSessionRunnerResult<TResult>>(default));
         }
 
+        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public class NullChangeToken : IChangeToken
         {
             public Boolean ActiveChangeCallbacks => false;
