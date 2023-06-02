@@ -25,9 +25,27 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder) 
         {
+            ILogger? logger = Builder.
+                                ApplicationServices.
+                                GetService<ILoggerFactory>()?.
+                                CreateLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
+#if TRACE
+            logger?.LogTraceUseActiveSessions();
+#endif
+
             //Try to get IActiveSessionStore fro DI container to check if any of AddActiveSessions methods were ever called
-            Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
-            return Builder.UseMiddleware<ActiveSessionMiddleware>();
+            try {
+                Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
+                Builder.UseMiddleware<ActiveSessionMiddleware>();
+                logger?.LogDebugActiveSessionMiddlewareRegistered();
+            }
+            catch (Exception exception) {
+                logger?.LogWarningAbsentFactoryInplementations(exception);
+            }
+#if TRACE
+            logger?.LogTraceUseActiveSessionsExit();
+#endif
+            return Builder;
         }
 
     }
