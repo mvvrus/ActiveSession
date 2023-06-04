@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
@@ -6,7 +7,6 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    //TODO Implement
     internal class ActiveSessionStore : IActiveSessionStore, IDisposable
     {
         const string TYPE_KEY_PART = "_Type";
@@ -16,15 +16,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly string _prefix;
         readonly string _hostId;
         readonly bool _useOwnCache;
-        readonly ILogger _logger;
         readonly TimeSpan _idleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
         readonly Boolean _cacheAsTask;
         bool _disposed = false;
+        ILogger? _logger;
+
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
 
-        public static void RegisterTResult(Type TResult)
+        internal static void RegisterTResult(Type TResult)
         {
             s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
         }
@@ -34,52 +35,69 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IServiceProvider RootServiceProvider,
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
-            ILoggerFactory LoggerFactory
+            ILoggerFactory? LoggerFactory
         )
         {
             if (Options is null)
                 throw new ArgumentNullException(nameof(Options));
             if (SessionOptions is null)
                 throw new ArgumentNullException(nameof(SessionOptions));
-            if (LoggerFactory is null)
-                throw new ArgumentNullException(nameof(LoggerFactory));
-            _logger=LoggerFactory.CreateLogger(LOGGING_CATEGORY_NAME);
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
+            _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+#if TRACE
+            _logger?.LogTraceActiveSessionStoreConstructor();
+#endif
             ActiveSessionOptions options = Options.Value;
-            //TODO LogTrace options
+            _logger?.LogDebugActiveSessionStoreConstructorOptions(options);
             _useOwnCache=options.UseOwnCache;
             if (_useOwnCache)
             {
-                //TODO LogTrace options.OwnCacheOptions
-                try
-                {
-                    _memoryCache = new MemoryCache(options.OwnCacheOptions);
+#if TRACE
+                _logger?.LogTraceLogTraceActiveSessionStoreConstructorCreatingOwnCache();
+#endif
+                MemoryCacheOptions own_cache_options = options.OwnCacheOptions??new MemoryCacheOptions();
+                _logger?.LogDebugActiveSessionStoreConstructorOwnCacheOptions(new LoggingExtensions.MemoryCacheOptionsForLogging(own_cache_options));
+
+                try {
+                    _memoryCache = new MemoryCache(own_cache_options);
+                    _logger?.LogDebugActiveSessionStoreConstructorOwnCaheCreated();
                 }
-                catch
+                catch(Exception exception)
                 {
-                    //TODO LogError Cannot create our own cache ?
-                    throw;
+                    _logger?.LogWarningActiveSessionStoreCannotCreateOwnCache(exception);
+                    _useOwnCache=false;
                 }
             }
             else
             {
-                //TODO LogTrace Using shared cache
-                //TODO Check that shared cache exists 
-                _memoryCache = Cache;
+#if TRACE
+                _logger?.LogTraceActiveSessionStoreConstructorUseSharedCache();
+#endif
             }
-            _hostId = options.HostId!;
-            _prefix = options.Prefix ?? "";
+            _memoryCache=_memoryCache ?? Cache;
+            if (_memoryCache == null) {
+                _logger?.LogErrorNoSharedCacheException();
+                throw new InvalidOperationException("Shared cache must be used but is not available");
+            }
+            _hostId= options.HostId!;
+            _prefix = options.Prefix;
             _idleTimeout = SessionOptions.Value.IdleTimeout;
             _maxLifetime = options.MaxLifetime;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
-            //TODO Implement remaining logic, if any
+#if TRACE
+            _logger?.LogTraceActiveSessionStoreConstructorExit();
+#endif
         }
 
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
+#if TRACE
+            _logger?.LogTraceActiveSessionStoreDisposing();
+#endif
+            _logger=null;
+            _disposed= true;
             if (_useOwnCache) _memoryCache.Dispose();
             GC.SuppressFinalize(this);
         }
@@ -87,26 +105,38 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public ActiveSession FetchOrCreate(ISession Session)
         {
             CheckDisposed();
+#if TRACE
+            _logger?.LogTraceFetchOrCreate();
+#endif
 
             ActiveSession result;
             String key = SessionKey(Session);
+            _logger?.LogDebugActiveSessionKeyToUse(key);
             if (_memoryCache.TryGetValue(key, out result))
             {
-                //TODO LogTrace Return existing ActiveSession for the session
+                _logger?.LogDebugFoundExistingActiveSession(key);
             }
             else
             {
-                //Create the new ActiveSession
+                _logger?.LogDebugCreateNewActiveSession(key);
                 ICacheEntry new_entry = _memoryCache.CreateEntry(key);
+#if TRACE
+                _logger?.LogTraceAddCacheEntry();
+#endif
                 new_entry.SlidingExpiration = _idleTimeout;
                 new_entry.AbsoluteExpirationRelativeToNow = _maxLifetime;
                 new_entry.Size = 1; //TODO Size from config?
                 new_entry.Value = result = new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger);
+#if TRACE
+                _logger?.LogTraceCreateActiveSessionObject();
+#endif
                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                 end_activesession.EvictionCallback = EndActiveSessionCallback;
                 new_entry.PostEvictionCallbacks.Add(end_activesession);
-                //TODO LogTrace Return new ActiveSession for the session
             }
+#if TRACE
+            _logger?.LogTraceFetchOrCreateExit();
+#endif
             return result;
         }
 
@@ -298,6 +328,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             public IDisposable? Disposable;
             public Int32 Number;
             public Boolean UnregisterNumber;
+
             public RunnerPostEvictionInfo(ActiveSession RunnerSession, IDisposable? Disposable, Int32 Number, Boolean UnregisterNumber)
             {
                 this.RunnerSession=RunnerSession;
