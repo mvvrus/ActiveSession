@@ -102,9 +102,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             GC.SuppressFinalize(this);
         }
 
-        public ActiveSession FetchOrCreate(ISession Session)
+        public ActiveSession FetchOrCreateSession(ISession Session, String? TraceIdentifier)
         {
             CheckDisposed();
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
 #if TRACE
             _logger?.LogTraceFetchOrCreate();
 #endif
@@ -150,9 +151,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        KeyedActiveSessionRunner<TResult> IActiveSessionStore.CreateRunner<TRequest, TResult>(
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(
             ActiveSession RunnerSession
             , TRequest Request
+            , String? TraceIdentifier
         )
         {
             IActiveSessionRunnerFactory<TRequest, TResult> factory =
@@ -225,7 +227,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             runner_info.RunnerSession.UnregisterRunner(runner_info.Number); 
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested, String? TraceIdentifier)
         {
             String? host_id;
             String runner_key = RunnerKey(RunnerSession, KeyRequested);
@@ -302,6 +304,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
             ActiveSession RunnerSession, 
             Int32 KeyRequested, 
+            String? TraceIdentifier, 
             CancellationToken Token
         )
         {

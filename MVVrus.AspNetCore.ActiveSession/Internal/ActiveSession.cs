@@ -6,12 +6,14 @@
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
         readonly ISession _session;
-        readonly ILogger _logger; //TODO - extract from scoped SP?
+        readonly ILogger? _logger; 
         bool _disposed;
         bool _isFresh = true;
         Int32 _newRunnerNumber;
 #pragma warning disable CS0169 // The field 'ActiveSession._keyMap' is never used
+#pragma warning disable IDE0051 // Remove unused private members
         readonly Byte[] ? _keyMap;
+#pragma warning restore IDE0051 // Remove unused private members
 #pragma warning restore CS0169 // The field 'ActiveSession._keyMap' is never used
         readonly Int32 _minRunnerNumber, _maxRunnerNumber;
         readonly CancellationTokenSource _completionTokenSource;
@@ -27,7 +29,7 @@
             IServiceScope SessionScope
             , IActiveSessionStore Store
             , ISession Session
-            , ILogger Logger
+            , ILogger? Logger
             , Int32 MinRunnerNumber = 0
             , Int32 MaxRunnerNumber = Int32.MaxValue
         )
@@ -47,23 +49,23 @@
             //TODO LogTrace?
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext? Context)
         {
             _isFresh = false;
             //TODO LogTrace?
-            return _store.CreateRunner<TRequest, TResult>(this, Request);
+            return _store.CreateRunner<TRequest, TResult>(this, Request, Context?.TraceIdentifier);
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext? Context)
         {
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey);
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey, Context?.TraceIdentifier);
             _isFresh = false;
             return fetched;
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, CancellationToken Token)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext? Context, CancellationToken Token)
         {
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, Token);
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, Context?.TraceIdentifier, Token);
             _isFresh=false;
             return fetched;
         }
@@ -78,7 +80,7 @@
             throw new NotImplementedException();
         }
 
-        public Task CommitAsync(CancellationToken CancellationToken)
+        public Task CommitAsync(CancellationToken CancellationToken, String? TraceIdentifier)
         {
             return _session.CommitAsync(CancellationToken);
         }

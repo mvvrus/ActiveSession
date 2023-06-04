@@ -1,4 +1,6 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
+﻿using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+
+namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class ActiveSessionFeature : IActiveSessionFeature
     {
@@ -7,12 +9,14 @@
         ISession? _session;
         IActiveSession _activeSession;
         bool _isLoaded;
+        String _trace_identifier;
 
-        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session)
+        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, String? TraceIdentifier)
         {
             _store = Store;
             _session = Session;
             _activeSession = DummySession;
+            _trace_identifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
         }
 
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
@@ -20,7 +24,7 @@
         public async Task CommitAsync(CancellationToken Token = default)
         {
             if (_isLoaded)
-                await _activeSession.CommitAsync(Token);
+                await _activeSession.CommitAsync(Token,_trace_identifier);
         }
 
         public void Clear()
@@ -31,6 +35,7 @@
                 _isLoaded = false;
             }
             _session = null;
+            _trace_identifier=UNKNOWN_TRACE_IDENTIFIER;
         }
 
         public bool IsLoaded { get { return _isLoaded; } }
@@ -45,7 +50,7 @@
                     if (_session != null)
                     {
                         await _session!.LoadAsync(Token);
-                        if (_session!.IsAvailable) _activeSession= _store.FetchOrCreate(_session);
+                        if (_session!.IsAvailable) _activeSession= _store.FetchOrCreateSession(_session, _trace_identifier);
                     }
                 }
                 catch
@@ -68,7 +73,7 @@
             {
                 if (_session != null)
                 {
-                    if(_session!.IsAvailable) _activeSession = _store.FetchOrCreate(_session);
+                    if(_session!.IsAvailable) _activeSession = _store.FetchOrCreateSession(_session, _trace_identifier);
                 }
             }
             catch

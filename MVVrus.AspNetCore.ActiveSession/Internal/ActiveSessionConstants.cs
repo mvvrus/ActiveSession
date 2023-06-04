@@ -7,6 +7,7 @@
         public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
         public static readonly String DEFAULT_HOST_NAME = "localhost";
         public static readonly String DEFAULT_SESSION_KEY_PREFIX = "##ActiveSession##";
+        public static readonly String UNKNOWN_TRACE_IDENTIFIER = "<unknown>";
 
     }
 }
