@@ -1,4 +1,6 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
+﻿using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+
+namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class ActiveSession : IActiveSession, IDisposable
     {
@@ -74,18 +76,17 @@
 
         public bool IsFresh => _isFresh;
 
-        public Task LoadAsync(CancellationToken cancellationToken = default)
-        {
-            //TODO
-            throw new NotImplementedException();
-        }
-
         public Task CommitAsync(CancellationToken CancellationToken, String? TraceIdentifier)
         {
             return _session.CommitAsync(CancellationToken);
         }
 
         public void Dispose()
+        {
+            Dispose(UNKNOWN_SESSION_KEY);
+        }
+
+        public void Dispose(String SessionKey)
         {
             if (_disposed) return;
             _disposed = true;

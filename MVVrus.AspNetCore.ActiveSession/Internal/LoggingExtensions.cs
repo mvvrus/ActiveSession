@@ -22,14 +22,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningActiveSessionStoreCannotCreateOwnCache(this ILogger Logger, Exception AnException);
 
 
-        [LoggerMessage(3000, Debug, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
-        public static partial void LogDebugActiveSessionMiddlewareRegistered(this ILogger Logger);
+        [LoggerMessage(2000, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
+        public static partial void LogInformationActiveSessionMiddlewareRegistered(this ILogger Logger);
 
-        [LoggerMessage(3001, Debug, "ActiveSession middleware is added to the middleware pipeline.")]
-        public static partial void LogDebugActiveSessionMiddlewareAdded(this ILogger Logger);
+        [LoggerMessage(2001, Information, "ActiveSession middleware is added to the middleware pipeline.")]
+        public static partial void LogInformationActiveSessionMiddlewareAdded(this ILogger Logger);
 
-        [LoggerMessage(3002, Debug, "ActiveSession middleware is invoked, TraceIdentifier=\"{TraceIdentifier}\", Session.Id=\"{SessionId}\".")]
-        public static partial void LogDebugActiveSessionMiddlewareInvoked(this ILogger Logger, String TraceIdentifier, String SessionId);
+
+        [LoggerMessage(3000, Debug, "ActiveSession feature is activated, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugActiveSessionFeatureActivated(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(3100, Debug, "ActiveSessionStore constructor will use the follwing options: {Options}.")]
         public static partial void LogDebugActiveSessionStoreConstructorOptions(this ILogger Logger, ActiveSessionOptions Options);
@@ -40,19 +41,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(3102, Debug, "ActiveSessionStore constructor created its own cache.")]
         public static partial void LogDebugActiveSessionStoreConstructorOwnCaheCreated(this ILogger Logger);
 
-        [LoggerMessage(3120, Debug, "ActiveSession key to use: \"{Key}\"")]
-        public static partial void LogDebugActiveSessionKeyToUse(this ILogger Logger, String Key);
+        [LoggerMessage(3120, Debug, "ActiveSession key to use: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugActiveSessionKeyToUse(this ILogger Logger, String Key, String TraceIdentifier);
 
-        [LoggerMessage(3121, Debug, "Found existing ActiveSession for the key: \"{Key}\"")]
-        public static partial void LogDebugFoundExistingActiveSession(this ILogger Logger, String Key);
+        [LoggerMessage(3121, Debug, "Found existing ActiveSession for the key: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugFoundExistingActiveSession(this ILogger Logger, String Key, String TraceIdentifier);
 
-        [LoggerMessage(3122, Debug, "Creating new ActiveSession for the key: \"{Key}\"")]
-        public static partial void LogDebugCreateNewActiveSession(this ILogger Logger, String Key);
+        [LoggerMessage(3122, Debug, "Creating new ActiveSession for the key: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateNewActiveSession(this ILogger Logger, String Key, String TraceIdentifier);
+
+        [LoggerMessage(3123, Debug, "Before Disposing the ActiveSession, SessionKey={SessionKey}")]
+        public static partial void LogDebugBeforeSessionDisposing(this ILogger Logger, String SessionKey);
 
         [LoggerMessage(3199, Debug, "")]
         public static partial void LogDebug99(this ILogger Logger);
 
-
+#if TRACE
         [LoggerMessage(4000, Trace, "Enetering ActiveSessionBuilderExtensions.UseActiveSessions.")]
         public static partial void LogTraceUseActiveSessions(this ILogger Logger);
 
@@ -98,20 +102,30 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4110, Trace, "Disposing ActiveSessionStore object")]
         public static partial void LogTraceActiveSessionStoreDisposing(this ILogger Logger);
 
-        [LoggerMessage(4120, Trace, "Enetering ActiveSessionStore.FetchOrCreate")]
-        public static partial void LogTraceFetchOrCreate(this ILogger Logger);
+        [LoggerMessage(4120, Trace, "Eneter ActiveSessionStore.FetchOrCreate, TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceFetchOrCreate(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4121, Trace, "Add a cache entry")]
-        public static partial void LogTraceAddCacheEntry(this ILogger Logger);
+        [LoggerMessage(4121, Trace, "Add a cache entry for an ActiveSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceAddCacheEntry(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4122, Trace, "Create a new ActiveSession and set it as the cache entry value")]
-        public static partial void LogTraceCreateActiveSessionObject(this ILogger Logger);
+        [LoggerMessage(4122, Trace, "Create a new ActiveSession and set it as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCreateActiveSessionObject(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4123, Trace, "//TODO LogTrace exiting FetchOrCreate")]
-        public static partial void LogTraceFetchOrCreateExit(this ILogger Logger);
+        [LoggerMessage(4123, Trace, "Exit ActiveSessionStore.FetchOrCreate, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceFetchOrCreateExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4124, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
+        public static partial void LogTraceSessionEvictionCallback(this ILogger Logger, String SessionKey);
+
+        [LoggerMessage(4125, Trace, "Evict all runners of the evicted session, SessionKey={SessionKey}")]
+        public static partial void LogTraceEvictRunners(this ILogger Logger, String SessionKey);
+
+        [LoggerMessage(4126, Trace, "Exit ActiveSession EvictionCallback, SessionKey={SessionKey}")]
+        public static partial void LogTraceSessionEvictionCallbackExit(this ILogger Logger, String SessionKey);
 
         [LoggerMessage(4199, Trace, "")]
         public static partial void LogTrace99(this ILogger Logger);
+#endif
 
         public record struct MemoryCacheOptionsForLogging
         {

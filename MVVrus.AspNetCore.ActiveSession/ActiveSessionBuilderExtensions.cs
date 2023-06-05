@@ -37,7 +37,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             try {
                 Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
                 Builder.UseMiddleware<ActiveSessionMiddleware>();
-                logger?.LogDebugActiveSessionMiddlewareRegistered();
+                logger?.LogInformationActiveSessionMiddlewareRegistered();
             }
             catch (Exception exception) {
                 logger?.LogWarningAbsentFactoryInplementations(exception);

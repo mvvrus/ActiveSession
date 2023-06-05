@@ -107,36 +107,34 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
 #if TRACE
-            _logger?.LogTraceFetchOrCreate();
+            _logger?.LogTraceFetchOrCreate(trace_identifier);
 #endif
 
             ActiveSession result;
             String key = SessionKey(Session);
-            _logger?.LogDebugActiveSessionKeyToUse(key);
+            _logger?.LogDebugActiveSessionKeyToUse(key, trace_identifier);
             if (_memoryCache.TryGetValue(key, out result))
-            {
-                _logger?.LogDebugFoundExistingActiveSession(key);
-            }
-            else
-            {
-                _logger?.LogDebugCreateNewActiveSession(key);
+                _logger?.LogDebugFoundExistingActiveSession(key, trace_identifier);
+            else {
+                _logger?.LogDebugCreateNewActiveSession(key, trace_identifier);
                 ICacheEntry new_entry = _memoryCache.CreateEntry(key);
 #if TRACE
-                _logger?.LogTraceAddCacheEntry();
+                _logger?.LogTraceAddCacheEntry(trace_identifier);
 #endif
                 new_entry.SlidingExpiration = _idleTimeout;
                 new_entry.AbsoluteExpirationRelativeToNow = _maxLifetime;
                 new_entry.Size = 1; //TODO Size from config?
                 new_entry.Value = result = new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger);
 #if TRACE
-                _logger?.LogTraceCreateActiveSessionObject();
+                _logger?.LogTraceCreateActiveSessionObject(trace_identifier);
 #endif
                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                 end_activesession.EvictionCallback = EndActiveSessionCallback;
+                end_activesession.State=trace_identifier;
                 new_entry.PostEvictionCallbacks.Add(end_activesession);
             }
 #if TRACE
-            _logger?.LogTraceFetchOrCreateExit();
+            _logger?.LogTraceFetchOrCreateExit(trace_identifier);
 #endif
             return result;
         }
@@ -144,11 +142,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         private void EndActiveSessionCallback(object key, object value, EvictionReason reason, object state)
         {
             ActiveSession? active_session = value as ActiveSession;
+            String session_key = state as String??UNKNOWN_SESSION_KEY;
+#if TRACE
+            _logger?.LogTraceSessionEvictionCallback(session_key);
+#endif
             if (active_session != null)
             {
+#if TRACE
+                _logger?.LogTraceEvictRunners(session_key);
+#endif
                 active_session.SignalCompletion(); //To evict all runners of the session
-                active_session.Dispose(); 
+                _logger?.LogDebugBeforeSessionDisposing(session_key);
+                active_session.Dispose(session_key); 
             }
+#if TRACE
+            _logger?.LogTraceSessionEvictionCallbackExit(session_key);
+#endif
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(
@@ -308,7 +317,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CancellationToken Token
         )
         {
-            await RunnerSession.LoadAsync(Token);
+            await RunnerSession.Session.LoadAsync(Token);
             String? host_id;
             String runner_key = RunnerKey(RunnerSession, KeyRequested);
             host_id=RunnerSession.Session.GetString(runner_key);

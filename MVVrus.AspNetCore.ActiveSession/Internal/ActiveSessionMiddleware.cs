@@ -18,7 +18,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             try {
                 _next=Next??throw new ArgumentNullException(nameof(Next));
                 _store=Store??throw new ArgumentNullException(nameof(Store));
-                _logger?.LogDebugActiveSessionMiddlewareAdded();
+                _logger?.LogInformationActiveSessionMiddlewareAdded();
             }
             catch (Exception exception) {
                 _logger?.LogErrorMiddlewareCannotBeCreated(exception);
@@ -37,13 +37,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #if TRACE
             _logger?.LogTraceInvokeActiveSessionMiddleware(Context.TraceIdentifier);
 #endif
-            IActiveSessionFeature feature = new ActiveSessionFeature(_store, Context.Features.Get<ISessionFeature>()?.Session);
+            IActiveSessionFeature feature = new ActiveSessionFeature(
+                _store, Context.Features.Get<ISessionFeature>()?.Session, Context.TraceIdentifier);
 #if TRACE
             _logger?.LogTraceActiveSessionMiddlewareFeatureCreated(Context.TraceIdentifier);
 #endif
             Context.Features.Set(feature);
-            if(_logger!=null && _logger!.IsEnabled(LogLevel.Debug)) 
-                _logger!.LogDebugActiveSessionMiddlewareInvoked(Context.TraceIdentifier, Context.Session.Id);
+            _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareInvokeRest(Context.TraceIdentifier);
