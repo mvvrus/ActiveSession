@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using System;
 using static Microsoft.Extensions.Logging.LogLevel;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
@@ -13,6 +14,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(3, Error, "Shared cache to be used is not available")]
         public static partial void LogErrorNoSharedCacheException(this ILogger Logger);
+
+        [LoggerMessage(4, Error, "The factory failed to create a runner and returned null, TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogErrorCreateRunnerFailure(this ILogger Logger, String TraceIdentifier);
 
 
         [LoggerMessage(1000, Warning, "Cannot obtain an ActiveSession store service from the application service container. The ActiveSession middleware cannot be registered. Was the IServiceCollection.AddActiveServices extension method called at least once?")]
@@ -52,6 +56,24 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(3123, Debug, "Before Disposing the ActiveSession, SessionKey={SessionKey}")]
         public static partial void LogDebugBeforeSessionDisposing(this ILogger Logger, String SessionKey);
+
+        [LoggerMessage(3124, Debug, "Exit ActiveSessionStore.FetchOrCreateSession due to the exception, the cache entry has been removed, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugFetchOrCreateExceptionalExit(this ILogger Logger, Exception AnException, String TraceIdentifier);
+
+        [LoggerMessage(3130, Debug, "A new runner was created Number={Key}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateNewRunner(this ILogger Logger, Int32 Key, String TraceIdentifier);
+
+        [LoggerMessage(3131, Debug, "Exit ActiveSessionStore.CreateRunner due to the exception, the cache entry has been removed, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateRunnerFailure(this ILogger Logger, Exception AnException, String TraceIdentifier);
+
+        [LoggerMessage(3132, Debug, "The runner factory was fetched from the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugGetRunnerFactoryFromCache(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
+
+        [LoggerMessage(3133, Debug, "The runner factory was created and is to be added to the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugInstatiateNewRunnerFactory(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
+
+        /*
+         */
 
         [LoggerMessage(3199, Debug, "")]
         public static partial void LogDebug99(this ILogger Logger);
@@ -102,16 +124,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4110, Trace, "Disposing ActiveSessionStore object")]
         public static partial void LogTraceActiveSessionStoreDisposing(this ILogger Logger);
 
-        [LoggerMessage(4120, Trace, "Eneter ActiveSessionStore.FetchOrCreate, TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(4120, Trace, "Eneter ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceFetchOrCreate(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4121, Trace, "Add a cache entry for an ActiveSession, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceAddCacheEntry(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(4121, Trace, "Added a cache entry for a new ActiveSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceAddActiveSessionCacheEntry(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4122, Trace, "Create a new ActiveSession and set it as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4122, Trace, "A new ActiveSession created and set as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceCreateActiveSessionObject(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4123, Trace, "Exit ActiveSessionStore.FetchOrCreate, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4123, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceFetchOrCreateExit(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(4124, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
@@ -122,6 +144,43 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(4126, Trace, "Exit ActiveSession EvictionCallback, SessionKey={SessionKey}")]
         public static partial void LogTraceSessionEvictionCallbackExit(this ILogger Logger, String SessionKey);
+
+        [LoggerMessage(4130, Trace, "Enter ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCreateRunner(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4131, Trace, "Added a cache entry for the new runner, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceAddRunnerCacheEntry(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4132, Trace, "The new runner created is set as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceSetRunnerCacheEntryValue(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4133, Trace, "Registering the new runner completion callback, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceSettingRunnerCompletionCallback(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4134, Trace, "Registering the new runner eviction callback, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisteringRunnerEvictionCallback(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4135, Trace, "Registering the new runner number for the session, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisteringTheRunner(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4136, Trace, "Exiting ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCreateRunnerExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4137, Trace, "Enter ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerFactory(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4138, Trace, "Storing the factory in the cache, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceStoreNewRunnerFactoryInCache(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4139, Trace, "Exiting ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerFactoryExit(this ILogger Logger, String TraceIdentifier);
+
+
+        /*
+         */
+
+        [LoggerMessage(4147, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
+        public static partial void LogTraceRunnerEvictionCallback(this ILogger Logger, String SessionKey);
 
         [LoggerMessage(4199, Trace, "")]
         public static partial void LogTrace99(this ILogger Logger);

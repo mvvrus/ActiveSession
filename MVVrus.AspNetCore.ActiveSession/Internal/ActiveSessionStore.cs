@@ -22,8 +22,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Boolean _cacheAsTask;
         bool _disposed = false;
         ILogger? _logger;
+        Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
 
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
+
+        readonly record struct FactoryKey(Type TRequest, Type TResult);
 
         internal static void RegisterTResult(Type TResult)
         {
@@ -118,20 +121,28 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             else {
                 _logger?.LogDebugCreateNewActiveSession(key, trace_identifier);
                 ICacheEntry new_entry = _memoryCache.CreateEntry(key);
+                try {
 #if TRACE
-                _logger?.LogTraceAddCacheEntry(trace_identifier);
+                    _logger?.LogTraceAddActiveSessionCacheEntry(trace_identifier);
 #endif
-                new_entry.SlidingExpiration = _idleTimeout;
-                new_entry.AbsoluteExpirationRelativeToNow = _maxLifetime;
-                new_entry.Size = 1; //TODO Size from config?
-                new_entry.Value = result = new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger);
+                    new_entry.SlidingExpiration=_idleTimeout;
+                    new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
+                    new_entry.Size=1; //TODO Size from config?
+                    new_entry.Value=result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger);
 #if TRACE
-                _logger?.LogTraceCreateActiveSessionObject(trace_identifier);
+                    _logger?.LogTraceCreateActiveSessionObject(trace_identifier);
 #endif
-                PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
-                end_activesession.EvictionCallback = EndActiveSessionCallback;
-                end_activesession.State=trace_identifier;
-                new_entry.PostEvictionCallbacks.Add(end_activesession);
+                    PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
+                    end_activesession.EvictionCallback=EndActiveSessionCallback;
+                    end_activesession.State=trace_identifier;
+                    new_entry.PostEvictionCallbacks.Add(end_activesession);
+
+                }
+                catch (Exception exception) {
+                    _memoryCache.Remove(key);
+                    _logger?.LogDebugFetchOrCreateExceptionalExit(exception,trace_identifier);
+                    throw;
+                }
             }
 #if TRACE
             _logger?.LogTraceFetchOrCreateExit(trace_identifier);
@@ -166,39 +177,102 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , String? TraceIdentifier
         )
         {
-            IActiveSessionRunnerFactory<TRequest, TResult> factory =
-                _rootServiceProvider.GetRequiredService<IActiveSessionRunnerFactory<TRequest, TResult>>();
-            IActiveSessionRunner<TResult>? runner = factory.Create(Request, RunnerSession.Services);
-            if (runner==null) {
-                //TODO Log the failure
-                throw new InvalidOperationException("Cannot create the runner: the factory returned null");
-            }
+            CheckDisposed();
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            IActiveSessionRunner<TResult>? runner;
+#if TRACE
+            _logger?.LogTraceCreateRunner(trace_identifier);
+#endif
             Int32 runner_number = RunnerSession.GetNewRunnerNumber();
 
-            //Store the runner in the cache
-            String runner_key = RunnerKey(RunnerSession,runner_number);
+            String runner_key = RunnerKey(RunnerSession, runner_number);
             ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key);
-            new_entry.SlidingExpiration=_idleTimeout;
-            new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
-            new_entry.Size=1; //TODO Size from config?
-            new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
-            PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
-            end_activesession.EvictionCallback=RunnerEvictionCallback;
-            end_activesession.State =
-                new RunnerPostEvictionInfo (RunnerSession, runner as IDisposable, runner_number, true);
-            //TODO Add callback for the runner completion
-            IChangeToken runner_completion_token = runner.GetCompletionToken();
-            if(runner_completion_token.ActiveChangeCallbacks) {
-                //TODO Create state info for the callback
-                runner_completion_token.RegisterChangeCallback(
-                    RunnerCompletionCallback, 
-                    new RunnerPostCompletionInfo(runner,runner_key)
-                ); 
+            try {
+#if TRACE
+                _logger?.LogTraceAddRunnerCacheEntry(trace_identifier);
+#endif
+                new_entry.SlidingExpiration=_idleTimeout;
+                new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
+                new_entry.Size=1; //TODO Size from config?
+                IActiveSessionRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
+                runner = factory.Create(Request, RunnerSession.Services);
+                if (runner==null) {
+                    _logger?.LogErrorCreateRunnerFailure(trace_identifier);
+                    throw new InvalidOperationException("The factory failed to create a runner and returned null");
+                }
+                _logger?.LogDebugCreateNewRunner(runner_number, trace_identifier);
+                new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
+#if TRACE
+                _logger?.LogTraceSetRunnerCacheEntryValue(trace_identifier);
+#endif
+                IChangeToken runner_completion_token = runner.GetCompletionToken();
+                if (runner_completion_token.ActiveChangeCallbacks) {
+#if TRACE
+                    _logger?.LogTraceSettingRunnerCompletionCallback(trace_identifier);
+#endif
+                    runner_completion_token.RegisterChangeCallback(
+                        RunnerCompletionCallback,
+                        new RunnerPostCompletionInfo(runner, runner_key)
+                    );
+                }
+#if TRACE
+                _logger?.LogTraceRegisteringRunnerEvictionCallback(trace_identifier);
+#endif
+                PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
+                end_runner.EvictionCallback=RunnerEvictionCallback;
+                end_runner.State=
+                    new RunnerPostEvictionInfo(RunnerSession, runner as IDisposable, runner_number, true);
+                new_entry.PostEvictionCallbacks.Add(end_runner);
+#if TRACE
+                _logger?.LogTraceRegisteringTheRunner(trace_identifier);
+#endif
+                RunnerSession.RegisterRunner(runner_number);
+                RegisterRunnerInSession(RunnerSession.Session, runner_key, typeof(TResult));
             }
-            new_entry.PostEvictionCallbacks.Add(end_activesession);
-            RunnerSession.RegisterRunner(runner_number); 
-            RegisterRunnerInSession(RunnerSession.Session, runner_key, typeof(TResult));
+            catch (Exception exception) {
+                _memoryCache.Remove(runner_key);
+                _logger?.LogDebugCreateRunnerFailure(exception, trace_identifier);
+                throw;
+            }
+#if TRACE
+            _logger?.LogTraceCreateRunnerExit(trace_identifier);
+#endif
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, Key=runner_number };
+        }
+
+        private IActiveSessionRunnerFactory<TRequest, TResult> GetRunnerFactory<TRequest, TResult>(String TraceIdentifier)
+        {
+#if TRACE
+            _logger?.LogTraceGetRunnerFactory(TraceIdentifier);
+#endif
+            FactoryKey key = new FactoryKey(typeof(TRequest),typeof(TResult));
+            String request_type_name = "<unknown>";
+            String result_type_name = "<unknown>";
+            if(_logger!=null && _logger!.IsEnabled(LogLevel.Debug)) {
+                request_type_name=key.TRequest.FullName!;
+                result_type_name=key.TResult.FullName!;
+            }
+            IActiveSessionRunnerFactory<TRequest, TResult>? factory = null;
+            if (_factoryCache!=null) {
+                if(_factoryCache.ContainsKey(key)) {
+                    factory=(IActiveSessionRunnerFactory<TRequest, TResult>)_factoryCache[key];
+                    _logger?.LogDebugGetRunnerFactoryFromCache(request_type_name, result_type_name, TraceIdentifier);
+                }
+            }
+            if(factory==null) {
+                factory=_rootServiceProvider.GetRequiredService<IActiveSessionRunnerFactory<TRequest, TResult>>();
+                _logger?.LogDebugInstatiateNewRunnerFactory(request_type_name, result_type_name, TraceIdentifier);
+                if (_factoryCache!=null) {
+#if TRACE
+                    _logger?.LogTraceStoreNewRunnerFactoryInCache(TraceIdentifier);
+#endif
+                    _factoryCache.TryAdd(key, factory);
+                }
+            }
+#if TRACE
+            _logger?.LogTraceGetRunnerFactoryExit(TraceIdentifier);
+#endif
+            return factory;
         }
 
         private void RunnerCompletionCallback(Object obj)
