@@ -72,6 +72,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(3133, Debug, "The runner factory was created and is to be added to the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugInstatiateNewRunnerFactory(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
 
+        [LoggerMessage(3150, Debug, "Extracting the local runner from cache, Number={Key}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugGetLocalRunnerFromCache(this ILogger Logger, Int32 Key, String TraceIdentifier);
+
+        [LoggerMessage(3151, Debug, "Trying to make a proxy for the remote runner, Number={Key}, HostId={HostId}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugProcessRemoteRunner(this ILogger Logger, Int32 Key, String HostId, String TraceIdentifier);
+
         /*
          */
 
@@ -175,15 +181,38 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4139, Trace, "Exiting ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactoryExit(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(4140, Trace, "The ActiveSessionStore.RunnerCompletionCallback entered, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRunnerCompletionCallback(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4141, Trace, "Evicting the completed runner, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRunnerCompletionRemoveAborted(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4142, Trace, "The ActiveSessionStore.RunnerCompletionCallback exited, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRunnerCompletionCallbackExit(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4143, Trace, "The ActiveSessionStore.RunnerEvictionCallback entered, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRunnerEvictionCallback(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4144, Trace, "Disposing the runner, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceDisposeRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4145, Trace, "Removing the runner-associated variables from the session, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceUnregisterRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4146, Trace, "Unregistering usage of the runner number, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceUnregisterRunnerNumber(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4147, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRunnerEvictionCallbackExit(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
 
         /*
          */
 
-        [LoggerMessage(4147, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
-        public static partial void LogTraceRunnerEvictionCallback(this ILogger Logger, String SessionKey);
-
         [LoggerMessage(4199, Trace, "")]
         public static partial void LogTrace99(this ILogger Logger);
+
+        [LoggerMessage(4198, Trace, ", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTrace98(this ILogger Logger, String TraceIdentifier);
 #endif
 
         public record struct MemoryCacheOptionsForLogging
