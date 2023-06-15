@@ -39,9 +39,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #endif
             IActiveSessionFeature feature = new ActiveSessionFeature(
                 _store, Context.Features.Get<ISessionFeature>()?.Session, Context.TraceIdentifier);
-#if TRACE
-            _logger?.LogTraceActiveSessionMiddlewareFeatureCreated(Context.TraceIdentifier);
-#endif
             Context.Features.Set(feature);
             _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
@@ -55,13 +52,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 await feature.CommitAsync();
             }
             catch (Exception exception) {
-                _logger?.LogErrorPipelineException(exception, Context.TraceIdentifier);
+                _logger?.LogTracePipelineException(exception, Context.TraceIdentifier);
                 throw;
             }
             finally {
-#if TRACE
-                _logger?.LogTraceActiveSessionMiddlewareCleanupStart(Context.TraceIdentifier);
-#endif
                 Context.Features.Set<IActiveSessionFeature>(null);
                 feature.Clear();
 #if TRACE

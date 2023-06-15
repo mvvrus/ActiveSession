@@ -9,13 +9,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(1, Error, "The exception occured while creating the ActiveSession middleware.")]
         public static partial void LogErrorMiddlewareCannotBeCreated(this ILogger Logger, Exception AnException);
 
-        [LoggerMessage(2, Error, "The exception occured while the rest of the pipeline, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogErrorPipelineException(this ILogger Logger, Exception AnException, String TraceIdentifier);
-
-        [LoggerMessage(3, Error, "Shared cache to be used is not available")]
+        [LoggerMessage(2, Error, "Shared cache to be used is not available")]
         public static partial void LogErrorNoSharedCacheException(this ILogger Logger);
 
-        [LoggerMessage(4, Error, "The factory failed to create a runner and returned null, TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(3, Error, "The factory failed to create a runner and returned null, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogErrorCreateRunnerFailure(this ILogger Logger, String TraceIdentifier);
 
 
@@ -100,19 +97,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4010, Trace, "Entering ActiveSessionMiddleware, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceInvokeActiveSessionMiddleware(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4011, Trace, "A feature object is created, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceActiveSessionMiddlewareFeatureCreated(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4012, Trace, "Invocing the rest of the middleware pipeline after the ActiveSession middleware, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4011, Trace, "Invoking the rest of the middleware pipeline after the ActiveSession middleware, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareInvokeRest(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4013, Trace, "Control from the rest of the pipeline was returned without exceptions, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4012, Trace, "Control from the rest of the pipeline was returned without exceptions, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareControlReturns(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4014, Trace, "Cleaning up the feature object, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceActiveSessionMiddlewareCleanupStart(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(4013, Trace, "An exception in the the pipeline has been caught, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTracePipelineException(this ILogger Logger, Exception AnException, String TraceIdentifier);
 
-        [LoggerMessage(4015, Trace, "ActiveSession middleware exited, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4014, Trace, "ActiveSession middleware exited, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareExit(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(4100, Trace, "The ActiveSessionStore constructor entered.")]
@@ -133,52 +127,37 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4120, Trace, "Eneter ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceFetchOrCreate(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4121, Trace, "Added a cache entry for a new ActiveSession, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceAddActiveSessionCacheEntry(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4122, Trace, "A new ActiveSession created and set as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceCreateActiveSessionObject(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4123, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4121, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceFetchOrCreateExit(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4124, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
+        [LoggerMessage(4122, Trace, "Enter ActiveSession eviction callback, SessionKey={SessionKey}")]
         public static partial void LogTraceSessionEvictionCallback(this ILogger Logger, String SessionKey);
 
-        [LoggerMessage(4125, Trace, "Evict all runners of the evicted session, SessionKey={SessionKey}")]
+        [LoggerMessage(4123, Trace, "Evict all runners of the evicted session, SessionKey={SessionKey}")]
         public static partial void LogTraceEvictRunners(this ILogger Logger, String SessionKey);
 
-        [LoggerMessage(4126, Trace, "Exit ActiveSession EvictionCallback, SessionKey={SessionKey}")]
+        [LoggerMessage(4124, Trace, "Exit ActiveSession EvictionCallback, SessionKey={SessionKey}")]
         public static partial void LogTraceSessionEvictionCallbackExit(this ILogger Logger, String SessionKey);
 
         [LoggerMessage(4130, Trace, "Enter ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceCreateRunner(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4131, Trace, "Added a cache entry for the new runner, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceAddRunnerCacheEntry(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(4131, Trace, "New runner to be created, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceNewRunnerInfoRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(4132, Trace, "The new runner created is set as the cache entry value, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceSetRunnerCacheEntryValue(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4133, Trace, "Registering the new runner completion callback, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4132, Trace, "Registering the new runner completion callback, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceSettingRunnerCompletionCallback(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4134, Trace, "Registering the new runner eviction callback, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceRegisteringRunnerEvictionCallback(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4135, Trace, "Registering the new runner number for the session, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceRegisteringTheRunner(this ILogger Logger, String TraceIdentifier);
-
-        [LoggerMessage(4136, Trace, "Exiting ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4133, Trace, "Exiting ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceCreateRunnerExit(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4137, Trace, "Enter ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4134, Trace, "Enter ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactory(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4138, Trace, "Storing the factory in the cache, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4135, Trace, "Storing the factory in the cache, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceStoreNewRunnerFactoryInCache(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4139, Trace, "Exiting ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4136, Trace, "Exiting ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactoryExit(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(4140, Trace, "The ActiveSessionStore.RunnerCompletionCallback entered, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
@@ -196,13 +175,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4144, Trace, "Disposing the runner, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceDisposeRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
 
-        [LoggerMessage(4145, Trace, "Removing the runner-associated variables from the session, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
-
-        [LoggerMessage(4146, Trace, "Unregistering usage of the runner number, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunnerNumber(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
-
-        [LoggerMessage(4147, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        [LoggerMessage(4145, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceRunnerEvictionCallbackExit(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
 
         /*
