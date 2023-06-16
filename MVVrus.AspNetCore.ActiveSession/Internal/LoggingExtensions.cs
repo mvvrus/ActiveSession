@@ -15,12 +15,21 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(3, Error, "The factory failed to create a runner and returned null, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogErrorCreateRunnerFailure(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(4, Error, "Using remote runners is not allowed by configuration setting ThrowOnRemoteRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogErrorRemoteRunnerUnavailable(this ILogger Logger, String TraceIdentifier);
+
 
         [LoggerMessage(1000, Warning, "Cannot obtain an ActiveSession store service from the application service container. The ActiveSession middleware cannot be registered. Was the IServiceCollection.AddActiveServices extension method called at least once?")]
         public static partial void LogWarningAbsentFactoryInplementations(this ILogger Logger, Exception AnException);
 
         [LoggerMessage(1100, Warning, "ActiveSessionStore constructor: cannot create our own cache, fall back to the shared cache.")]
         public static partial void LogWarningActiveSessionStoreCannotCreateOwnCache(this ILogger Logger, Exception AnException);
+
+        [LoggerMessage(1160, Warning, "The runner is expected to be in the local cache but cannot be returned: no runner in the cache or the runner type is uncompatible, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogWarningNoExpectedRunnerInCache(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(1169, Warning, "Accessing the remote runner is not implemented, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogWarningRemoteRunnerUnavailable(this ILogger Logger, String TraceIdentifier);
 
 
         [LoggerMessage(2000, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
@@ -75,11 +84,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(3151, Debug, "Trying to make a proxy for the remote runner, Number={Key}, HostId={HostId}, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugProcessRemoteRunner(this ILogger Logger, Int32 Key, String HostId, String TraceIdentifier);
 
-        /*
-         */
-
-        [LoggerMessage(3199, Debug, "")]
-        public static partial void LogDebug99(this ILogger Logger);
 
 #if TRACE
         [LoggerMessage(4000, Trace, "Enetering ActiveSessionBuilderExtensions.UseActiveSessions.")]
@@ -199,15 +203,32 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4156, Trace, "Exiting ActiveSessionStore.GetRunnerAsync, RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerAsyncExit(this ILogger Logger, Boolean RunnerFound, String TraceIdentifier);
 
+        [LoggerMessage(4160, Trace, "Enter ActiveSessionStore.RegisterRunnerInSession, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisterRunnerInSession(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(4161, Trace, "Exit ActiveSessionStore.RegisterRunnerInSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisterRunnerInSessionExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4162, Trace, "Enter ActiveSessionStore.UnregisterRunnerInSession, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceUnregisterRunnerInSession(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4163, Trace, "Exit ActiveSessionStore.UnregisterRunnerInSession, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceUnregisterRunnerInSessionExit(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
+
+        [LoggerMessage(4164, Trace, "Enter ActiveSessionStore.ExtractRunnerFromCache, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceExtractRunnerFromCache(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(4165, Trace, "The local runner is found in the cache, returning it, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceReturnRunnerFromCache(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4166, Trace, "The local runner is not found in the cache, while being registered in the session, unregistering it, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceNoExpectedRunnerInCache(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4167, Trace, "Exit ActiveSessionStore.ExtractRunnerFromCache, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceExtractRunnerFromCacheExit(this ILogger Logger, String TraceIdentifier);
+
         /*
-         * LogTraceAwaitForProxyCreation
          */
-
-        [LoggerMessage(4199, Trace, "")]
-        public static partial void LogTrace99(this ILogger Logger);
-
-        [LoggerMessage(4198, Trace, ", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTrace98(this ILogger Logger, String TraceIdentifier);
 #endif
 
         public record struct MemoryCacheOptionsForLogging
