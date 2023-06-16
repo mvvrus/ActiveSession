@@ -11,6 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     {
         const string TYPE_KEY_PART = "_Type";
 
+        #region InstannceFields
         readonly IMemoryCache _memoryCache;
         readonly IServiceProvider _rootServiceProvider;
         readonly string _prefix;
@@ -23,16 +24,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         bool _disposed = false;
         ILogger? _logger;
         Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
+        #endregion
 
+        #region StaticStuff
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
-
-        readonly record struct FactoryKey(Type TRequest, Type TResult);
-
         internal static void RegisterTResult(Type TResult)
         {
             s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
         }
+        #endregion
 
+        #region PublicAPI
         public ActiveSessionStore(
             IMemoryCache Cache,
             IServiceProvider RootServiceProvider,
@@ -211,26 +213,124 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, Key=runner_number };
         }
 
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested, String? TraceIdentifier)
+        {
+            CheckDisposed();
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String runner_session_key = SessionKey(RunnerSession.Session.Id);
+            IActiveSessionRunner<TResult>? result = null;
+#if TRACE
+            //Log entrance
+            _logger?.LogTraceGetRunner(runner_session_key, KeyRequested, trace_identifier);
+#endif
+            String? host_id;
+            String runner_key = RunnerKey(RunnerSession, KeyRequested);
+            host_id=RunnerSession.Session.GetString(runner_key);
+            if (host_id==null) {
+#if TRACE
+                _logger?.LogTraceNoRunnerInSession(trace_identifier);
+#endif
+            }
+            else if (host_id==_hostId) {
+                _logger?.LogDebugGetLocalRunnerFromCache(KeyRequested, trace_identifier);
+                result=ExtractRunnerFromCache<TResult>(runner_key);
+            }
+            else {
+                _logger?.LogDebugProcessRemoteRunner(KeyRequested, host_id, trace_identifier);
+                result=MakeRemoteRunnerAsync<TResult>(RunnerSession, host_id, runner_key).GetAwaiter().GetResult();
+            }
+#if TRACE
+            _logger?.LogTraceGetRunnerExit(result!=null,trace_identifier);
+#endif
+            return result;
+        }
+
+        public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+            ActiveSession RunnerSession,
+            Int32 KeyRequested,
+            String? TraceIdentifier,
+            CancellationToken Token
+        )
+        {
+            CheckDisposed();
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            IActiveSessionRunner<TResult>? result = null;
+#if TRACE
+            _logger?.LogTraceGetRunnerAsync(trace_identifier);
+#endif
+            await RunnerSession.Session.LoadAsync(Token);
+            String runner_session_key = SessionKey(RunnerSession.Session.Id);
+#if TRACE
+            _logger?.LogTraceGetRunnerAsyncInfoRunner(runner_session_key, KeyRequested, trace_identifier);
+#endif
+            String? host_id;
+            String runner_key = RunnerKey(RunnerSession, KeyRequested);
+            host_id=RunnerSession.Session.GetString(runner_key);
+            if (host_id==null) {
+#if TRACE
+                _logger?.LogTraceNoRunnerInSession(trace_identifier);
+#endif
+                result= null;
+            }
+            else if (host_id==_hostId) {
+                _logger?.LogDebugGetLocalRunnerFromCache(KeyRequested, trace_identifier);
+                result= ExtractRunnerFromCache<TResult>(runner_key);
+            }
+            else {
+                _logger?.LogDebugProcessRemoteRunner(KeyRequested, host_id, trace_identifier);
+#if TRACE
+                _logger?.LogTraceAwaitForProxyCreation(trace_identifier);
+#endif
+                result= await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key, host_id, Token);
+            }
+#if TRACE
+            _logger?.LogTraceGetRunnerAsyncExit(result!=null, trace_identifier);
+#endif
+            return result;
+        }
+        #endregion
+
+        #region PrivateMethods
+        private void EndActiveSessionCallback(object key, object value, EvictionReason reason, object state)
+        {
+            ActiveSession? active_session = value as ActiveSession;
+            String session_key = state as String??UNKNOWN_SESSION_KEY;
+#if TRACE
+            _logger?.LogTraceSessionEvictionCallback(session_key);
+#endif
+            if (active_session!=null) {
+#if TRACE
+                _logger?.LogTraceEvictRunners(session_key);
+#endif
+                active_session.SignalCompletion(); //To evict all runners of the session
+                _logger?.LogDebugBeforeSessionDisposing(session_key);
+                active_session.Dispose(session_key);
+            }
+#if TRACE
+            _logger?.LogTraceSessionEvictionCallbackExit(session_key);
+#endif
+        }
+
         private IActiveSessionRunnerFactory<TRequest, TResult> GetRunnerFactory<TRequest, TResult>(String TraceIdentifier)
         {
 #if TRACE
             _logger?.LogTraceGetRunnerFactory(TraceIdentifier);
 #endif
-            FactoryKey key = new FactoryKey(typeof(TRequest),typeof(TResult));
+            FactoryKey key = new FactoryKey(typeof(TRequest), typeof(TResult));
             String request_type_name = "<unknown>";
             String result_type_name = "<unknown>";
-            if(_logger!=null && _logger!.IsEnabled(LogLevel.Debug)) {
+            if (_logger!=null&&_logger!.IsEnabled(LogLevel.Debug)) {
                 request_type_name=key.TRequest.FullName!;
                 result_type_name=key.TResult.FullName!;
             }
             IActiveSessionRunnerFactory<TRequest, TResult>? factory = null;
             if (_factoryCache!=null) {
-                if(_factoryCache.ContainsKey(key)) {
+                if (_factoryCache.ContainsKey(key)) {
                     factory=(IActiveSessionRunnerFactory<TRequest, TResult>)_factoryCache[key];
                     _logger?.LogDebugGetRunnerFactoryFromCache(request_type_name, result_type_name, TraceIdentifier);
                 }
             }
-            if(factory==null) {
+            if (factory==null) {
                 factory=_rootServiceProvider.GetRequiredService<IActiveSessionRunnerFactory<TRequest, TResult>>();
                 _logger?.LogDebugInstatiateNewRunnerFactory(request_type_name, result_type_name, TraceIdentifier);
                 if (_factoryCache!=null) {
@@ -261,8 +361,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #endif
                     _memoryCache.Remove(runner_key);
                     break;
-                //TODO Add other completion states if required
-                default: break;
+                default:
+                    break;
             }
 #if TRACE
             _logger?.LogTraceRunnerCompletionCallbackExit(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
@@ -281,92 +381,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #endif
                 runner_info.Disposable!.Dispose();
             }
-            UnregisterRunnerInSession(runner_info.RunnerSession.Session, RunnerKey(runner_info.RunnerSessionKey,runner_info.Number));
+            UnregisterRunnerInSession(runner_info.RunnerSession.Session, RunnerKey(runner_info.RunnerSessionKey, runner_info.Number));
             runner_info.RunnerSession.UnregisterRunner(runner_info.Number);
 #if TRACE
             _logger?.LogTraceRunnerEvictionCallbackExit(runner_info.RunnerSessionKey, runner_info.Number);
-#endif
-        }
-
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ActiveSession RunnerSession, int KeyRequested, String? TraceIdentifier)
-        {
-            CheckDisposed();
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            IActiveSessionRunner<TResult>? result = null;
-#if TRACE
-            //Log entrance
-            _logger?.LogTrace98(trace_identifier);
-#endif
-            String? host_id;
-            String runner_key = RunnerKey(RunnerSession, KeyRequested);
-#if TRACE
-            //Log search for the runner
-            _logger?.LogTrace98(trace_identifier);
-#endif
-            host_id=RunnerSession.Session.GetString(runner_key);
-            if (host_id==null) {
-#if TRACE
-                //Log the runner with this number is not registered
-                _logger?.LogTrace98(trace_identifier);
-#endif
-            }
-            else if (host_id==_hostId) {
-                _logger?.LogDebugGetLocalRunnerFromCache(KeyRequested, trace_identifier);
-                result=ExtractRunnerFromCache<TResult>(runner_key);
-            }
-            else {
-                _logger?.LogDebugProcessRemoteRunner(KeyRequested, host_id, trace_identifier);
-                result=MakeRemoteRunnerAsync<TResult>(RunnerSession, host_id, runner_key).GetAwaiter().GetResult();
-            }
-#if TRACE
-            //Log exit
-            _logger?.LogTrace98(trace_identifier);
-#endif
-            return result;
-        }
-
-        public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            ActiveSession RunnerSession,
-            Int32 KeyRequested,
-            String? TraceIdentifier,
-            CancellationToken Token
-        )
-        {
-            await RunnerSession.Session.LoadAsync(Token);
-            String? host_id;
-            String runner_key = RunnerKey(RunnerSession, KeyRequested);
-            host_id=RunnerSession.Session.GetString(runner_key);
-            if (host_id==null) {
-                //TODO? log that runner does not exist
-                return null;
-            }
-            if (host_id==_hostId) {
-                return ExtractRunnerFromCache<TResult>(runner_key);
-            }
-            else {
-                //TODO Trace remote runner
-                return await MakeRemoteRunnerAsync<TResult>(RunnerSession, runner_key, host_id, Token);
-            }
-        }
-
-
-        private void EndActiveSessionCallback(object key, object value, EvictionReason reason, object state)
-        {
-            ActiveSession? active_session = value as ActiveSession;
-            String session_key = state as String??UNKNOWN_SESSION_KEY;
-#if TRACE
-            _logger?.LogTraceSessionEvictionCallback(session_key);
-#endif
-            if (active_session!=null) {
-#if TRACE
-                _logger?.LogTraceEvictRunners(session_key);
-#endif
-                active_session.SignalCompletion(); //To evict all runners of the session
-                _logger?.LogDebugBeforeSessionDisposing(session_key);
-                active_session.Dispose(session_key);
-            }
-#if TRACE
-            _logger?.LogTraceSessionEvictionCallbackExit(session_key);
 #endif
         }
 
@@ -457,6 +475,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             return $"{SessionKey(RunnerSession.Session.Id)}_{RunnerNumber}";
         }
+        #endregion
+
+        #region AuxilaryTypes
+        readonly record struct FactoryKey(Type TRequest, Type TResult);
 
         internal class RunnerPostEvictionInfo
         {
@@ -495,5 +517,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 this.RunnerNumber=RunnerNumber;
             }
         }
+        #endregion
     }
 }

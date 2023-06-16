@@ -178,7 +178,29 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4145, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceRunnerEvictionCallbackExit(this ILogger Logger, String SessionKey, Int32 RunnerNumber);
 
+        [LoggerMessage(4150, Trace, "Entering ActiveSessionStore.GetRunner, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(4151, Trace, "No value for the runner in the session the was found, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceNoRunnerInSession(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4152, Trace, "Exiting ActiveSessionStore.GetRunner, RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerExit(this ILogger Logger, Boolean RunnerFound, String TraceIdentifier);
+
+        [LoggerMessage(4153, Trace, "Enter ActiveSessionStore.GetRunnerAsync, awaiting until the session is loaded, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsync(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4154, Trace, "The session is loaded and the runner info is known now: SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsyncInfoRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(4155, Trace, "Awaiting until the proxy is created, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceAwaitForProxyCreation(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4156, Trace, "Exiting ActiveSessionStore.GetRunnerAsync, RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsyncExit(this ILogger Logger, Boolean RunnerFound, String TraceIdentifier);
+
         /*
+         * LogTraceAwaitForProxyCreation
          */
 
         [LoggerMessage(4199, Trace, "")]
