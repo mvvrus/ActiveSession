@@ -1,9 +1,10 @@
 ﻿[*.cs]
+dotnet_diagnostic.CA1822.severity = none
 
-# IDE0055: Fix formatting
-dotnet_diagnostic.IDE0055.severity = none
-dotnet_diagnostic.IDE0090.severity = none
 dotnet_diagnostic.IDE0017.severity = none
 dotnet_diagnostic.IDE0018.severity = none
 dotnet_diagnostic.IDE0019.severity = none
+dotnet_diagnostic.IDE0054.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0090.severity = none
 

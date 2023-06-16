@@ -55,6 +55,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="CancellationToken"></param>
         /// <param name="TraceIdentifier"></param>
         /// <returns></returns>
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         Task CommitAsync(CancellationToken CancellationToken = default, String? TraceIdentifier = null ); 
+#pragma warning restore CA1068 // CancellationToken parameters must come last
     }
 }

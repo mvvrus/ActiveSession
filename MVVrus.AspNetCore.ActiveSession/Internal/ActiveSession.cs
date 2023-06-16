@@ -17,7 +17,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Byte[] ? _keyMap;
 #pragma warning restore IDE0051 // Remove unused private members
 #pragma warning restore CS0169 // The field 'ActiveSession._keyMap' is never used
+#pragma warning disable IDE0052 // Remove unread private members
         readonly Int32 _minRunnerNumber, _maxRunnerNumber;
+#pragma warning restore IDE0052 // Remove unread private members
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
 

@@ -23,7 +23,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Boolean _cacheAsTask;
         bool _disposed = false;
         ILogger? _logger;
-        Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
+        readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
         #endregion
 
         #region StaticStuff
@@ -455,12 +455,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
+
         private Task<IActiveSessionRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
+#pragma warning disable IDE0060 // Remove unused parameter
             ActiveSession RunnerSession,
             String HostId,
             String RunnerKey,
             String TraceIdentifier,
             CancellationToken Token=default
+#pragma warning restore IDE0060 // Remove unused parameter
         )
         {
             _logger?.LogWarningRemoteRunnerUnavailable(TraceIdentifier);
