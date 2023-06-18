@@ -8,7 +8,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
         readonly ISession _session;
-        readonly ILogger? _logger; 
+        readonly ILogger? _logger;
+        readonly String _sessionId;
         bool _disposed;
         bool _isFresh = true;
         Int32 _newRunnerNumber;
@@ -23,26 +24,26 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
 
-        public CancellationToken CompletionToken { get {return _completionTokenSource.Token; } }
-
-        public void SignalCompletion() { 
-            _completionTokenSource.Cancel();
-        }
-
         public ActiveSession(
             IServiceScope SessionScope
             , IActiveSessionStore Store
             , ISession Session
             , ILogger? Logger
+            , String? TraceIdentifier = null
             , Int32 MinRunnerNumber = 0
             , Int32 MaxRunnerNumber = Int32.MaxValue
         )
         {
-            _scope = SessionScope;
+            _logger=Logger;
+            _sessionId=Session.Id;
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
+#endif
+            _scope= SessionScope;
             _services = _scope.ServiceProvider;
             _store = Store;
             _session = Session;
-            _logger=Logger;
             _completionTokenSource = new CancellationTokenSource();
             _runnersCounter=new CountdownEvent(1);
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
@@ -50,27 +51,55 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (MaxRunnerNumber!=Int32.MaxValue) { 
                 //TODO Implement runner number reusage
             }
+#if TRACE
+            _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
+#endif
             //TODO LogTrace?
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext? Context)
         {
+            CheckDisposed();
+            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
+#endif
+            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(this, Request, trace_identifier);
             _isFresh = false;
             //TODO LogTrace?
-            return _store.CreateRunner<TRequest, TResult>(this, Request, Context?.TraceIdentifier);
+#if TRACE
+            _logger?.LogTraceCreateActiveSessionCreateRunnerExit(trace_identifier);
+#endif
+            return created; 
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext? Context)
         {
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey, Context?.TraceIdentifier);
+            CheckDisposed();
+            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
+#endif
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey, trace_identifier);
             _isFresh = false;
+#if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
+#endif
             return fetched;
         }
 
         public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext? Context, CancellationToken Token)
         {
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, Context?.TraceIdentifier, Token);
+            CheckDisposed();
+            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
+#endif
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, trace_identifier, Token);
             _isFresh=false;
+#if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
+#endif
             return fetched;
         }
 
@@ -80,19 +109,43 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Task CommitAsync(CancellationToken CancellationToken, String? TraceIdentifier)
         {
-            return _session.CommitAsync(CancellationToken);
+            CheckDisposed();
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionCommitAsync(_sessionId, trace_identifier);
+#endif
+            Task result = _session.CommitAsync(CancellationToken);
+#if TRACE
+            _logger?.LogTraceActiveSessionCommitAsyncExit(trace_identifier);
+#endif
+            return result;
+                
+        }
+
+        public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }
+
+        public void SignalCompletion()
+        {
+            if (_disposed) return;
+            SignalCompletionInternal();
+        }
+
+        void SignalCompletionInternal()
+        {
+#if TRACE
+            _logger?.LogTraceActiveSessionSignalCompletion(_sessionId);
+#endif
+            _completionTokenSource.Cancel();
         }
 
         public void Dispose()
         {
-            Dispose(UNKNOWN_SESSION_KEY);
-        }
-
-        public void Dispose(String SessionKey)
-        {
             if (_disposed) return;
-            _disposed = true;
-            SignalCompletion(); //Just in case, usually this is called by post-eviction proc.
+#if TRACE
+            _logger?.LogTraceActiveSessionDispose(_sessionId);
+#endif
+            _disposed=true;
+            SignalCompletionInternal(); //Just in case, usually this is called by post-eviction proc.
             Task.Run(CompleteDispose);
         }
 
@@ -100,27 +153,70 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void CompleteDispose()
         {
+#if TRACE
+            _logger?.LogTraceActiveSessionCompleteDispose(_sessionId);
+#endif
             _runnersCounter.Signal();
-            _runnersCounter.Wait(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
+#if TRACE
+            _logger?.LogTraceActiveSessionCompleteDisposeWaitForRunners(_sessionId);
+#endif
+            Boolean wait_succeded=_runnersCounter.Wait(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
+#if TRACE
+            _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);
+#endif
             _scope.Dispose();
             _completionTokenSource.Dispose();
-            Dispose();
+#if TRACE
+            _logger?.LogTraceActiveSessionCompleteDisposeExit(_sessionId);
+#endif
         }
 
-        public void RegisterRunner (int Key)
+        private void CheckDisposed()
         {
+            throw new ObjectDisposedException(this.GetType().FullName!);
+        }
+
+        public void RegisterRunner (int RunnerNumber)
+        {
+#if TRACE
+            _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
+#endif
             _runnersCounter.AddCount();    
         }
-        public void UnregisterRunner(int Key)
+
+        public void UnregisterRunner(int RunnerNumber)
         {
+#if TRACE
+            _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
+#endif
             _runnersCounter.Signal();
+            ReturnRunnerNumber(RunnerNumber);
         }
 
-        public Int32 GetNewRunnerNumber()
+        public void ReturnRunnerNumber(Int32 RunnerNumber)
         {
-            if (_newRunnerNumber>_maxRunnerNumber)
-                throw new InvalidOperationException("Runner number reusage is not implmented yet");
-            return _newRunnerNumber++;
+#if TRACE
+            _logger?.LogTraceReturnRunnerNumber(_sessionId, RunnerNumber);
+#endif
+            //Do nothing until RunnerNumber reusage is implemented
+        }
+
+
+        public Int32 GetNewRunnerNumber(String? TraceIdentifier=null)
+        {
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
+#endif
+            if (_newRunnerNumber>_maxRunnerNumber) {
+                _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
+                throw new InvalidOperationException("Cannot acquire a new runner number");
+            }
+            int result = _newRunnerNumber++;
+#if TRACE
+            _logger?.LogTraceGetNewRunnerNumberExit(_sessionId, result, trace_identifier);
+#endif
+            return result;
         }
 
         public IServiceProvider Services { get { return _services; } }

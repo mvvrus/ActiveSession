@@ -22,23 +22,23 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A method used to search for an existing runner
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="Key">An <see cref="Int32"/>  key specifying the runner to search for</param>
+        /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
         /// <param name="Context"><see cref="HttpContext"/> of the request this call is processing.</param>
         /// <returns>The existing runner (of type <see cref="IActiveSessionRunner{TResult}"/>) if any or null</returns>
         /// <remarks><paramref name="Context"/> parameter is now used just for tracing purposes</remarks>
-        IActiveSessionRunner<TResult>? GetRunner<TResult>(int Key, HttpContext? Context=null);
+        IActiveSessionRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext? Context=null);
 
         /// <summary>
         /// An asynchronous version of <see cref="GetRunner{TResult}(int, HttpContext?)"/> method.
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="Key">An <see cref="Int32"/>  key specifying the runner to search for</param>
+        /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
         /// <param name="Context"><see cref="HttpContext"/> of the request this call is processing.</param>
         /// <param name="CancellationToken"></param>
         /// <returns>A <see cref="ValueTask{T}"/> wrapping the existing runner (of type <see cref="IActiveSessionRunner{TResult}"/>) if any or null</returns>
         /// <remarks><paramref name="Context"/> parameter is now used just for tracing purposes</remarks>
         ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            int Key, 
+            int RunnerNumber, 
             HttpContext? Context=null, 
             CancellationToken CancellationToken = default
         );

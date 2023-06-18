@@ -12,15 +12,15 @@
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
         /// <param name="ActiveSession">Active Session (implmentation of <see cref="IActiveSession"/> interface) in which the runner is created</param>
         /// <param name="Request">Initialization data (of type <typeparamref name="TRequest"/>)</param>
-        /// <param name="Key">Output parameter accepting the <see cref="Int32"/> key for the created runner </param>
+        /// <param name="RunnerNumber">Output parameter accepting the <see cref="Int32"/> key for the created runner </param>
         /// <returns>The created runner (of type <see cref="IActiveSessionRunner{TResult}"/>) </returns>
         public static IActiveSessionRunner<TResult> GetNewRunner<TRequest, TResult>(
             this IActiveSession ActiveSession, 
             TRequest Request,
-            out Int32 Key
+            out Int32 RunnerNumber
             ) 
         {
-            (IActiveSessionRunner<TResult> runner, Key)=ActiveSession.CreateRunner<TRequest, TResult>(Request);
+            (IActiveSessionRunner<TResult> runner, RunnerNumber)=ActiveSession.CreateRunner<TRequest, TResult>(Request);
             return runner;
         }
 
@@ -29,11 +29,11 @@
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
         /// <param name="ActiveSession">Active Session (implmentation of <see cref="IActiveSession"/> interface) in which the runner is created</param>
-        /// <param name="Key">An <see cref="Int32"/>  key specifying the runner to search for</param>
+        /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
         /// <returns>The existing runner (of type <see cref="IActiveSessionRunner{TResult}"/>) if any or null</returns>
-        public static IActiveSessionRunner<TResult>? GetExistingRunner<TResult> (this IActiveSession ActiveSession, Int32 Key)
+        public static IActiveSessionRunner<TResult>? GetExistingRunner<TResult> (this IActiveSession ActiveSession, Int32 RunnerNumber)
         {
-            return ActiveSession.GetRunner<TResult>(Key);
+            return ActiveSession.GetRunner<TResult>(RunnerNumber);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
         /// <param name="ActiveSession">Active Session (implmentation of <see cref="IActiveSession"/> interface) in which the runner is searched for or created</param>
         /// <param name="Request">Initialization data (of type <typeparamref name="TRequest"/>)</param>
-        /// <param name="Key">
+        /// <param name="RunnerNumber">
         /// Input and output parameter. As an input parameter it specifies an <see cref="Int32"/> key of the runner to search for.
         /// As an output parameter it accepts the <see cref="Int32"/> key for the created runner 
         /// </param>
@@ -51,11 +51,11 @@
         public static IActiveSessionRunner<TResult> GetAnyRunner<TRequest, TResult>(
             this IActiveSession ActiveSession,
             TRequest Request,
-            ref Int32 Key
+            ref Int32 RunnerNumber
             )
         {
-            return ActiveSession.GetRunner<TResult>(Key) ?? 
-                ActiveSession.GetNewRunner<TRequest, TResult>(Request, out Key);
+            return ActiveSession.GetRunner<TResult>(RunnerNumber) ?? 
+                ActiveSession.GetNewRunner<TRequest, TResult>(Request, out RunnerNumber);
         }
 
     }
