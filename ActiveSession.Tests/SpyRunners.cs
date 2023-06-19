@@ -1,4 +1,6 @@
-﻿namespace ActiveSession.Tests
+﻿using Microsoft.Extensions.Primitives;
+
+namespace ActiveSession.Tests
 {
     public class SpyRunnerBase<TResult> : IActiveSessionRunner<TResult>
     {
@@ -6,12 +8,27 @@
 
         public int Position => throw new NotImplementedException();
 
+        public void Abort()
+        {
+            throw new NotImplementedException();
+        }
+
         public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition)
         {
             throw new NotImplementedException();
         }
 
+        public IChangeToken GetCompletionToken()
+        {
+            throw new NotImplementedException();
+        }
+
         public ValueTask<ActiveSessionRunnerResult<TResult>> GetMore(int StartPosition, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }

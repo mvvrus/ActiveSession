@@ -232,10 +232,11 @@ namespace MVVrus.AspNetCore.ActiveSession
                     Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>)
                         .MakeGenericType(type_args);
                     int extra_params_length = (ExtraArguments?.Length??0);
-                    Object[] factory_impl_params = new Object[extra_params_length+1];
+                    Object[] factory_impl_params = new Object[extra_params_length+2];
                     if (extra_params_length>0)
-                        Array.Copy(ExtraArguments!, 0, factory_impl_params, 1, extra_params_length);
+                        Array.Copy(ExtraArguments!, 0, factory_impl_params, 2, extra_params_length);
                     factory_impl_params[0]=runner_type;
+                    factory_impl_params[1]=typeof(ILoggerFactory);
                     Object factory_impl_object = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)
                         .GetConstructors()[0]
