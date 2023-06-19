@@ -17,52 +17,52 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             _logger=Logger;
             _trace_identifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureConstructor(_trace_identifier);
-#endif
+            #endif
             _store= Store;
             _session = Session;
             _activeSession = DummySession;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureConstructorExit(_trace_identifier);
-#endif
+            #endif
         }
 
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
 
         public async Task CommitAsync(CancellationToken Token = default)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureCommitAsync(_trace_identifier);
-#endif
+            #endif
             if (_isLoaded) {
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionFeatureCommitAsyncActiveSessionWait(_trace_identifier);
-#endif
+                #endif
                 await _activeSession.CommitAsync(Token, _trace_identifier);
             }
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureCommitAsyncExit(_trace_identifier);
-#endif
+            #endif
         }
 
         public void Clear()
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureClear(_trace_identifier);
-#endif
+            #endif
             if (_isLoaded)
             {
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionFeaturePerformClear(_trace_identifier);
-#endif
+                #endif
                 _activeSession= DummySession;
                 _isLoaded = false;
             }
             _session = null;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureClearExit(_trace_identifier);
-#endif
+            #endif
             _trace_identifier=UNKNOWN_TRACE_IDENTIFIER;
         }
 
@@ -70,28 +70,28 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public async Task LoadAsync(CancellationToken Token = default)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureLoadAsync(_trace_identifier);
-#endif
+            #endif
             if (!_isLoaded)
             {
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionFeatureLoadAsyncLoading(_trace_identifier);
-#endif
+                #endif
                 try {
                     if (_session != null)
                     {
-#if TRACE
+                        #if TRACE
                         _logger?.LogTraceActiveSessionFeatureLoadAsyncSessionWait(_trace_identifier);
-#endif
+                        #endif
                         await _session!.LoadAsync(Token);
-#if TRACE
+                        #if TRACE
                         _logger?.LogTraceActiveSessionFeatureLoadAsyncSessionWaitEnded(_trace_identifier);
-#endif
+                        #endif
                         if (_session!.IsAvailable) {
-#if TRACE
+                            #if TRACE
                             _logger?.LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(_trace_identifier);
-#endif
+                            #endif
                             _activeSession=_store.FetchOrCreateSession(_session, _trace_identifier);
                         }
                     }
@@ -105,24 +105,24 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _isLoaded = true;
                 }
             }
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureLoadAsyncExit(_trace_identifier);
-#endif
+            #endif
             return;
         }
 
         void Load()
         {
             if (_isLoaded) return;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureLoad(_trace_identifier);
-#endif
+            #endif
             try {
                 if (_session != null &&_session!.IsAvailable)
                 {
-#if TRACE
+                    #if TRACE
                     _logger?.LogTraceActiveSessionFeatureLoadGetActiveSession(_trace_identifier);
-#endif
+                    #endif
                     _activeSession= _store.FetchOrCreateSession(_session, _trace_identifier);
                 }
             }
@@ -134,9 +134,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             {
                 _isLoaded = true;
             }
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionFeatureLoadExit(_trace_identifier);
-#endif
+            #endif
         }
 
         static readonly NullActiveSession DummySession = new NullActiveSession();

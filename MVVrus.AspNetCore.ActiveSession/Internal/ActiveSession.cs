@@ -37,9 +37,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger=Logger;
             _sessionId=Session.Id;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
-#endif
+            #endif
             _scope= SessionScope;
             _services = _scope.ServiceProvider;
             _store = Store;
@@ -51,9 +51,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (MaxRunnerNumber!=Int32.MaxValue) { 
                 //TODO Implement runner number reusage
             }
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
-#endif
+            #endif
             //TODO LogTrace?
         }
 
@@ -61,15 +61,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
-#endif
+            #endif
             KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(this, Request, trace_identifier);
             _isFresh = false;
             //TODO LogTrace?
-#if TRACE
+            #if TRACE
             _logger?.LogTraceCreateActiveSessionCreateRunnerExit(trace_identifier);
-#endif
+            #endif
             return created; 
         }
 
@@ -77,14 +77,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
-#endif
+            #endif
             IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey, trace_identifier);
             _isFresh = false;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
-#endif
+            #endif
             return fetched;
         }
 
@@ -92,14 +92,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
-#endif
+            #endif
             ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, trace_identifier, Token);
             _isFresh=false;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
-#endif
+            #endif
             return fetched;
         }
 
@@ -111,13 +111,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCommitAsync(_sessionId, trace_identifier);
-#endif
+            #endif
             Task result = _session.CommitAsync(CancellationToken);
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCommitAsyncExit(trace_identifier);
-#endif
+            #endif
             return result;
                 
         }
@@ -132,18 +132,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         void SignalCompletionInternal()
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionSignalCompletion(_sessionId);
-#endif
+            #endif
             _completionTokenSource.Cancel();
         }
 
         public void Dispose()
         {
             if (_disposed) return;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionDispose(_sessionId);
-#endif
+            #endif
             _disposed=true;
             SignalCompletionInternal(); //Just in case, usually this is called by post-eviction proc.
             Task.Run(CompleteDispose);
@@ -153,22 +153,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void CompleteDispose()
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCompleteDispose(_sessionId);
-#endif
+            #endif
             _runnersCounter.Signal();
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCompleteDisposeWaitForRunners(_sessionId);
-#endif
+            #endif
             Boolean wait_succeded=_runnersCounter.Wait(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);
-#endif
+            #endif
             _scope.Dispose();
             _completionTokenSource.Dispose();
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionCompleteDisposeExit(_sessionId);
-#endif
+            #endif
         }
 
         private void CheckDisposed()
@@ -178,26 +178,26 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void RegisterRunner (int RunnerNumber)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
-#endif
+            #endif
             _runnersCounter.AddCount();    
         }
 
         public void UnregisterRunner(int RunnerNumber)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
-#endif
+            #endif
             _runnersCounter.Signal();
             ReturnRunnerNumber(RunnerNumber);
         }
 
         public void ReturnRunnerNumber(Int32 RunnerNumber)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceReturnRunnerNumber(_sessionId, RunnerNumber);
-#endif
+            #endif
             //Do nothing until RunnerNumber reusage is implemented
         }
 
@@ -205,17 +205,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public Int32 GetNewRunnerNumber(String? TraceIdentifier=null)
         {
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
-#endif
+            #endif
             if (_newRunnerNumber>_maxRunnerNumber) {
                 _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
                 throw new InvalidOperationException("Cannot acquire a new runner number");
             }
             int result = _newRunnerNumber++;
-#if TRACE
+            #if TRACE
             _logger?.LogTraceGetNewRunnerNumberExit(_sessionId, result, trace_identifier);
-#endif
+            #endif
             return result;
         }
 

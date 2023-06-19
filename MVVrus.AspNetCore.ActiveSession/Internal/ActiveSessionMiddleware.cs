@@ -12,9 +12,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public ActiveSessionMiddleware(RequestDelegate Next, IActiveSessionStore Store, ILoggerFactory? LoggerFactory)
         {
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
-#if TRACE
+            #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddleware();
-#endif
+            #endif
             try {
                 _next=Next??throw new ArgumentNullException(nameof(Next));
                 _store=Store??throw new ArgumentNullException(nameof(Store));
@@ -22,33 +22,33 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             catch (Exception exception) {
                 _logger?.LogErrorMiddlewareCannotBeCreated(exception);
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceConstructActiveSessionMiddlewareExit();
-#endif
+                #endif
                 throw;
             }
-#if TRACE
+            #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddlewareExit();
-#endif
+            #endif
         }
 
         public async Task Invoke(HttpContext Context)
         {
-#if TRACE
+            #if TRACE
             _logger?.LogTraceInvokeActiveSessionMiddleware(Context.TraceIdentifier);
-#endif
+            #endif
             IActiveSessionFeature feature = new ActiveSessionFeature(
                 _store, Context.Features.Get<ISessionFeature>()?.Session, _logger, Context.TraceIdentifier);
             Context.Features.Set(feature);
             _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareInvokeRest(Context.TraceIdentifier);
-#endif
+                #endif
                 await _next(Context);
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareControlReturns(Context.TraceIdentifier);
-#endif
+                #endif
                 await feature.CommitAsync();
             }
             catch (Exception exception) {
@@ -58,9 +58,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             finally {
                 Context.Features.Set<IActiveSessionFeature>(null);
                 feature.Clear();
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);
-#endif
+                #endif
             }
         }
     }

@@ -29,9 +29,9 @@ namespace MVVrus.AspNetCore.ActiveSession
                                 ApplicationServices.
                                 GetService<ILoggerFactory>()?.
                                 CreateLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
-#if TRACE
+            #if TRACE
             logger?.LogTraceUseActiveSessions();
-#endif
+            #endif
 
             //Try to get IActiveSessionStore fro DI container to check if any of AddActiveSessions methods were ever called
             try {
@@ -42,9 +42,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             catch (Exception exception) {
                 logger?.LogWarningAbsentFactoryInplementations(exception);
             }
-#if TRACE
+            #if TRACE
             logger?.LogTraceUseActiveSessionsExit();
-#endif
+            #endif
             return Builder;
         }
 
