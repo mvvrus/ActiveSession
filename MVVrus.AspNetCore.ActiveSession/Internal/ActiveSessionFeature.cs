@@ -1,4 +1,5 @@
-﻿using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+﻿using System;
+using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
@@ -9,32 +10,59 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         ISession? _session;
         IActiveSession _activeSession;
         bool _isLoaded;
+        readonly ILogger? _logger;
         String _trace_identifier;
 
-        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, String? TraceIdentifier)
+        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, ILogger? Logger, String? TraceIdentifier)
         {
-            _store = Store;
+            _logger=Logger;
+            _trace_identifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureConstructor(_trace_identifier);
+#endif
+            _store= Store;
             _session = Session;
             _activeSession = DummySession;
-            _trace_identifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureConstructorExit(_trace_identifier);
+#endif
         }
 
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
 
         public async Task CommitAsync(CancellationToken Token = default)
         {
-            if (_isLoaded)
-                await _activeSession.CommitAsync(Token,_trace_identifier);
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureCommitAsync(_trace_identifier);
+#endif
+            if (_isLoaded) {
+#if TRACE
+                _logger?.LogTraceActiveSessionFeatureCommitAsyncActiveSessionWait(_trace_identifier);
+#endif
+                await _activeSession.CommitAsync(Token, _trace_identifier);
+            }
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureCommitAsyncExit(_trace_identifier);
+#endif
         }
 
         public void Clear()
         {
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureClear(_trace_identifier);
+#endif
             if (_isLoaded)
             {
-                _activeSession = DummySession;
+#if TRACE
+                _logger?.LogTraceActiveSessionFeaturePerformClear(_trace_identifier);
+#endif
+                _activeSession= DummySession;
                 _isLoaded = false;
             }
             _session = null;
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureClearExit(_trace_identifier);
+#endif
             _trace_identifier=UNKNOWN_TRACE_IDENTIFIER;
         }
 
@@ -42,48 +70,73 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public async Task LoadAsync(CancellationToken Token = default)
         {
-            //TODO perform logging
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureLoadAsync(_trace_identifier);
+#endif
             if (!_isLoaded)
             {
-                try
-                {
+#if TRACE
+                _logger?.LogTraceActiveSessionFeatureLoadAsyncLoading(_trace_identifier);
+#endif
+                try {
                     if (_session != null)
                     {
+#if TRACE
+                        _logger?.LogTraceActiveSessionFeatureLoadAsyncSessionWait(_trace_identifier);
+#endif
                         await _session!.LoadAsync(Token);
-                        if (_session!.IsAvailable) _activeSession= _store.FetchOrCreateSession(_session, _trace_identifier);
+#if TRACE
+                        _logger?.LogTraceActiveSessionFeatureLoadAsyncSessionWaitEnded(_trace_identifier);
+#endif
+                        if (_session!.IsAvailable) {
+#if TRACE
+                            _logger?.LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(_trace_identifier);
+#endif
+                            _activeSession=_store.FetchOrCreateSession(_session, _trace_identifier);
+                        }
                     }
                 }
-                catch
+                catch(Exception exception)
                 {
-                    //TODO Log error
+                    _logger?.LogWarningActiveSessionLoad(exception, _trace_identifier);
                 }
                 finally
                 {
                     _isLoaded = true;
                 }
             }
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureLoadAsyncExit(_trace_identifier);
+#endif
             return;
         }
 
         void Load()
         {
-            //TODO perform logging
             if (_isLoaded) return;
-            try
-            {
-                if (_session != null)
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureLoad(_trace_identifier);
+#endif
+            try {
+                if (_session != null &&_session!.IsAvailable)
                 {
-                    if(_session!.IsAvailable) _activeSession = _store.FetchOrCreateSession(_session, _trace_identifier);
+#if TRACE
+                    _logger?.LogTraceActiveSessionFeatureLoadGetActiveSession(_trace_identifier);
+#endif
+                    _activeSession= _store.FetchOrCreateSession(_session, _trace_identifier);
                 }
             }
-            catch
+            catch(Exception exception)
             {
-                //TODO Log error
+                _logger?.LogWarningActiveSessionLoad(exception, _trace_identifier);
             }
             finally
             {
                 _isLoaded = true;
             }
+#if TRACE
+            _logger?.LogTraceActiveSessionFeatureLoadExit(_trace_identifier);
+#endif
         }
 
         static readonly NullActiveSession DummySession = new NullActiveSession();

@@ -34,6 +34,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(1169, Warning, "Accessing the remote runner is not implemented, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogWarningRemoteRunnerUnavailable(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(1300, Warning, "The exception occered while establishing ActiveSessionFeature.ActiveSession property, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogWarningActiveSessionLoad(this ILogger Logger, Exception exception, String TraceIdentifier);
+
 
         [LoggerMessage(2000, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
         public static partial void LogInformationActiveSessionMiddlewareRegistered(this ILogger Logger);
@@ -296,8 +299,60 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4264, Trace, "Enter ActiveSession.GetNewRunnerNumber, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetNewRunnerNumberExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
+        [LoggerMessage(4300, Trace, "Enter ActiveSessionFeature constructor, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureConstructor(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4301, Trace, "Exit ActiveSessionFeature constructor, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureConstructorExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4310, Trace, "Enter ActiveSessionFeature.CommitAsync, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureCommitAsync(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4311, Trace, "Await for ActiveSession committing , TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureCommitAsyncActiveSessionWait(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4312, Trace, "Exit ActiveSessionFeature.CommitAsync, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureCommitAsyncExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4320, Trace, "Enter ActiveSessionFeature.Clear, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureClear(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4321, Trace, "Clearing reference to the ActiveSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeaturePerformClear(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4322, Trace, "Exit ActiveSessionFeature.Clear, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureClearExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4330, Trace, "Enter ActiveSessionFeature.LoadAsync, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsync(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4331, Trace, "Perform ActiveSessionFeature.ActiveSession property initialization, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsyncLoading(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4332, Trace, "Await for Session loading, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsyncSessionWait(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4333, Trace, "The Session has been loaded, proceed, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsyncSessionWaitEnded(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4334, Trace, "Create or fetch from cache the ActiveSession object, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4335, Trace, "Exit ActiveSessionFeature.LoadAsync, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadAsyncExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4340, Trace, "Enter ActiveSessionFeature.Load, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoad(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4341, Trace, "Load Session synchronously and create or fetch from cache the ActiveSession object, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadGetActiveSession(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4342, Trace, "Exit ActiveSessionFeature.Load, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureLoadExit(this ILogger Logger, String TraceIdentifier);
+
         /*
          */
+
 #endif
 
         public record struct MemoryCacheOptionsForLogging
