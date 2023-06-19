@@ -350,6 +350,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4342, Trace, "Exit ActiveSessionFeature.Load, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionFeatureLoadExit(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(4400, Trace, "Creating delegate runner factory to implement IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        public static partial void LogTraceConstructDelegateFactory(this ILogger Logger, String TRequest, String TResult);
+
+        [LoggerMessage(4401, Trace, "Invoke delegate runner factory implementing IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        public static partial void LogTraceInvokingDelegateFactory(this ILogger Logger, String TRequest, String TResult);
+
+        [LoggerMessage(4410, Trace, "Creating type-based runner factory to implement IActiveSessionRunnerFactory<{TRequest}, {TResult}> via {ImplementingClassName}.")]
+        public static partial void LogTraceConstructTypeFactory(this ILogger Logger, String TRequest, String TResult, String ImplementingClassName);
+
+        [LoggerMessage(4411, Trace, "Invoke type-based runner factory implementing IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult);
+
         /*
          */
 
