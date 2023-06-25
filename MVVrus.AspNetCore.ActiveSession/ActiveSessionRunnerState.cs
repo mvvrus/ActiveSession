@@ -6,7 +6,7 @@
     public enum ActiveSessionRunnerState
     {
         /// <value> Just created and not started </value>
-        NotStarted,
+        NotStarted=0,
         /// <value> Stays at the same position  and has no new data available</value>
         Stalled,
         /// <value> Advanced to a new position or completed and has new data available</value>
