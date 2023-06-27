@@ -13,7 +13,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition)
+        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
@@ -28,7 +28,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, CancellationToken token = default)
+        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
