@@ -1,4 +1,6 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession
+﻿using MVVrus.AspNetCore.ActiveSession;
+
+namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
     /// The class contains extension methods for the <see cref="IActiveSession"/> interface with more friendly names and signatures
@@ -58,5 +60,64 @@
                 ActiveSession.GetNewRunner<TRequest, TResult>(Request, out RunnerNumber);
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ActiveSession"></param>
+        /// <param name="CancellationToken"></param>
+        /// <returns></returns>
+        public static Task CommitAsync(this IActiveSession ActiveSession, CancellationToken CancellationToken = default)
+        {
+            return ActiveSession.CommitAsync(null, CancellationToken);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TRequest"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="ActiveSession"></param>
+        /// <param name="Request"></param>
+        /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
+        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
+        /// <returns></returns>
+        public static KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(
+            this IActiveSession ActiveSession,
+            TRequest Request, 
+            HttpContext? Context)
+        {
+            return ActiveSession.CreateRunner<TRequest,TResult>(Request, Context?.TraceIdentifier);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="ActiveSession"></param>
+        /// <param name="RequestedKey"></param>
+        /// <param name="Context"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public static IActiveSessionRunner<TResult>? GetRunner<TResult>(this IActiveSession ActiveSession, int RequestedKey, HttpContext? Context)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="RequestedKey"></param>
+        /// <param name="Context"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public static ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+            Int32 RequestedKey, 
+            HttpContext? Context, 
+            CancellationToken Token)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -57,10 +57,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //TODO LogTrace?
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext? Context)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, String? TraceIdentifier)
         {
             CheckDisposed();
-            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
             #endif
@@ -73,10 +73,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return created; 
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext? Context)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, String? TraceIdentifier)
         {
             CheckDisposed();
-            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
@@ -88,10 +88,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext? Context, CancellationToken Token)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, String? TraceIdentifier, CancellationToken Token)
         {
             CheckDisposed();
-            String trace_identifier = Context?.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
@@ -107,7 +107,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public bool IsFresh => _isFresh;
 
-        public Task CommitAsync(CancellationToken CancellationToken, String? TraceIdentifier)
+        public Task CommitAsync(String? TraceIdentifier, CancellationToken CancellationToken)
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;

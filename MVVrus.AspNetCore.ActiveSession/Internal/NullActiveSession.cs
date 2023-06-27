@@ -6,22 +6,22 @@
 
         public bool IsFresh => true;
 
-        public Task CommitAsync(CancellationToken cancellationToken, String? TraceIdent)
+        public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext? Context)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext? Context)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, String? TraceIdentifier)
         {
             return new NullActiveSessionRunner<TResult>();
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext? Context, CancellationToken cancellationToken)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return new ValueTask<IActiveSessionRunner<TResult>?>(
                 Task<IActiveSessionRunner<TResult>?>.FromResult(
