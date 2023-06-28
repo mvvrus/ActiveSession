@@ -7,15 +7,15 @@
     {
         /// <value> Just created and not started </value>
         NotStarted=0,
-        /// <value> Stays at the same position  and has no new data available</value>
-        Stalled,
+        /// <value> Started but stays at the same position  and has no new data available</value>
+        Stalled=1,
         /// <value> Advanced to a new position or completed and has new data available</value>
-        Progressed,
+        Progressed=2,
         /// <value> Completed and has no new data available</value>
-        Complete,
+        Complete=3,
         /// <value> An error occured while the object is running, no data available</value>
-        Failed,
+        Failed=-1,
         /// <value> An error occured while the object is running, no data available</value>
-        Aborted,
+        Aborted=-2,
     }
 }
