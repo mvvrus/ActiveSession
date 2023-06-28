@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
+using System.Collections.Concurrent;
+using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
@@ -11,18 +13,22 @@ namespace MVVrus.AspNetCore.ActiveSession
         Boolean _disposed;
         Int32 _busy;
         CancellationTokenSource _tokenSource;
+        BlockingCollection<TResult> _queue;
+        volatile ActiveSessionRunnerState _state;
         const String PARALLELISM_NOT_ALLOWED= "Parallel operations are not allowed.";
 
         [ActiveSessionConstructor]
-        EnumAdapterRunner(EnumAdapterParams<TResult> Params) 
+        public EnumAdapterRunner(EnumAdapterParams<TResult> Params) 
         {
             _base=Params.AdapterBase??throw new ArgumentNullException("Params.AdapterBase");
             _tokenSource = new CancellationTokenSource();
+            _queue = new BlockingCollection<TResult>(Params.Limit);
+            _state=NotStarted;
             //TODO
         }
 
         /// <inheritdoc/>
-        public ActiveSessionRunnerState State { get; private set; }
+        public ActiveSessionRunnerState State { get { return _state; } }
 
         /// <inheritdoc/>
         public Int32 Position { get; private set; }
@@ -40,6 +46,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             if (_disposed) return;
             _disposed=true;
+            _queue.Dispose();
             _tokenSource.Dispose();
         }
 
@@ -119,16 +126,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
-        Boolean _isEnumStarted;
-
         void EnumerateSource()
         {
-            if (_isEnumStarted) return;
-            _isEnumStarted = true;
-            //TODO State?
-            foreach(TResult item in _base) {
+            if (State!=NotStarted) return;
+            _state=Stalled;
+            foreach (TResult item in _base) {
                 //TODO Process Abort() call
                 //TODO Add item to the queue
+                //Interlocked.CompareExchange
                 Action? continuation = Volatile.Read(ref _continuation);
                 if (continuation!=null) {
                     Volatile.Write(ref _continuation, null);
