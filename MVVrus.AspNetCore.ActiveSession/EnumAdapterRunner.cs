@@ -44,7 +44,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public ActiveSessionRunnerResult<IEnumerable<TResult>> GetAvailable(Int32 StartPosition)
+        public ActiveSessionRunnerResult<IEnumerable<TResult>> GetAvailable(Int32 StartPosition, String? TraceIdentifier=null)
         {
             CheckDisposed();
             if(Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
@@ -67,7 +67,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public ValueTask<ActiveSessionRunnerResult<IEnumerable<TResult>>> GetMoreAsync(Int32 StartPosition, Int32 Advance, CancellationToken token = default)
+        public ValueTask<ActiveSessionRunnerResult<IEnumerable<TResult>>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken token = default)
         {
             CheckDisposed();
             if (Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
