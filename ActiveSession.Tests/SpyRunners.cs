@@ -13,7 +13,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, String? TraceIdentifier)
+        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, Int32 Advance, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
