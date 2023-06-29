@@ -10,7 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void Abort() { }
 
-        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, String? TraceIdentifier) 
+        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, Int32 Advance, String? TraceIdentifier) 
         {
             return default;
         }
