@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
 using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
+using static MVVrus.AspNetCore.ActiveSession.IActiveSessionRunner;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
@@ -15,20 +16,28 @@ namespace MVVrus.AspNetCore.ActiveSession
         CancellationTokenSource _tokenSource;
         BlockingCollection<TResult> _queue;
         volatile ActiveSessionRunnerState _state;
+        Object _lock;
         const String PARALLELISM_NOT_ALLOWED= "Parallel operations are not allowed.";
 
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params) 
         {
             _base=Params.AdapterBase??throw new ArgumentNullException("Params.AdapterBase");
+            _lock=new Object();
             _tokenSource = new CancellationTokenSource();
             _queue = new BlockingCollection<TResult>(Params.Limit);
-            _state=NotStarted;
             //TODO
         }
 
         /// <inheritdoc/>
-        public ActiveSessionRunnerState State { get { return _state; } }
+        public ActiveSessionRunnerState State { 
+            get {
+                CheckDisposed();
+                if (_state==Stalled&&_queue.Count>0) 
+                    return Progressed;
+                else return _state; 
+            } 
+        }
 
         /// <inheritdoc/>
         public Int32 Position { get; private set; }
@@ -45,9 +54,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed=true;
-            _queue.Dispose();
-            _tokenSource.Dispose();
+            lock(_lock) {
+                if (_disposed) return;
+                _disposed=true;
+                _queue.Dispose();
+                _tokenSource.Dispose();
+            }
         }
 
         /// <inheritdoc/>
@@ -74,19 +86,39 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public ValueTask<ActiveSessionRunnerResult<IEnumerable<TResult>>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken token = default)
+        public async ValueTask<ActiveSessionRunnerResult<IEnumerable<TResult>>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken token = default)
         {
             CheckDisposed();
+            ActiveSessionRunnerResult<IEnumerable<TResult>> result=default;
             if (Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
                 ThrowInvalidParallelism();
             }
             try {
-                //TODO
-                throw new NotImplementedException();
+                if (StartPosition==CURRENT_POSITION) StartPosition=Position;
+                if (StartPosition!=Position)
+                    throw new InvalidOperationException("GetMoreAsync: a start position differs from the current one");
+                StartSourceEnumerationIfNotStarted();
+                List<TResult> result_list = new List<TResult>();
+
+                for ( int i=0; i<Advance && _state==Stalled;i++) {
+                    //TODO Check for cancellation
+                    TResult? item;
+                    if (_queue.TryTake(out item)) {
+                        result_list.Add(item??throw new NullReferenceException());
+                        Position+=1;
+                        //TODO
+                    }
+                    else if(_queue.IsAddingCompleted) {
+                        //TODO
+                    }
+                    else await this; //TODO Log trace
+                }
+                result=new ActiveSessionRunnerResult<IEnumerable<TResult>>(result_list, State, Position);
             }
             finally {
                 Volatile.Write(ref _busy, 0);
             }
+            return result;
         }
 
         void CheckDisposed()
@@ -97,11 +129,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         Action? _continuation;
         public EnumAdapterRunner<TResult> GetAwaiter() { return this; }
         public Boolean IsCompleted { get; private set; }
-        public TResult GetResult()
-        {
-            //TODO
-            throw new NotImplementedException();
-        }
+        public void GetResult() {}
 
         public void OnCompleted(Action continuation)
         { 
@@ -126,14 +154,20 @@ namespace MVVrus.AspNetCore.ActiveSession
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
-        void EnumerateSource()
+        void StartSourceEnumerationIfNotStarted()
         {
             if (State!=NotStarted) return;
             _state=Stalled;
+            //TODO Implement cancellation
+            Task.Run(EnumerateSource);
+        }
+
+        void EnumerateSource()
+        {
             foreach (TResult item in _base) {
-                //TODO Process Abort() call
+                //TODO Process Abort() call i.e. implement cancellation
                 //TODO Add item to the queue
-                //Interlocked.CompareExchange
+                _queue.Add(item);
                 Action? continuation = Volatile.Read(ref _continuation);
                 if (continuation!=null) {
                     Volatile.Write(ref _continuation, null);
@@ -141,6 +175,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 }
             }
             //TODO Process completion
+            _queue.CompleteAdding();
         }
         
     }
