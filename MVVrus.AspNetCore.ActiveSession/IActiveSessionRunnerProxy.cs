@@ -24,11 +24,11 @@
         public ValueTask<Int32> GetPositionAsync();
 
         /// <summary>
-        /// Asynchronous <see cref="IActiveSessionRunner{TResult}.GetAvailable(int, String?)"/> method counterpart
+        /// Asynchronous <see cref="IActiveSessionRunner{TResult}.GetAvailable(int, int, String?)"/> method counterpart
         /// </summary>
         /// <returns> 
         /// A <see cref="ValueTask{T}"/> wrapping a value returned by 
-        /// <see cref="IActiveSessionRunner{TResult}.GetAvailable(int, String?)"/> method call (possibly from a remote instance) 
+        /// <see cref="IActiveSessionRunner{TResult}.GetAvailable(int, int, String?)"/> method call (possibly from a remote instance) 
         /// </returns>
         public ValueTask<ActiveSessionRunnerResult<TResult>> GetAvailableAsync(Int32 StartPosition);
     }
