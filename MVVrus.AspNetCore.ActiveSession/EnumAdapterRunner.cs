@@ -12,7 +12,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     {
         //TODO Implement logging
         const String PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
-        const Int32 LONG_DELAY = 300;
+        const Int32 SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
         readonly IEnumerable<TResult> _base;
         Boolean _disposed;
@@ -155,7 +155,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             if(state_set) Task.Run(SignalCompletion);
         }
 
-        void SignalCompletion()
+        async void SignalCompletion()
         {
             if (_disposed) return; 
             //Try to acquire _busy pseudo-lock waiting for awhile on a SpinWait and repeat if not acquered this time
@@ -164,8 +164,9 @@ namespace MVVrus.AspNetCore.ActiveSession
                 if (!spin_waiter.NextSpinWillYield) spin_waiter.SpinOnce();
                 else {
                     //Pseudo-lock has been not acuired yet, plan to repeat this task after a delay
-                    Task.Delay(LONG_DELAY).ContinueWith(_ => SignalCompletion());
-                    return;
+#if TRACE
+#endif
+                    await Task.Delay(SIGNAL_COMPLETION_DELAY_MSEC);
                 }
             }
             //Come here if the pseudo-lock was acquired
