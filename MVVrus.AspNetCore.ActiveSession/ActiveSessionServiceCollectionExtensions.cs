@@ -126,7 +126,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// Extension method to configure use of a type-based variant of runner factory services
+        /// Extension method used to configure a type-based variant of runner factory services
         /// </summary>
         /// <typeparam name="TRunner">Class used as implementation of a runner
         /// implementing one or more specializations of <see cref="IActiveSessionRunner"></see> generic interface
@@ -147,7 +147,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// Extension method to configure use of an type-based variant of runner factory services
+        /// Extension method used to configure a type-based variant of runner factory services
         /// (specializations of the generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>)
         /// Specializations of  <see cref="IActiveSessionRunnerFactory{TRequest,TResult}"></see>  
         /// for all combinations of TRequest and TResult supported by the TRunner type are added
@@ -247,6 +247,43 @@ namespace MVVrus.AspNetCore.ActiveSession
 
             }
             return Services;
+        }
+
+        /// <summary>
+        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
+        /// </summary>
+        /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
+        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        /// <remarks>
+        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, string?)"/> call with
+        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
+        /// and the second - of type <see cref="IEnumerable{TResult}"/>
+        /// </remarks>
+        public static IServiceCollection AddActiveSessionsEnumAdapter<TRunner>(this IServiceCollection Services)
+        {
+            return Services.AddActiveSessions<EnumAdapterRunner<TRunner>>();
+
+        }
+
+        /// <summary>
+        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
+        /// </summary>
+        /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
+        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Configurator">
+        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
+        /// </param>
+        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        /// <remarks>
+        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, string?)"/> call with
+        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
+        /// and the second - of type <see cref="IEnumerable{TResult}"/>
+        /// </remarks>
+        public static IServiceCollection AddActiveSessionsEnumAdapter<TRunner>(this IServiceCollection Services,
+            Action<ActiveSessionOptions> Configurator)
+        {
+            return Services.AddActiveSessions<EnumAdapterRunner<TRunner>>(Configurator);
         }
 
         private static void AddActiveSessionsInfrastructure(IServiceCollection Services, Action<ActiveSessionOptions>? PostConfigurator)
