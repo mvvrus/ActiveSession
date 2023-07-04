@@ -19,6 +19,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         readonly CancellationTokenSource _completionTokenSource;
         readonly BlockingCollection<TResult> _queue;
         readonly Object _disposeLock;
+        readonly Boolean _passAdapterBaseOnership;
+        private readonly Int32 _defaultAdvance;
         readonly ILogger? _logger;
         Boolean _disposed;
 
@@ -42,9 +44,11 @@ namespace MVVrus.AspNetCore.ActiveSession
             _disposeLock=new Object();
             _completionTokenSource = new CancellationTokenSource();
             _queue = new BlockingCollection<TResult>(Params.Limit);
+            _passAdapterBaseOnership=Params.PassAdapterBaseOnership;
+            _defaultAdvance=Params.Limit;
+            //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate=RunAwaitContinuation;
-            //TODO continue implementation of the constructor
 #if TRACE
 #endif
         }
@@ -150,7 +154,12 @@ namespace MVVrus.AspNetCore.ActiveSession
 #endif
                 if (StartPosition==CURRENT_POSITION) StartPosition=Position;
                 if (StartPosition!=Position)
+                    //TODO LogError
                     throw new InvalidOperationException("GetMoreAsync: a start position differs from the current one");
+                if (Advance==DEFAULT_ADVANCE) Advance=_defaultAdvance;
+                if(Advance<=0)
+                    //TODO LogError
+                    throw new InvalidOperationException($"GetMoreAsync: Invalid Advance value: {Advance}");
 #if TRACE
 #endif
                 StartSourceEnumerationIfNotStarted();
@@ -201,6 +210,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 _disposed=true;
                 _queue.Dispose();
                 _completionTokenSource.Dispose();
+                if (_passAdapterBaseOnership && _base is IDisposable base_disposable)  base_disposable.Dispose();
             }
         }
 
