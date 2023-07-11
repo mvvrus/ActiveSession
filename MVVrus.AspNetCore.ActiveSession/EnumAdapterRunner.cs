@@ -15,12 +15,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         const String PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
         const Int32 SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
-        readonly IEnumerable<TResult> _base;
         readonly CancellationTokenSource _completionTokenSource;
         readonly BlockingCollection<TResult> _queue;
         readonly Object _disposeLock;
         readonly Boolean _passAdapterBaseOnership;
-        private readonly Int32 _defaultAdvance;
+        readonly Int32 _defaultAdvance;
+        IEnumerable<TResult>? _source;
         readonly ILogger? _logger;
         Boolean _disposed;
 
@@ -37,7 +37,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory) 
         {
-            _base=Params.AdapterBase??throw new ArgumentNullException( nameof(Params), "AdapterBase property cannot be null");
+            _source=Params.Source??throw new ArgumentNullException( nameof(Params), "AdapterBase property cannot be null");
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
 #if TRACE
 #endif
@@ -200,8 +200,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed)
-                return;
+            if (_disposed) return;
+            ReleaseSource();
             lock (_disposeLock) {
                 if (_disposed)
                     return;
@@ -210,13 +210,21 @@ namespace MVVrus.AspNetCore.ActiveSession
                 _disposed=true;
                 _queue.Dispose();
                 _completionTokenSource.Dispose();
-                if (_passAdapterBaseOnership && _base is IDisposable base_disposable)  base_disposable.Dispose();
             }
         }
 
         void CheckDisposed()
         {
             if (_disposed) throw new ObjectDisposedException(this.GetType().FullName!);
+        }
+
+        void ReleaseSource()
+        {
+#if TRACE
+#endif
+            IDisposable? base_disposable = _passAdapterBaseOnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
+            base_disposable?.Dispose();
+            //TODO
         }
 
         void SetRunnerCompletion(ActiveSessionRunnerState CompletionState)
@@ -294,8 +302,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         void EnumerateSource()
         {
             CancellationToken completion_token = _completionTokenSource.Token;
+            if (_source==null) return;
             try {
-                foreach (TResult item in _base) {
+                foreach (TResult item in _source!) {
 #if TRACE
 #endif
                     if (Volatile.Read(ref _state)!=(Int32)Stalled) {
@@ -308,10 +317,11 @@ namespace MVVrus.AspNetCore.ActiveSession
 #endif
                         TryRunAwaitContinuation();
                     }
+                    else if (completion_token.IsCancellationRequested) 
+                        break;
                 }
 #if TRACE
 #endif
-                SetRunnerCompletion(Complete);
             }
             catch (Exception e) {
                 //LogError
@@ -322,6 +332,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #if TRACE
 #endif
                 _queue.CompleteAdding();
+                ReleaseSource();
                 TryRunAwaitContinuation();
             }
 #if TRACE
