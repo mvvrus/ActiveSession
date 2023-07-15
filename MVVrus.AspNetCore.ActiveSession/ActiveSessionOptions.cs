@@ -36,9 +36,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>Throw exception if the runner is running by the remote application instance</value>
         public Boolean ThrowOnRemoteRunner { get; set; } = true;
 
-        /// <value>Store runners in the cache as completed tasks to speed up async calls</value>
+        /// <value>Store runners in the cache as completed task obects to speed up async calls</value>
         public Boolean CacheRunnerAsTask { get; set; } 
 
+        ///<value>Replace value of RequestServices in HttpContext by the value of the ActiveSession.SessionServices</value>
+        public Boolean UseSessionServicesAsRequestServices { get; set; }
     }
 }
 

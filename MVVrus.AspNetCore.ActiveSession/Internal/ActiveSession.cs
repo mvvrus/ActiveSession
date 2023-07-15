@@ -107,6 +107,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public bool IsFresh => _isFresh;
 
+        public IServiceProvider SessionServices { get { return _services; } }
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken CancellationToken)
         {
             CheckDisposed();

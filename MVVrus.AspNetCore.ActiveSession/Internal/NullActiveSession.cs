@@ -6,6 +6,8 @@
 
         public bool IsFresh => true;
 
+        public IServiceProvider SessionServices => throw new NotImplementedException();
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

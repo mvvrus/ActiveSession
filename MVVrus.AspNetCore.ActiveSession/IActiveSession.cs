@@ -46,6 +46,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>Indicator that the Active Session object was just created an is still empty.</value>
         Boolean IsFresh { get; }
 
+        /// <value>The service (DI) container for the scope of the Active Session</value>
+        IServiceProvider SessionServices { get; }
+
         /// <summary>
         /// Commit ActiveSession-related information into a storage
         /// </summary>

@@ -48,6 +48,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(3000, Debug, "ActiveSession feature is activated, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugActiveSessionFeatureActivated(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(3001, Debug, "Original RequestServices are substituted by the ActiveSession.SessionServices , TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugRequestServicesChangedToSessionServices(this ILogger Logger, String TraceIdentifier);
+
         [LoggerMessage(3100, Debug, "ActiveSessionStore constructor will use the follwing options: {Options}.")]
         public static partial void LogDebugActiveSessionStoreConstructorOptions(this ILogger Logger, ActiveSessionOptions Options);
 
@@ -107,16 +110,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4010, Trace, "Entering ActiveSessionMiddleware, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceInvokeActiveSessionMiddleware(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4011, Trace, "Invoking the rest of the middleware pipeline after the ActiveSession middleware, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4011, Trace, "Awaiting while loading ActiveSession for SessionServices, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceWaitingForActiveSessionLoading(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4012, Trace, "Completed attempt to substituste RequestServices by SessionServices, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCompleteRequestServicesSubstitutionAttempt(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4013, Trace, "Invoking the rest of the middleware pipeline after the ActiveSession middleware, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareInvokeRest(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4012, Trace, "Control from the rest of the pipeline was returned without exceptions, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4014, Trace, "Control from the rest of the pipeline was returned without exceptions, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareControlReturns(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(4013, Trace, "An exception in the the pipeline has been caught, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4015, Trace, "An exception in the the pipeline has been caught, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTracePipelineException(this ILogger Logger, Exception AnException, String TraceIdentifier);
 
-        [LoggerMessage(4014, Trace, "ActiveSession middleware exited, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(4016, Trace, "ActiveSession middleware exited, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionMiddlewareExit(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(4100, Trace, "The ActiveSessionStore constructor entered.")]
