@@ -180,7 +180,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Type[] result_types = runner_type.FindInterfaces(
                 (m, _) => m.IsConstructedGenericType&&m.GetGenericTypeDefinition()==typeof(IActiveSessionRunner<>)
                 , null
-                );
+                ).Select(type => type.GenericTypeArguments[0]).ToArray();
             if (result_types.Length<=0)
                 throw new InvalidOperationException(
                     $"{runner_type.FullName} does not implement any specialisation of IActiveSessionRunner<> generic interface"
@@ -225,23 +225,27 @@ namespace MVVrus.AspNetCore.ActiveSession
             //Add to service list (Services) implementations of IActiveSessionRunnerFactory<TRequest,TResult>
             // via the class TypeRunnerFactory<TRequest,TResult>
             // for all combinations of request and result types 
+//            int extra_params_length = (ExtraArguments?.Length??0);
+            Object[] factory_impl_params = new Object[3];
+            Type[] type_args = new Type[2];
             foreach (Type result_type in result_types) {
                 ActiveSessionStore.RegisterTResult(result_type);
                 foreach (Type request_type in unique_first_param_types) {
-                    Type[] type_args = new Type[] { request_type, result_type };
+                    type_args[0] = request_type;
+                    type_args[1]=result_type;
                     Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>)
                         .MakeGenericType(type_args);
-                    int extra_params_length = (ExtraArguments?.Length??0);
-                    Object[] factory_impl_params = new Object[extra_params_length+2];
-                    if (extra_params_length>0)
-                        Array.Copy(ExtraArguments!, 0, factory_impl_params, 2, extra_params_length);
-                    factory_impl_params[0]=runner_type;
-                    factory_impl_params[1]=typeof(ILoggerFactory);
-                    Object factory_impl_object = typeof(TypeRunnerFactory<,>)
+                    ConstructorInfo factory_impl_object_constructor = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)
-                        .GetConstructors()[0]
-                        .Invoke(factory_impl_params);
-                    Services.AddSingleton(factory_service_type, factory_impl_object);
+                        .GetConstructors()[0];
+
+                    // Services.AddSingleton(factory_service_type, factory_impl_object);
+                    Services.AddSingleton(factory_service_type, sp => factory_impl_object_constructor.Invoke(new Object?[] {
+                                runner_type,
+                                ExtraArguments??new Object[0],
+                                sp.GetService<ILoggerFactory>()
+                        })
+                    );
 
                 }
 

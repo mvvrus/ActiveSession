@@ -10,7 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Type _runner_type;
         readonly ILogger? _logger;
 
-        public TypeRunnerFactory(Type RunnerType, ILoggerFactory? LoggerFactory, object[]? Params)
+        public TypeRunnerFactory(Type RunnerType, object[]? Params, ILoggerFactory? LoggerFactory)
         {
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
             #if TRACE

@@ -71,7 +71,7 @@ namespace ActiveSession.Tests
             var stub_sp = new Mock<IServiceProvider>();
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             var args = new Object[] { "ugu", 42, new SpyService() };
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), null, args);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), args, null);
             var request = new Request1 { Arg="value" };
 
             var runner = result.Create(request, stub_sp.Object);
@@ -93,7 +93,7 @@ namespace ActiveSession.Tests
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             stub_sp.Setup(x => x.GetService(typeof(ISpyInterface1))).Returns((Type _) => new SpyService());
             var args = new Object[] { "ugu", 42};
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), null, args);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), args, null);
             var request = new Request1 { Arg="value" };
 
             var runner = result.Create(request, stub_sp.Object);
@@ -119,7 +119,7 @@ namespace ActiveSession.Tests
             var stub_sp = new Mock<IServiceProvider>();
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             var args = new Object[] { "ugu", 42};
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), null, args);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner2), args, null);
             var request = new Request1 { Arg="value" };
 
             IActiveSessionRunner<Result1>? runner;
