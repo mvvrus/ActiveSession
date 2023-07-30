@@ -118,6 +118,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSession result;
             String key = SessionKey(Session.Id);
             _logger?.LogDebugActiveSessionKeyToUse(key, trace_identifier);
+            if(!Session.Keys.Contains(key)) Session.SetString(key, Session.Id);
             if (_memoryCache.TryGetValue(key, out result))
                 _logger?.LogDebugFoundExistingActiveSession(key, trace_identifier);
             else {

@@ -55,6 +55,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
         /// <returns></returns>
-        Task CommitAsync(String? TraceIdentifier = null, CancellationToken CancellationToken = default); 
+        Task CommitAsync(String? TraceIdentifier = null, CancellationToken CancellationToken = default);
+
+        
+        /// <value>The ActiveSession identifier</value>
+        String Id { get; }
     }
 }

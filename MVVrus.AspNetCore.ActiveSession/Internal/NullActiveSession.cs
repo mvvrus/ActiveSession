@@ -8,6 +8,8 @@
 
         public IServiceProvider SessionServices => throw new NotImplementedException();
 
+        public String Id => "<null session Id>";
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

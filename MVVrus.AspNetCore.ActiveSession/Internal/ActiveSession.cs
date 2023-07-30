@@ -108,6 +108,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public bool IsFresh => _isFresh;
 
         public IServiceProvider SessionServices { get { return _services; } }
+        public String Id { get { return _session.Id; } }
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken CancellationToken)
         {
@@ -175,7 +176,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void CheckDisposed()
         {
-            throw new ObjectDisposedException(this.GetType().FullName!);
+            if(_disposed)  throw new ObjectDisposedException(this.GetType().FullName!);
         }
 
         public void RegisterRunner (int RunnerNumber)
