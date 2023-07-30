@@ -10,4 +10,8 @@
     <ProjectReference Include="..\MVVrus.AspNetCore.ActiveSession\MVVrus.AspNetCore.ActiveSession.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\index.html" />
+  </ItemGroup>
+
 </Project>
