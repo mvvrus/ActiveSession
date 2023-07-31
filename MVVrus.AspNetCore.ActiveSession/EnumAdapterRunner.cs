@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
 using static MVVrus.AspNetCore.ActiveSession.IActiveSessionRunner;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
@@ -9,7 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// Adapter class making possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
     /// </summary>
-    internal class EnumAdapterRunner<TResult> : IActiveSessionRunner<IEnumerable<TResult>>, IDisposable, System.Runtime.CompilerServices.ICriticalNotifyCompletion
+    internal class EnumAdapterRunner<TResult> : ActiveSessionRunnerBase, IActiveSessionRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
     {
         //TODO Implement logging
         const String PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
@@ -22,7 +23,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         readonly Int32 _defaultAdvance;
         IEnumerable<TResult>? _source;
         readonly ILogger? _logger;
-        Boolean _disposed;
 
         //Pseudo-lock to block parallel execution of GetMoreAsync/GetAvailable methods,
         //The most of the code using it just exits then the lock cannot be acquired,
@@ -31,7 +31,6 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
         //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
-        Int32 _state; 
         Exception? _failureException;
 
         [ActiveSessionConstructor]
@@ -54,11 +53,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public ActiveSessionRunnerState State { 
+        public override ActiveSessionRunnerState State { 
             get {
-                CheckDisposed();
-                ActiveSessionRunnerState state = (ActiveSessionRunnerState)Volatile.Read(ref _state);
-                if (state==Stalled&&_queue.Count>0) state=Progressed;
+                ActiveSessionRunnerState state = base.State;
+                if (state==Stalled && _queue.Count>0) state=Progressed;
 #if TRACE
 #endif
                 return state; 
@@ -66,23 +64,20 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public Int32 Position { get; private set; }
-
-        /// <inheritdoc/>
-        public void Abort()
+        public override void Abort()
         {
             if (_disposed) return;
 #if TRACE
 #endif
-            Boolean state_changed =Interlocked.CompareExchange(ref _state, (Int32)Aborted, (Int32)Stalled)==(Int32)Stalled
-                || Interlocked.CompareExchange(ref _state, (Int32)Aborted, (Int32)NotStarted)==(Int32)NotStarted;
+            Boolean state_changed = CompareAndSetStateInterlocked(Aborted, Stalled)==Stalled
+                || CompareAndSetStateInterlocked(Aborted, NotStarted)==NotStarted;
             if (state_changed) SetRunnerCompletion(Aborted);
 #if TRACE
 #endif
         }
 
         /// <inheritdoc/>
-        public IChangeToken GetCompletionToken()
+        public override IChangeToken GetCompletionToken()
         {
             CheckDisposed();
 #if TRACE
@@ -104,7 +99,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #if TRACE
 #endif
                 List<TResult> result_list = new List<TResult>();
-                for(Int32 i=0;i<Advance && _queue.Count>0 && Volatile.Read(ref _state)==(Int32)Stalled; i++) {
+                for(Int32 i=0;i<Advance && _queue.Count>0 && base.State==Stalled; i++) {
 #if TRACE
 #endif
                     TResult? item;
@@ -166,7 +161,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 List<TResult> result_list = new List<TResult>();
 #if TRACE
 #endif
-                for ( int i=0; i<Advance && Volatile.Read(ref _state)==(Int32)Stalled && !Token.IsCancellationRequested;i++) {
+                for ( int i=0; i<Advance && base.State==Stalled && !Token.IsCancellationRequested;i++) {
                     TResult? item;
                     if (_queue.TryTake(out item)) {
 #if TRACE
@@ -213,11 +208,6 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
         }
 
-        void CheckDisposed()
-        {
-            if (_disposed) throw new ObjectDisposedException(this.GetType().FullName!);
-        }
-
         void ReleaseSource()
         {
 #if TRACE
@@ -231,8 +221,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
 #if TRACE
 #endif
-            Boolean state_set = Interlocked.CompareExchange(ref _state, (Int32)CompletionState, (Int32)NotStarted)==(Int32)NotStarted
-                || Interlocked.CompareExchange(ref _state, (Int32)CompletionState, (Int32)Stalled)==(Int32)Stalled;
+            Boolean state_set = CompareAndSetStateInterlocked(CompletionState, NotStarted)==NotStarted
+                || CompareAndSetStateInterlocked(CompletionState, Stalled)==Stalled;
             if (state_set) {
 #if TRACE
 #endif
@@ -293,7 +283,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (State!=NotStarted) return;
 #if TRACE
 #endif
-            Volatile.Write(ref _state, (Int32)Stalled);
+            SetStateInterlocked(Stalled);
             Task.Run(EnumerateSource);
 #if TRACE
 #endif
@@ -307,7 +297,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 foreach (TResult item in _source!) {
 #if TRACE
 #endif
-                    if (Volatile.Read(ref _state)!=(Int32)Stalled) {
+                    if (base.State!=Stalled) {
 #if TRACE
 #endif
                         break;

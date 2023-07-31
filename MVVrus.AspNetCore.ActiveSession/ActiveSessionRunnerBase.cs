@@ -1,29 +1,81 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
+using System;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
     /// TODO write documentation
     /// </summary>
-    /// <typeparam name="TResult"></typeparam>
-    public abstract class ActiveSessionRunnerBase<TResult> : IActiveSessionRunner<TResult>
+    public abstract class ActiveSessionRunnerBase: IActiveSessionRunner
     {
-        /// <inheritdoc/>
-        public abstract ActiveSessionRunnerState State { get; }
+        Int32 _state;
 
         /// <inheritdoc/>
-        public abstract Int32 Position { get; }
+        public virtual ActiveSessionRunnerState State { 
+            get
+            {
+                CheckDisposed();
+                return (ActiveSessionRunnerState)Volatile.Read(ref _state);
+            }
+        }
+
+
+        /// <inheritdoc/>
+        public virtual Int32 Position { get; protected set; }
 
         /// <inheritdoc/>
         public abstract void Abort();
 
         /// <inheritdoc/>
-        public abstract ActiveSessionRunnerResult<TResult> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null);
+        public virtual IChangeToken GetCompletionToken()
+        {
+            return NullChangeToken.Singleton;
+        }
 
-        /// <inheritdoc/>
-        public abstract IChangeToken GetCompletionToken();
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected Boolean _disposed=false;
 
-        /// <inheritdoc/>
-        public abstract ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default);
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
+        protected void CheckDisposed()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(this.GetType().FullName!);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="State"></param>
+        protected void SetState(ActiveSessionRunnerState State)
+        {
+            _state = (int)State;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="State"></param>
+        /// <returns></returns>
+        protected ActiveSessionRunnerState SetStateInterlocked(ActiveSessionRunnerState State)
+        {
+            return (ActiveSessionRunnerState)Interlocked.Exchange(ref _state,(int)State);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="State"></param>
+        /// <param name="OldState"></param>
+        /// <returns></returns>
+        protected ActiveSessionRunnerState CompareAndSetStateInterlocked(ActiveSessionRunnerState State, ActiveSessionRunnerState OldState)
+        {
+            return (ActiveSessionRunnerState)Interlocked.CompareExchange(ref _state, (int)State, (int) OldState);
+        }
     }
 }
