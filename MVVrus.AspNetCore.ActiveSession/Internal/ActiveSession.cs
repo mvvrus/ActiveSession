@@ -7,7 +7,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
-        readonly ISession _session;
         readonly ILogger? _logger;
         readonly String _sessionId;
         bool _disposed;
@@ -43,7 +42,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _scope= SessionScope;
             _services = _scope.ServiceProvider;
             _store = Store;
-            _session = Session;
             _completionTokenSource = new CancellationTokenSource();
             _runnersCounter=new CountdownEvent(1);
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
@@ -57,14 +55,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //TODO LogTrace?
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, String? TraceIdentifier)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
             CheckDisposed();
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
             #endif
-            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(this, Request, trace_identifier);
+            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session, this, Request, trace_identifier);
             _isFresh = false;
             //TODO LogTrace?
             #if TRACE
@@ -73,14 +71,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return created; 
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, String? TraceIdentifier)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
         {
             CheckDisposed();
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(this, RequestedKey, trace_identifier);
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,this, RequestedKey, trace_identifier);
             _isFresh = false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
@@ -88,14 +86,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, String? TraceIdentifier, CancellationToken Token)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken Token)
         {
             CheckDisposed();
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(this, RequestedKey, trace_identifier, Token);
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, RequestedKey, trace_identifier, Token);
             _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
@@ -103,27 +101,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public bool IsAvailable { get { return _session?.IsAvailable ?? false; } }
+        public bool IsAvailable { get { return true; } }
 
         public bool IsFresh => _isFresh;
 
         public IServiceProvider SessionServices { get { return _services; } }
-        public String Id { get { return _session.Id; } }
-
-        public Task CommitAsync(String? TraceIdentifier, CancellationToken CancellationToken)
-        {
-            CheckDisposed();
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            #if TRACE
-            _logger?.LogTraceActiveSessionCommitAsync(_sessionId, trace_identifier);
-            #endif
-            Task result = _session.CommitAsync(CancellationToken);
-            #if TRACE
-            _logger?.LogTraceActiveSessionCommitAsyncExit(trace_identifier);
-            #endif
-            return result;
-                
-        }
+        public String Id { get { return _sessionId; } }
 
         public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }
 
@@ -224,6 +207,5 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IServiceProvider Services { get { return _services; } }
 
-        public ISession Session { get { return _session; } }
     }
 }

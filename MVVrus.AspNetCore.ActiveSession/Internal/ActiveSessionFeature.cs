@@ -35,11 +35,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionFeatureCommitAsync(_trace_identifier);
             #endif
-            if (_isLoaded) {
+            if (_isLoaded && _session!=null) {
                 #if TRACE
                 _logger?.LogTraceActiveSessionFeatureCommitAsyncActiveSessionWait(_trace_identifier);
                 #endif
-                await _activeSession.CommitAsync(_trace_identifier, Token);
+                await _session!.CommitAsync(Token);
             }
             #if TRACE
             _logger?.LogTraceActiveSessionFeatureCommitAsyncExit(_trace_identifier);

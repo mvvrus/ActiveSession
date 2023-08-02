@@ -15,17 +15,17 @@
             return Task.CompletedTask;
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, String? TraceIdentifier)
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
             throw new NotImplementedException();
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, String? TraceIdentifier)
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
         {
             return new NullActiveSessionRunner<TResult>();
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, String? TraceIdentifier, CancellationToken cancellationToken)
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
         {
             return new ValueTask<IActiveSessionRunner<TResult>?>(
                 Task<IActiveSessionRunner<TResult>?>.FromResult(

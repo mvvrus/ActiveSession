@@ -55,7 +55,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceWaitingForActiveSessionLoading(Context.TraceIdentifier);
                     #endif
                     await feature.LoadAsync();
-                    if(feature.IsLoaded && feature.ActiveSession.IsAvailable) {
+                    if(feature.IsLoaded && Context.Session.IsAvailable && feature.ActiveSession.IsAvailable) {
                         Context.RequestServices=feature.ActiveSession.SessionServices;
                         _logger?.LogDebugRequestServicesChangedToSessionServices(Context.TraceIdentifier);
                     }
