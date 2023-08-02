@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
 using MVVrus.AspNetCore.ActiveSession;
+using static MVVrus.AspNetCore.ActiveSession.IActiveSessionRunner;
 using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
 
 
@@ -40,7 +41,7 @@ namespace ProbeApp
         public async ValueTask<ActiveSessionRunnerResult<Int32>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
         {
             if(CompareAndSetStateInterlocked(Stalled, NotStarted)==NotStarted) StartBackground();
-            //TODO process Advance==DEFAULT_ADVANCE
+            if (Advance<=0) Advance=1;
             ActiveSessionRunnerResult<int> result=default;
             for (int i=0;i<Advance; i++) {
                 ActiveSessionRunnerState state = State;
