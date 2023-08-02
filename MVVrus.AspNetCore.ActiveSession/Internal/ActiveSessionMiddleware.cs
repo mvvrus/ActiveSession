@@ -63,7 +63,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceCompleteRequestServicesSubstitutionAttempt(Context.TraceIdentifier);
                     #endif
                 }
-#if TRACE
+                #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareInvokeRest(Context.TraceIdentifier);
                 #endif
                 await _next(Context);

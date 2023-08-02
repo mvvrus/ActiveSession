@@ -118,6 +118,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSession result;
             String key = SessionKey(Session.Id);
             _logger?.LogDebugActiveSessionKeyToUse(key, trace_identifier);
+            _logger?.LogTrace(4998, $"Cache count: {(_memoryCache as MemoryCache)?.Count??-1}");
             if(!Session.Keys.Contains(key)) Session.SetString(key, Session.Id);
             if (_memoryCache.TryGetValue(key, out result))
                 _logger?.LogDebugFoundExistingActiveSession(key, trace_identifier);
@@ -128,19 +129,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     new_entry.SlidingExpiration=_idleTimeout;
                     new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                     new_entry.Size=1; //TODO Size from config?
-                    new_entry.Value=result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger, trace_identifier);
+                    result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger, trace_identifier);
+                    new_entry.SetValue(result);
                     PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                     end_activesession.EvictionCallback=EndActiveSessionCallback;
                     end_activesession.State=trace_identifier;
                     new_entry.PostEvictionCallbacks.Add(end_activesession);
+                    new_entry.Dispose(); //Commit entry in the cache
 
+                    _logger?.LogTrace(4998, $"Cache count: {(_memoryCache as MemoryCache)?.Count??-1}");
                 }
                 catch (Exception exception) {
-                    _memoryCache.Remove(key);
                     _logger?.LogDebugFetchOrCreateExceptionalExit(exception,trace_identifier);
                     throw;
                 }
             }
+            _logger?.LogTrace(4998, $"Cache count: {(_memoryCache as MemoryCache)?.Count??-1}");
             #if TRACE
             _logger?.LogTraceFetchOrCreateExit(trace_identifier);
             #endif
@@ -203,9 +207,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     new_entry.PostEvictionCallbacks.Add(end_runner);
                     RunnerSession.RegisterRunner(runner_number);
                     RegisterRunnerInSession(RunnerSession.Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
+                    new_entry.Dispose(); //Commit entry in the cache
                 }
                 catch (Exception exception) {
-                    _memoryCache.Remove(runner_key);
                     _logger?.LogDebugCreateRunnerFailure(exception, trace_identifier);
                     throw;
                 }
