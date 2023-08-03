@@ -22,6 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning restore IDE0052 // Remove unread private members
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
+        internal readonly Object RunnerCreationLock = new Object();
 
         public ActiveSession(
             IServiceScope SessionScope
