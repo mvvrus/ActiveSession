@@ -260,7 +260,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, string?)"/> call with
+        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
         /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
         /// and the second - of type <see cref="IEnumerable{TResult}"/>
         /// </remarks>
@@ -280,7 +280,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </param>
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, string?)"/> call with
+        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
         /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
         /// and the second - of type <see cref="IEnumerable{TResult}"/>
         /// </remarks>
