@@ -137,7 +137,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         _logger?.LogDebugCreateNewActiveSession(key, trace_identifier);
                         ICacheEntry new_entry = _memoryCache.CreateEntry(key);
                         try {
-                            //TODO implement locking and exception handling
                             new_entry.SlidingExpiration=_idleTimeout;
                             new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                             new_entry.Size=1; //TODO Size from config?
@@ -166,6 +165,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceReleasedSessionCreationLock(trace_identifier);
                     #endif
+                    Monitor.Exit(_creation_lock);
                 }
             }
             #if TRACE
@@ -189,6 +189,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Boolean use_session_lock = true;
             Object? runner_lock= (Session as ActiveSession)?.RunnerCreationLock; 
             if (runner_lock==null) {
+                _logger?.LogTraceFallbackToStoreGlobalLock(Session.Id, trace_identifier);
                 runner_lock=_creation_lock;
                 use_session_lock=false;
             }
@@ -208,7 +209,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key);
                 try {
-                    //TODO implement locking and exception handling
                     new_entry.SlidingExpiration=_idleTimeout;
                     new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                     new_entry.Size=1; //TODO Size from config?
@@ -267,11 +267,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw;
             }
             finally {
-                //TODO LogTrace lock released
+                _logger?.LogTraceReleasedRunnerCreationLock(use_session_lock ? Session.Id : "<global>", trace_identifier);
                 Monitor.Exit(runner_lock);
             }
             #if TRACE
-            _logger?.LogTraceCreateRunnerExit(use_session_lock ? Session.Id : "<global>", trace_identifier);
+            _logger?.LogTraceCreateRunnerExit(trace_identifier);
             #endif
             return new KeyedActiveSessionRunner<TResult>() { Runner=runner, RunnerNumber=runner_number };
         }
@@ -459,7 +459,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         // {RunnerKey}+"_Type" = ResultType
         private void RegisterRunnerInSession(ISession Session, String RunnerSessionKey, Int32 RunnerNumber, Type ResultType, String TraceIdentifier)
         {
-            //TODO LogTrace
             #if TRACE
             _logger?.LogTraceRegisterRunnerInSession(RunnerSessionKey, RunnerNumber, TraceIdentifier);
             #endif
@@ -477,7 +476,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceUnregisterRunnerInSession(RunnerSessionKey, RunnerNumber);
             #endif
             if (Session.IsAvailable) {
-                //TODO LogTrace
+                #if TRACE
+                _logger?.LogTracePerformUnregisteration(RunnerSessionKey, RunnerNumber);
+                #endif
                 String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber);
                 Session.Remove(runner_key);
                 Session.Remove(runner_key+TYPE_KEY_PART);
@@ -504,6 +505,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     //Note: the cache alwais contains a completed task so the next line always executes synchronously
                     (value_from_cache as Task<IActiveSessionRunner<TResult>?>)?.Result :
                     value_from_cache as IActiveSessionRunner<TResult>;
+                if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(TraceIdentifier);
             }
             else {
                 #if TRACE
@@ -512,7 +514,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 UnregisterRunnerInSession(Session, RunnerSessionKey, RunnerNumber);
                 result = null;
             }
-            if (result==null) _logger?.LogWarningNoExpectedRunnerInCache(TraceIdentifier);
             #if TRACE
             _logger?.LogTraceExtractRunnerFromCacheExit(TraceIdentifier);
             #endif
