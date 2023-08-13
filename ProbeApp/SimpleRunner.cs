@@ -13,11 +13,14 @@ namespace ProbeApp
         Int32 _last_set=-1;
         ActiveSessionRunnerState _state_to_set = Stalled;
         Task? _task_to_continue;
+        ILogger? _logger;
 
         [ActiveSessionConstructor]
-        public SimpleRunner(SimpleRunnerParams Params)
+        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory)
         {
             (_immediate, _end, _delay_in_ms)=Params;
+            _logger=LoggerFactory.CreateLogger<SimpleRunner>();
+            _logger?.LogDebug($"Parameters: {Params}");
         }
 
         public override void Abort()
@@ -32,8 +35,8 @@ namespace ProbeApp
             if(State!=Progressed) return new ActiveSessionRunnerResult<int>(_last_set, State, Position);
             ActiveSessionRunnerResult<int> result;
             lock (_lock) {
-                result = new ActiveSessionRunnerResult<int>(_last_set, State, Position);
                 SetState(_state_to_set);
+                result= new ActiveSessionRunnerResult<int>(_last_set, State, Position);
             }
             return result;
         }
@@ -49,8 +52,8 @@ namespace ProbeApp
                 if (state!=Stalled&&state!=Progressed) break;
                 if (state==Stalled) await _task_to_continue!;
                 if(State==Progressed) lock (_lock) {
-                    result=new ActiveSessionRunnerResult<int>(_last_set, State, Position);
-                    SetState(_state_to_set);
+                        SetState(_state_to_set);
+                        result=new ActiveSessionRunnerResult<int>(_last_set, State, Position);
                 }
             }
             return result;

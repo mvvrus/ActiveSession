@@ -7,7 +7,7 @@ namespace ProbeApp
         public static async Task<string> PageHandler(HttpContext Context, int? RunnerNumber)
         {
             IActiveSession? active_session = Context.Features.Get<IActiveSessionFeature>()?.ActiveSession;
-            SimpleRunnerParams runner_params= new SimpleRunnerParams {Immediate=10, End=100};
+            SimpleRunnerParams runner_params= new SimpleRunnerParams(Immediate:10, End:100);
             String id = active_session?.Id??"<null>";
             int runner_key=-1;
             IActiveSessionRunner<int>? runner=null;
