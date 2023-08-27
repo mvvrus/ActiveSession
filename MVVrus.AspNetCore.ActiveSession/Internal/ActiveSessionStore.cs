@@ -41,7 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IServiceProvider RootServiceProvider,
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
-            ILoggerFactory? LoggerFactory
+            ILoggerFactory? LoggerFactory = null
         )
         {
             if (Options is null)
@@ -145,7 +145,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_entry.SetValue(result);
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=EndActiveSessionCallback;
-                                end_activesession.State=trace_identifier;
+                                end_activesession.State=Session.Id;
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 new_entry.Dispose(); //Commit entry to the cache
                             }
