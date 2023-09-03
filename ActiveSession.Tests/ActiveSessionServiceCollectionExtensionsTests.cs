@@ -2,12 +2,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using static ActiveSession.Tests.SimulatedActiveSessionConfiguration;
 using MVVrus.AspNetCore.ActiveSession;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace ActiveSession.Tests
 {
@@ -38,17 +40,17 @@ namespace ActiveSession.Tests
 
         int CountServiceImplementations(IServiceCollection ServiceDescriptors, Type ServiceType)
         {
-            return ServiceDescriptors.Where(sd=>sd.ServiceType==ServiceType).Count();
+            return ServiceDescriptors.Where(sd => sd.ServiceType==ServiceType).Count();
         }
 
         void CheckInfrastructure(IServiceCollection Services, Boolean IsConfigDelegateUsed)
         {
             Assert.Equal(1, CountServiceImplementations(Services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(Services, typeof(IConfigureOptions<ActiveSessionOptions>)));
-            Assert.Equal(IsConfigDelegateUsed?1:0, CountServiceImplementations(Services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
+            Assert.Equal(IsConfigDelegateUsed ? 1 : 0, CountServiceImplementations(Services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
         }
 
-        [Fact]
+        [Fact(DisplayName = "AddActiveSessionInfrastructure method")]
         public void AcitiveSessionInfrastructure()
         {
             const String HOST1 = "host1";
@@ -60,7 +62,7 @@ namespace ActiveSession.Tests
             IServiceProvider sp;
 
             //Check single AddActiveSessionInfrastructure w/o configuration delegate
-            services= new ServiceCollection();
+            services=new ServiceCollection();
             services.AddSingleton<IMemoryCache>(fake_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, null);
@@ -76,7 +78,7 @@ namespace ActiveSession.Tests
             services=new ServiceCollection();
             services.AddSingleton<IMemoryCache>(fake_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
-            ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, o=>o.Prefix=PREFIX1);
+            ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, o => o.Prefix=PREFIX1);
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
@@ -131,7 +133,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_TwoParams_NoConfig()
         {
-            Func<Request1, IServiceProvider, IActiveSessionRunner<Result1>> factory = (x,sp) => new SpyRunner1(x);
+            Func<Request1, IServiceProvider, IActiveSessionRunner<Result1>> factory = (x, sp) => new SpyRunner1(x);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory);
@@ -175,7 +177,14 @@ namespace ActiveSession.Tests
             mock_sp.Verify(x => x.GetService(It.IsAny<Type>()), Times.Never());
         }
 
-        private static void CheckTypeFactories(IServiceCollection Services, Type[] RequestTypes, Type[] RunnerResultTypes)
+        //================= Tests for TypeRunnerFactory-based factories ==================================================
+        private static void CheckTypeFactories(
+            IServiceCollection Services,
+            Type[] RequestTypes,
+            Type[] RunnerResultTypes,
+            Type implementer,
+            Object[]? ExtraParams = null
+        )
         {
             Type[] type_args = new Type[2];
             foreach (Type result_type in RunnerResultTypes) {
@@ -184,72 +193,237 @@ namespace ActiveSession.Tests
                     type_args[1]=result_type;
                     Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>).MakeGenericType(type_args);
                     Assert.Single(Services, x => x.ServiceType==factory_service_type);
-                    ServiceDescriptor sd = Services.Where(x=>x.ServiceType==factory_service_type).First();
+                    ServiceDescriptor sd = Services.Where(x => x.ServiceType==factory_service_type).First();
                     Assert.NotNull(sd.ImplementationFactory);
                     Assert.IsType<ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget>(sd.ImplementationFactory.Target);
+                    var fdt = (ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget)sd.ImplementationFactory.Target;
+                    Assert.Equal(implementer, fdt.RunnerResultType);
+                    if (ExtraParams!=null) {
+                        Assert.Equal(ExtraParams!.Length, fdt.ExtraArguments.Length);
+                        for(int i=0;i<ExtraParams!.Length;i++) {
+                            Assert.IsType(ExtraParams![i].GetType(), fdt.ExtraArguments[i]);
+                            Assert.True(ExtraParams![i].Equals(fdt.ExtraArguments[i]));
+                        }
+
+                    }
+                    else
+                        Assert.Empty(fdt.ExtraArguments);
+                    Assert.Equal(typeof(TypeRunnerFactory<,>).MakeGenericType(type_args), fdt.FactoryImplObjectConstructor.DeclaringType);
                 }
             }
         }
 
+        class FactoryDelegateTargetTestObject
+        {
+            public Type RunnerType { get; init; }
+            public Object[]? Params { get; init; }
+            public ILoggerFactory? LoggerFactory { get; init; }
+
+            public FactoryDelegateTargetTestObject(Type RunnerType, Object[]? Params, ILoggerFactory? LoggerFactory)
+            {
+                this.RunnerType=RunnerType;
+                this.Params=Params;
+                this.LoggerFactory=LoggerFactory;
+            }
+        }
+
+        [Fact(DisplayName="FactoryDelegateTarget.Invoke method")]
+        public void FactoryDelegateTarget_Invocation()
+        {
+            ILoggerFactory dummy_logger_factory = new Mock<ILoggerFactory>().Object;
+            Mock<IServiceProvider> mock_sp = new Mock<IServiceProvider>();
+            Expression<Func<IServiceProvider, Object?>> get_lf_service = (IServiceProvider x) => x.GetService(typeof(ILoggerFactory));
+            mock_sp.Setup(get_lf_service).Returns(dummy_logger_factory);
+            ConstructorInfo ci = typeof(FactoryDelegateTargetTestObject).GetConstructors().FirstOrDefault()!;
+            Object[] extra_params = new Object[] {"Test", 1 };
+
+            var fdt = new ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget(ci,typeof(String), extra_params);
+            Object result = fdt.Invoke(mock_sp.Object);
+
+            mock_sp.Verify(get_lf_service, Times.Once);
+            Assert.IsType<FactoryDelegateTargetTestObject>(result);
+            FactoryDelegateTargetTestObject fdto = (FactoryDelegateTargetTestObject)result;
+            Assert.NotNull(fdto.Params);
+            Assert.Equal(typeof(String), fdto.RunnerType);
+            Assert.Equal(extra_params, fdto.Params);
+            Assert.Equal(dummy_logger_factory, fdto.LoggerFactory);
+        }
+
+
         [Fact]
-        public void TypeFactorySimple_NoConfig()
+        public void TypeFactory1Constructor_NoConfig()
         {
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions<SpyRunner1>();
 
             CheckInfrastructure(services, false);
-            CheckTypeFactories(services,new Type[]{typeof (Request1)}, new Type[] {typeof( Result1)});
+            CheckTypeFactories(services,new Type[]{typeof (Request1)}, new Type[] {typeof( Result1)}, typeof(SpyRunner1));
         }
 
         [Fact]
-        public void TypeFactorySimple_Config()
+        public void TypeFactory1Constructor_Config()
         {
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions<SpyRunner1>(o=>o.HostId="unknown");
 
             CheckInfrastructure(services, true);
-            CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1) });
+            CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1) }, typeof(SpyRunner1));
         }
 
-        /*
-        public void TypeFactoryThreeConstructors_NoConstructorAttribute()
+        class SpyRunner2: SpyRunner1
+        {
+            public SpyRunner2(Request1 Request) : base(Request) { }
+            public SpyRunner2(String StringRequest) : base(new Request1 { Arg = StringRequest}) { }
+            public SpyRunner2(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+        }
+
+        [Fact]
+        public void TypeFactory3Constructors_NoAttribute()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner2>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(String), typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner2));
+        }
+
+        class SpyRunner3 : SpyRunner1
+        {
+            public SpyRunner3(Request1 Request) : base(Request) { }
+            [ActiveSessionConstructor]
+            public SpyRunner3(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
+            public SpyRunner3(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+        }
+
+        [Fact]
+        public void TypeFactory3Constructors_AttributeTrue()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner3>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(String) }, new Type[] { typeof(Result1) }, typeof(SpyRunner3));
+        }
+
+        class SpyRunner4 : SpyRunner1
+        {
+            public SpyRunner4(Request1 Request) : base(Request) { }
+            [ActiveSessionConstructor(false)]
+            public SpyRunner4(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
+            public SpyRunner4(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+        }
+
+        [Fact]
+        public void TypeFactory3Constructors_AttributeFalse()
         {
 
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner4>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner4));
         }
 
-        public void TypeFactoryThreeConstructors_ConstructorAttribute_True()
+        class SpyRunner5 : SpyRunner1
         {
-
+            public SpyRunner5(Request1 Request) : base(Request) { }
+            [ActiveSessionConstructor]
+            public SpyRunner5(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
+            [ActivatorUtilitiesConstructor]
+            public SpyRunner5(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
         }
 
-        public void TypeFactoryThreeConstructors_ConstructorAttribute_False()
-        {
-
-        }
-
-        public void TypeFactoryThreeConstructors_ConstructorAttribute_True_And_False()
-        {
-
-        }
-
+        [Fact]
         public void TypeFactoryThreeConstructors_ActivatorUtilitiesConstructorAttribute()
         {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner5>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner5));
 
         }
 
-        public void TypeFactorySimple_InheritTwoInterfaces()
+        class SpyRunner6 : SpyRunner1, IActiveSessionRunner<String>
         {
+            public SpyRunner6(Request1 Request) : base(Request)
+            {
+            }
 
+            ActiveSessionRunnerResult<String> IActiveSessionRunner<String>.GetAvailable(Int32 StartPosition, Int32 Advance, String? TraceIdentifier)
+            {
+                throw new NotImplementedException();
+            }
+
+            ValueTask<ActiveSessionRunnerResult<String>> IActiveSessionRunner<String>.GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
+            {
+                throw new NotImplementedException();
+            }
         }
 
-        public void TypeFactoryThreeConstructors_InheritTwoInterfaces()
+        [Fact]
+        public void TypeFactory1Constructor_2Interfaces()
         {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner6>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1), typeof(String) }, typeof(SpyRunner6));
+        }
+
+        class SpyRunner7 : SpyRunner6
+        {
+            public SpyRunner7(Request1 Request) : base(Request) { }
+            public SpyRunner7(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
+            public SpyRunner7(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+        }
+
+        [Fact]
+        public void TypeFactory3Constructors_2Interfaces()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner7>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(String), typeof(int) }, new Type[] { typeof(Result1), typeof(String) }, typeof(SpyRunner7));
 
         }
 
-         */
+        [Fact]
+        public void TypeFactory1Constructor_Params()
+        {
+            IServiceCollection services = new ServiceCollection();
+            String StringParam = "StringParam";
+            int IntParam = 1;
+
+            services.AddActiveSessions<SpyRunner1>(StringParam,IntParam);
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1) }, 
+                typeof(SpyRunner1), new Object[] {StringParam,IntParam});
+        }
+
+        [Fact]
+        public void TypeFactory3Constructors_2Interfaces_Params()
+        {
+            IServiceCollection services = new ServiceCollection();
+            String StringParam = "StringParam";
+            int IntParam = 1;
+
+            services.AddActiveSessions<SpyRunner7>(StringParam, IntParam);
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(String), typeof(int) }, new Type[] { typeof(Result1), typeof(String) },
+                typeof(SpyRunner7), new Object[] { StringParam, IntParam });
+        }
 
     }
 }
