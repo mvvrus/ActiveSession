@@ -7,6 +7,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> _factory;
         readonly ILogger? _logger;
 
+        //For testing purposes
+        internal Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory { get { return _factory; } }
+
         public DelegateRunnerFactory(Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory, ILogger? Logger=null)
         {
             _logger = Logger;

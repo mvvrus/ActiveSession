@@ -64,7 +64,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         Func<TRequest, IActiveSessionRunner<TResult>> Factory,
         Action<ActiveSessionOptions>? Configurator)
         {
-            return AddActiveSessions<TRequest,TResult>(Services, (Request, _) => Factory(Request), Configurator);
+            return AddActiveSessions<TRequest, TResult>(Services, (Request, _) => Factory(Request), Configurator);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
             Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory)
         {
-            return AddActiveSessions(Services, Factory, null );
+            return AddActiveSessions(Services, Factory, null);
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// for all combinations of TRequest and TResult supported by the TRunner type are added
         /// In this overload a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remarks>
-        public static IServiceCollection AddActiveSessions<TRunner>(this IServiceCollection Services, 
+        public static IServiceCollection AddActiveSessions<TRunner>(this IServiceCollection Services,
             Action<ActiveSessionOptions>? Configurator, params Object[] ExtraArguments)
         {
             AddActiveSessionInfrastructure(Services, Configurator);
@@ -203,20 +203,24 @@ namespace MVVrus.AspNetCore.ActiveSession
                 Boolean has_params = constructor.GetParameters().Length>0;
                 if (constructor.IsDefined(typeof(ActivatorUtilitiesConstructorAttribute), false)) {
                     selected_constructors.Clear();
-                    if (has_params) selected_constructors.Add(constructor);
+                    if (has_params)
+                        selected_constructors.Add(constructor);
                     break;
                 }
                 ActiveSessionConstructorAttribute? as_attribute = constructor.GetCustomAttribute<ActiveSessionConstructorAttribute>();
                 if (as_attribute!=null) {
                     if (as_attribute.Use) {
-                        if (!has_marked_constructor) selected_constructors.Clear();
+                        if (!has_marked_constructor)
+                            selected_constructors.Clear();
                         has_marked_constructor=true;
-                        if (has_params) selected_constructors.Add(constructor);
+                        if (has_params)
+                            selected_constructors.Add(constructor);
                     }
                     else
                         continue;
                 }
-                else if (!has_marked_constructor&&has_params) selected_constructors.Add(constructor);
+                else if (!has_marked_constructor&&has_params)
+                    selected_constructors.Add(constructor);
             }
             if (selected_constructors.Count<=0)
                 throw new InvalidOperationException($"No suitable constructors found for type {runner_type.FullName}");
@@ -228,13 +232,13 @@ namespace MVVrus.AspNetCore.ActiveSession
             //Add to service list (Services) implementations of IActiveSessionRunnerFactory<TRequest,TResult>
             // via the class TypeRunnerFactory<TRequest,TResult>
             // for all combinations of request and result types 
-//            int extra_params_length = (ExtraArguments?.Length??0);
+            //            int extra_params_length = (ExtraArguments?.Length??0);
             Object[] factory_impl_params = new Object[3];
             Type[] type_args = new Type[2];
             foreach (Type result_type in result_types) {
                 ActiveSessionStore.RegisterTResult(result_type);
                 foreach (Type request_type in unique_first_param_types) {
-                    type_args[0] = request_type;
+                    type_args[0]=request_type;
                     type_args[1]=result_type;
                     Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>)
                         .MakeGenericType(type_args);
@@ -242,12 +246,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                         .MakeGenericType(type_args)
                         .GetConstructors()[0];
 
-                    // Services.AddSingleton(factory_service_type, factory_impl_object);
-                    Services.AddSingleton(factory_service_type, sp => factory_impl_object_constructor.Invoke(new Object?[] {
-                                runner_type,
-                                ExtraArguments??new Object[0],
-                                sp.GetService<ILoggerFactory>()
-                        })
+                    Services.AddSingleton(
+                        factory_service_type, 
+                        (new FactoryDelegateTarget(
+                            factory_impl_object_constructor, 
+                            runner_type, 
+                            ExtraArguments
+                        )).Invoke
                     );
 
                 }
@@ -298,7 +303,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         //The internal access modifier is for testing
         {
             //Add common services for the active sessions feature
-            if(!Services.Any(s => s.ServiceType==typeof(IActiveSessionStore))) { //The first run of this method
+            if (!Services.Any(s => s.ServiceType==typeof(IActiveSessionStore))) { //The first run of this method
                 Services.TryAddSingleton<IActiveSessionStore, ActiveSessionStore>();
                 Services.AddOptions<ActiveSessionOptions>().Configure<IConfiguration>(ReadActiveSessionsConfig);
             }
@@ -309,6 +314,36 @@ namespace MVVrus.AspNetCore.ActiveSession
         private static void ReadActiveSessionsConfig(ActiveSessionOptions Options, IConfiguration Configuration)
         {
             Configuration.Bind(CONFIG_SECTION_NAME, Options);
+        }
+
+        //The class, containing the method to be called as factory creating TypeRunnerFactory specialization
+        //It is used just to facilitate testing
+        internal class FactoryDelegateTarget
+        {
+            internal ConstructorInfo FactoryImplObjectConstructor { get; init; }
+            internal Type RunnerResultType { get; init; }
+            internal Object[] ExtraArguments;
+
+            public FactoryDelegateTarget(
+                ConstructorInfo FactoryImplObjectConstructor, 
+                Type RunnerResultType, 
+                Object[]? ExtraArguments
+            ){
+                this.FactoryImplObjectConstructor=FactoryImplObjectConstructor;
+                this.RunnerResultType=RunnerResultType;
+                this.ExtraArguments=ExtraArguments??new Object[0];
+            }
+
+            public Object Invoke(IServiceProvider sp)
+            {
+
+                return FactoryImplObjectConstructor.Invoke(new Object?[] {
+                                RunnerResultType,
+                                ExtraArguments,
+                                sp.GetService<ILoggerFactory>() 
+                            }
+                );
+            }
         }
     }
 }
