@@ -11,6 +11,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         readonly Boolean _useSessionServicesAsRequestServices;
 
+        //Properties for testing
+        internal RequestDelegate Next { get { return _next; } }
+        internal IActiveSessionStore Store { get { return _store; } }
+        internal Boolean useSessionServicesAsRequestServices { get { return _useSessionServicesAsRequestServices; } }
+
         public ActiveSessionMiddleware(RequestDelegate Next,
             IActiveSessionStore Store,
             ILoggerFactory? LoggerFactory,
