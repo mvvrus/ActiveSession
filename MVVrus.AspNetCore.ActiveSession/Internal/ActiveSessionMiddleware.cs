@@ -50,8 +50,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceInvokeActiveSessionMiddleware(Context.TraceIdentifier);
             #endif
             IServiceProvider request_services = Context.RequestServices;
-            IActiveSessionFeature feature = new ActiveSessionFeature(
-                _store, Context.Features.Get<ISessionFeature>()?.Session, _logger, Context.TraceIdentifier);
+            IActiveSessionFeature feature = 
+                _store.CreateFeatureObject(Context.Features.Get<ISessionFeature>()?.Session, Context.TraceIdentifier);
             Context.Features.Set(feature);
             _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
