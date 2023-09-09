@@ -51,7 +51,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             IServiceProvider request_services = Context.RequestServices;
             IActiveSessionFeature feature = 
-                _store.CreateFeatureObject(Context.Features.Get<ISessionFeature>()?.Session, Context.TraceIdentifier);
+                _store.CreateFeatureObject(Context.Session, Context.TraceIdentifier);
             Context.Features.Set(feature);
             _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
@@ -85,7 +85,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             finally {
                 Context.Features.Set<IActiveSessionFeature>(null);
-                feature.Clear();
+                feature?.Clear();
                 Context.RequestServices=request_services;
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);
