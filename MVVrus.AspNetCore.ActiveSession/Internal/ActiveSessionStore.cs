@@ -588,7 +588,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return $"{SessionKey(Session.Id)}_{RunnerNumber}";
         }
 
-        public ActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier)
+        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier)
         {
             return new ActiveSessionFeature (this, Session, _logger, TraceIdentier);
 

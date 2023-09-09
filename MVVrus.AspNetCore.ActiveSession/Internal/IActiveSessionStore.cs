@@ -11,6 +11,6 @@
             ISession Session, ActiveSession RunnerSession, 
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         );
-        public ActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
+        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
     }
 }
