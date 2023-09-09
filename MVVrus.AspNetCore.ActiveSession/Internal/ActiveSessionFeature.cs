@@ -13,6 +13,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         String _trace_identifier;
 
+
+#if DEBUG
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public ActiveSessionFeature() { }/*for mocking*/
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#endif
         public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, ILogger? Logger, String? TraceIdentifier)
         {
             _logger=Logger;
@@ -28,8 +34,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public async Task CommitAsync(CancellationToken Token = default)
         {
             #if TRACE
@@ -46,6 +58,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public void Clear()
         {
             #if TRACE
@@ -66,8 +81,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _trace_identifier=UNKNOWN_TRACE_IDENTIFIER;
         }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public bool IsLoaded { get { return _isLoaded; } }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public async Task LoadAsync(CancellationToken Token = default)
         {
             #if TRACE

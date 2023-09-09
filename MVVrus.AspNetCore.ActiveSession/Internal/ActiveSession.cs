@@ -24,6 +24,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly CountdownEvent _runnersCounter;
         internal readonly Object RunnerCreationLock = new Object();
 
+#if DEBUG
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public ActiveSession() { }/*for mocking*/
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#endif
+
         public ActiveSession(
             IServiceScope SessionScope
             , IActiveSessionStore Store
@@ -102,10 +108,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public bool IsAvailable { get { return true; } }
 
         public bool IsFresh => _isFresh;
 
+        
+        #if DEBUG
+        virtual/*for mocking*/
+        #endif
         public IServiceProvider SessionServices { get { return _services; } }
         public String Id { get { return _sessionId; } }
 
