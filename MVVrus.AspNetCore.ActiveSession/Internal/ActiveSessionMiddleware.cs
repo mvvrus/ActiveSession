@@ -14,7 +14,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         //Properties for testing
         internal RequestDelegate Next { get { return _next; } }
         internal IActiveSessionStore Store { get { return _store; } }
-        internal Boolean useSessionServicesAsRequestServices { get { return _useSessionServicesAsRequestServices; } }
+        internal Boolean UseSessionServicesAsRequestServices { get { return _useSessionServicesAsRequestServices; } }
 
         public ActiveSessionMiddleware(RequestDelegate Next,
             IActiveSessionStore Store,
