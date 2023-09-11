@@ -23,12 +23,12 @@ namespace ActiveSession.Tests
                 test_setup.MockNextDelegate.Object,
                 test_setup.StubStore.Object,
                 null,
-                test_setup.FakeOptions.Object
+                test_setup.StubOptions.Object
             );
 
             Assert.Equal(test_setup.MockNextDelegate.Object, middleware.Next);
             Assert.Equal(test_setup.StubStore.Object, middleware.Store);
-            Assert.Equal(test_setup.FakeOptions.Object.Value.UseSessionServicesAsRequestServices, middleware.UseSessionServicesAsRequestServices);
+            Assert.Equal(test_setup.StubOptions.Object.Value.UseSessionServicesAsRequestServices, middleware.UseSessionServicesAsRequestServices);
         }
 
         [Fact]
@@ -36,13 +36,13 @@ namespace ActiveSession.Tests
         {
             NextDelegateHost spy_host = new NextDelegateHost();
             MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(false, spy_host.SpyDelegate);
-            FakeHttpContext test_context = new FakeHttpContext(test_setup.FakeSession.Object);
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
 
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
                 test_setup.StubStore.Object,
                 null,
-                test_setup.FakeOptions.Object
+                test_setup.StubOptions.Object
             );
             middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
 
@@ -53,7 +53,7 @@ namespace ActiveSession.Tests
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
             Assert.Null(test_context.ShadowActiveSessionFeature);
             test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
-            Assert.Equal(test_context.FakeRequestServices.Object, test_context.MockContext.Object.RequestServices);
+            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
         [Fact]
@@ -61,13 +61,13 @@ namespace ActiveSession.Tests
         {
             NextDelegateHost spy_host = new NextDelegateHost();
             MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(true, spy_host.SpyDelegate);
-            FakeHttpContext test_context = new FakeHttpContext(test_setup.FakeSession.Object);
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
 
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
                 test_setup.StubStore.Object,
                 null,
-                test_setup.FakeOptions.Object
+                test_setup.StubOptions.Object
             );
             middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
 
@@ -78,7 +78,7 @@ namespace ActiveSession.Tests
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
             Assert.Null(test_context.ShadowActiveSessionFeature);
             test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
-            Assert.Equal(test_context.FakeRequestServices.Object, test_context.MockContext.Object.RequestServices);
+            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
         [Fact]
@@ -86,13 +86,13 @@ namespace ActiveSession.Tests
         {
             NextDelegateHost spy_host = new NextDelegateHost(new TestException());
             MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(false, spy_host.SpyDelegate);
-            FakeHttpContext test_context = new FakeHttpContext(test_setup.FakeSession.Object);
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
 
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
                 test_setup.StubStore.Object,
                 null,
-                test_setup.FakeOptions.Object
+                test_setup.StubOptions.Object
             );
             Boolean test_throws = false;
             try {
@@ -110,7 +110,7 @@ namespace ActiveSession.Tests
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Never);
             Assert.Null(test_context.ShadowActiveSessionFeature);
             test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
-            Assert.Equal(test_context.FakeRequestServices.Object, test_context.MockContext.Object.RequestServices);
+            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
         class TestException:Exception
@@ -122,7 +122,7 @@ namespace ActiveSession.Tests
         {
             public Mock<RequestDelegate> MockNextDelegate { get; init; }
             public Mock<IActiveSessionStore> StubStore { get; init; }
-            public Mock<IOptions<ActiveSessionOptions>> FakeOptions { get; init; }
+            public Mock<IOptions<ActiveSessionOptions>> StubOptions { get; init; }
             ActiveSessionOptions _options;
 
             public MiddlewareCreateTestSetup(Boolean UseSessionServicesAsRequestServices)
@@ -131,8 +131,8 @@ namespace ActiveSession.Tests
                 StubStore=new Mock<IActiveSessionStore>();
                 _options=new ActiveSessionOptions();
                 _options.UseSessionServicesAsRequestServices=UseSessionServicesAsRequestServices;
-                FakeOptions=new Mock<IOptions<ActiveSessionOptions>>();
-                FakeOptions.SetupGet(x => x.Value).Returns(_options);
+                StubOptions=new Mock<IOptions<ActiveSessionOptions>>();
+                StubOptions.SetupGet(x => x.Value).Returns(_options);
             }
         }
 
@@ -141,7 +141,7 @@ namespace ActiveSession.Tests
             public Mock<MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession> FakeActiveSession { get; init; }
             public Mock<IActiveSessionFeature> MockFeature;
 
-            public Mock<ISession> FakeSession { get; init; }
+            public Mock<ISession> StubSession { get; init; }
             public readonly Expression<Func<RequestDelegate,Task>> NextCallExpression= 
                 x => x.Invoke(It.IsAny<HttpContext>());
             public readonly Expression<Func<IActiveSessionFeature, Task>> LoadAsyncCallExpression = 
@@ -150,7 +150,7 @@ namespace ActiveSession.Tests
                 s => s.CommitAsync(It.IsAny<CancellationToken>());
             public readonly Expression<Action<IActiveSessionFeature>> ClearCallExpression = s => s.Clear();
 
-            Mock<IServiceProvider> _fakeSessionServices { get; init; }
+            Mock<IServiceProvider> _stubSessionServices { get; init; }
             RequestDelegate? _spyDelegate;
 
 
@@ -158,13 +158,13 @@ namespace ActiveSession.Tests
                 : base(UseSessionServicesAsRequestServices)
             {
                 _spyDelegate=SpyDelegate;
-                _fakeSessionServices=new Mock<IServiceProvider>();
-                _fakeSessionServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
+                _stubSessionServices=new Mock<IServiceProvider>();
+                _stubSessionServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
                     .Returns(new ServiceProviderIdent(SESSION_SERVICES_IDENT));
 
                 FakeActiveSession=new Mock<MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession>();
                 FakeActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
-                FakeActiveSession.SetupGet(s => s.SessionServices).Returns(_fakeSessionServices.Object);
+                FakeActiveSession.SetupGet(s => s.SessionServices).Returns(_stubSessionServices.Object);
 
                 MockFeature=new Mock<IActiveSessionFeature>();
                 MockFeature.Setup(LoadAsyncCallExpression).Returns(Task.CompletedTask);
@@ -173,12 +173,12 @@ namespace ActiveSession.Tests
                 MockFeature.Setup(CommitAsyncCallExpression).Returns(Task.CompletedTask);
                 MockFeature.Setup(ClearCallExpression);
 
-                FakeSession=new Mock<ISession>();
-                FakeSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
-                FakeSession.SetupGet(x => x.IsAvailable).Returns(true);
+                StubSession=new Mock<ISession>();
+                StubSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
+                StubSession.SetupGet(x => x.IsAvailable).Returns(true);
 
                 StubStore.Setup(x => x.CreateFeatureObject(It.IsAny<ISession>(), It.IsAny<String>()));
-                StubStore.Setup(x => x.CreateFeatureObject(FakeSession.Object, It.IsAny<String>())).Returns(MockFeature.Object);
+                StubStore.Setup(x => x.CreateFeatureObject(StubSession.Object, It.IsAny<String>())).Returns(MockFeature.Object);
 
                 MockNextDelegate.Setup(NextCallExpression).Returns((HttpContext s) => _spyDelegate?.Invoke(s)??Task.CompletedTask);
             }
@@ -202,25 +202,25 @@ namespace ActiveSession.Tests
         {
             public Mock<HttpContext> MockContext { get; init; }
             public IActiveSessionFeature? ShadowActiveSessionFeature { get { return _shadowActiveSessionFeature; } }
-            public Mock<IServiceProvider> FakeRequestServices { get; init; }
-            Mock<IFeatureCollection> _stubFeatureCollection { get; init; }
+            public Mock<IServiceProvider> StubRequestServices { get; init; }
+            Mock<IFeatureCollection> _fakeFeatureCollection { get; init; }
             IActiveSessionFeature? _shadowActiveSessionFeature;
 
             public FakeHttpContext(ISession Session)
             {
-                _stubFeatureCollection=new Mock<IFeatureCollection>();
-                _stubFeatureCollection.Setup(x => x.Get<IActiveSessionFeature>()).Returns(()=> _shadowActiveSessionFeature);
-                _stubFeatureCollection.Setup(x => x.Set(It.IsAny<IActiveSessionFeature>()))
+                _fakeFeatureCollection=new Mock<IFeatureCollection>();
+                _fakeFeatureCollection.Setup(x => x.Get<IActiveSessionFeature>()).Returns(()=> _shadowActiveSessionFeature);
+                _fakeFeatureCollection.Setup(x => x.Set(It.IsAny<IActiveSessionFeature>()))
                     .Callback((IActiveSessionFeature s) => { _shadowActiveSessionFeature=s; });
 
-                FakeRequestServices=new Mock<IServiceProvider>();
-                FakeRequestServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
+                StubRequestServices=new Mock<IServiceProvider>();
+                StubRequestServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
                     .Returns(new ServiceProviderIdent(REQUEST_SERVICES_IDENT));
 
                 MockContext=new Mock<HttpContext>();
-                MockContext.SetupProperty(x => x.RequestServices, FakeRequestServices.Object);
+                MockContext.SetupProperty(x => x.RequestServices, StubRequestServices.Object);
                 MockContext.SetupGet(x => x.TraceIdentifier).Returns(FAKE_TRACE_ID);
-                MockContext.SetupGet(x => x.Features).Returns(_stubFeatureCollection.Object);
+                MockContext.SetupGet(x => x.Features).Returns(_fakeFeatureCollection.Object);
                 MockContext.SetupGet(x => x.Session).Returns(Session);
 
             }

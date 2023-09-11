@@ -56,14 +56,14 @@ namespace ActiveSession.Tests
             const String HOST1 = "host1";
             const String HOST2 = "host2";
             const String PREFIX1 = "prefix1";
-            var fake_memory_cache = new Mock<IMemoryCache>();
+            var dummy_memory_cache = new Mock<IMemoryCache>();
             IConfiguration config = CreateSimulatedActiveSessionCongfiguration(new { HostId = HOST1 });
             IServiceCollection services;
             IServiceProvider sp;
 
             //Check single AddActiveSessionInfrastructure w/o configuration delegate
             services=new ServiceCollection();
-            services.AddSingleton<IMemoryCache>(fake_memory_cache.Object);
+            services.AddSingleton<IMemoryCache>(dummy_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, null);
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
@@ -76,7 +76,7 @@ namespace ActiveSession.Tests
 
             //Check single AddActiveSessionInfrastructure with configuration delegate
             services=new ServiceCollection();
-            services.AddSingleton<IMemoryCache>(fake_memory_cache.Object);
+            services.AddSingleton<IMemoryCache>(dummy_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, o => o.Prefix=PREFIX1);
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
