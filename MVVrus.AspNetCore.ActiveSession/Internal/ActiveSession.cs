@@ -2,7 +2,7 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IDisposable
+    internal class ActiveSession : IActiveSession, IDisposable, IRunnerNumberManager
     {
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
@@ -108,18 +108,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        #if DEBUG
-        virtual/*for mocking*/
-        #endif
         public bool IsAvailable { get { return true; } }
 
         public bool IsFresh => _isFresh;
 
-        
-        #if DEBUG
-        virtual/*for mocking*/
-        #endif
         public IServiceProvider SessionServices { get { return _services; } }
+
         public String Id { get { return _sessionId; } }
 
         public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }

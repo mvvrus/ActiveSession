@@ -2,13 +2,13 @@
 {
     internal interface IActiveSessionStore
     {
-        public ActiveSession FetchOrCreateSession(ISession Session, String? TraceIdentifier);
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, ActiveSession RunnerSession,
+        public IActiveSession FetchOrCreateSession(ISession Session, String? TraceIdentifier);
+        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, IRunnerNumberManager NumberManager,
             TRequest Request, String? TraceIdentifier);
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session, ActiveSession RunnerSession, 
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session, IRunnerNumberManager NumberManager,
             Int32 RunnerNumber, String? TraceIdentifier);
         public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            ISession Session, ActiveSession RunnerSession, 
+            ISession Session, IRunnerNumberManager NumberManager, 
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         );
         public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);

@@ -138,7 +138,7 @@ namespace ActiveSession.Tests
 
         class MiddlewareInvokeTestSetup : MiddlewareCreateTestSetup
         {
-            public Mock<MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession> FakeActiveSession { get; init; }
+            public Mock<IActiveSession> FakeActiveSession { get; init; }
             public Mock<IActiveSessionFeature> MockFeature;
 
             public Mock<ISession> StubSession { get; init; }
@@ -162,7 +162,7 @@ namespace ActiveSession.Tests
                 _stubSessionServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
                     .Returns(new ServiceProviderIdent(SESSION_SERVICES_IDENT));
 
-                FakeActiveSession=new Mock<MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession>();
+                FakeActiveSession=new Mock<IActiveSession>();
                 FakeActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
                 FakeActiveSession.SetupGet(s => s.SessionServices).Returns(_stubSessionServices.Object);
 
