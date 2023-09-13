@@ -85,7 +85,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             finally {
                 Context.Features.Set<IActiveSessionFeature>(null);
-                feature?.Clear();
+                IActiveSessionFeatureControl? feature_control = feature as IActiveSessionFeatureControl;
+                feature_control?.Clear();
                 Context.RequestServices=request_services;
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);

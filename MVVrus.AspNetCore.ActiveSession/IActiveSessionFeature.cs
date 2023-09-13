@@ -31,9 +31,5 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns></returns>
         public Task CommitAsync(CancellationToken Token = default);
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public void Clear();
     }
 }

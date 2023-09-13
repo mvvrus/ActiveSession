@@ -3,7 +3,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSessionFeature : IActiveSessionFeature
+    internal class ActiveSessionFeature : IActiveSessionFeature, IActiveSessionFeatureControl
     {
         //These properties with internal access specifier are just for tetsting purposes
         internal IActiveSessionStore Store { get { return _store; } }

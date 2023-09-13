@@ -52,7 +52,7 @@ namespace ActiveSession.Tests
             Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
             Assert.Null(test_context.ShadowActiveSessionFeature);
-            test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
+            test_setup.MockFeatureControl.Verify(test_setup.ClearCallExpression, Times.Once);
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
@@ -77,7 +77,7 @@ namespace ActiveSession.Tests
             Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
             Assert.Null(test_context.ShadowActiveSessionFeature);
-            test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
+            test_setup.MockFeatureControl.Verify(test_setup.ClearCallExpression, Times.Once);
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
@@ -109,7 +109,7 @@ namespace ActiveSession.Tests
             Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
             test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Never);
             Assert.Null(test_context.ShadowActiveSessionFeature);
-            test_setup.MockFeature.Verify(test_setup.ClearCallExpression, Times.Once);
+            test_setup.MockFeatureControl.Verify(test_setup.ClearCallExpression, Times.Once);
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
@@ -139,7 +139,8 @@ namespace ActiveSession.Tests
         class MiddlewareInvokeTestSetup : MiddlewareCreateTestSetup
         {
             public Mock<IActiveSession> FakeActiveSession { get; init; }
-            public Mock<IActiveSessionFeature> MockFeature;
+            public Mock<IActiveSessionFeature> MockFeature { get; init; }
+            public Mock<IActiveSessionFeatureControl> MockFeatureControl;
 
             public Mock<ISession> StubSession { get; init; }
             public readonly Expression<Func<RequestDelegate,Task>> NextCallExpression= 
@@ -148,7 +149,7 @@ namespace ActiveSession.Tests
                 s => s.LoadAsync(It.IsAny<CancellationToken>());
             public readonly Expression<Func<IActiveSessionFeature, Task>> CommitAsyncCallExpression =
                 s => s.CommitAsync(It.IsAny<CancellationToken>());
-            public readonly Expression<Action<IActiveSessionFeature>> ClearCallExpression = s => s.Clear();
+            public readonly Expression<Action<IActiveSessionFeatureControl>> ClearCallExpression = s => s.Clear();
 
             Mock<IServiceProvider> _stubSessionServices { get; init; }
             RequestDelegate? _spyDelegate;
@@ -171,7 +172,8 @@ namespace ActiveSession.Tests
                 MockFeature.Setup(s => s.IsLoaded).Returns(true);
                 MockFeature.SetupGet(s => s.ActiveSession).Returns(FakeActiveSession.Object);
                 MockFeature.Setup(CommitAsyncCallExpression).Returns(Task.CompletedTask);
-                MockFeature.Setup(ClearCallExpression);
+                MockFeatureControl=MockFeature.As<IActiveSessionFeatureControl>();
+                MockFeatureControl.Setup(ClearCallExpression);
 
                 StubSession=new Mock<ISession>();
                 StubSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
