@@ -10,7 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal ISession? Session { get { return _session; } }
         internal ILogger? Logger { get { return _logger; } }
         internal String TraceIdentifier { get { return _traceIdentifier; } }
-        internal IActiveSession _ActiveSession { get { return _activeSession; } }
+        internal IActiveSession RawActiveSession { get { return _activeSession; } }
 
         readonly IActiveSessionStore _store;
         ISession? _session;
@@ -42,7 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionFeatureCommitAsync(_traceIdentifier);
             #endif
-            if (_isLoaded && _session!=null) {
+            if (_isLoaded && _session!=null && _session.IsAvailable) {
                 #if TRACE
                 _logger?.LogTraceActiveSessionFeatureCommitAsyncActiveSessionWait(_traceIdentifier);
                 #endif
@@ -118,7 +118,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return;
         }
 
-        void Load()
+        internal void Load()
         {
             if (_isLoaded) return;
             #if TRACE
