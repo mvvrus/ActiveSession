@@ -380,6 +380,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4342, Trace, "Exit ActiveSessionFeature.Load, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionFeatureLoadExit(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(4350, Trace, "Enter ActiveSessionFeature.SetSession, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureSetSession(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(4351, Trace, "Exit ActiveSessionFeature.SetSessiond, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionFeatureSetSessionExit(this ILogger Logger, String TraceIdentifier);
+
         [LoggerMessage(4400, Trace, "Creating delegate runner factory to implement IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceConstructDelegateFactory(this ILogger Logger, String TRequest, String TResult);
 

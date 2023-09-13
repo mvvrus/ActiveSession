@@ -146,6 +146,19 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
+        public void SetSession(ISession? Session, String? TraceIdentifier)
+        {
+            if (_isLoaded) Clear(); //Safety precaution
+            #if TRACE
+            _logger?.LogTraceActiveSessionFeatureSetSession(_traceIdentifier);
+            #endif
+            _traceIdentifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            _session=Session;
+            #if TRACE
+            _logger?.LogTraceActiveSessionFeatureSetSessionExit(_traceIdentifier);
+            #endif
+        }
+
         static readonly internal NullActiveSession DummySession = new NullActiveSession();
     }
 }
