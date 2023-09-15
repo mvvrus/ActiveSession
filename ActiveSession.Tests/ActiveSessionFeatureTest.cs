@@ -133,6 +133,111 @@ namespace ActiveSession.Tests
         }
 
 
+        [Fact]
+        public void LoadAsync_Successful()
+        {
+            LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup();
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+            feature.LoadAsync().GetAwaiter().GetResult();
+
+            Assert.True(feature.IsLoaded);
+            Assert.True(feature.ActiveSession.IsAvailable);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+
+            feature.LoadAsync().GetAwaiter().GetResult();
+            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+        }
+
+        [Fact]
+        public void LoadAsync_UnavailableSession()
+        {
+            LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(SessionState.unavailable);
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+
+            feature.LoadAsync().GetAwaiter().GetResult();
+
+            Assert.NotNull(feature.Session);
+            Assert.True(feature.IsLoaded);
+            Assert.False(feature.ActiveSession.IsAvailable);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+        }
+
+        [Fact]
+        public void LoadAsync_NullSession()
+        {
+            LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(SessionState.absent);
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+
+            feature.LoadAsync().GetAwaiter().GetResult();
+
+            Assert.Null(feature.Session);
+            Assert.True(feature.IsLoaded);
+            Assert.False(feature.ActiveSession.IsAvailable);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+        }
+
+        [Fact]
+        public void LoadAsync_WithException()
+        {
+            LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(true);
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+
+            feature.LoadAsync().GetAwaiter().GetResult();
+
+            Assert.True(feature.IsLoaded);
+            Assert.False(feature.ActiveSession.IsAvailable);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+        }
+
+        [Fact]
+        public void Clear()
+        {
+            LoadTestSetup test_setup = new LoadTestSetup();
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+            Assert.False(feature.IsLoaded);
+            feature.Clear();
+            Assert.False(feature.IsLoaded);
+            Assert.Null(feature.Session);
+            Assert.False(feature.RawActiveSession.IsAvailable);
+
+            feature.Load();
+            Assert.True(feature.IsLoaded);
+
+            feature.Clear();
+            Assert.False(feature.IsLoaded);
+            Assert.Null(feature.Session);
+            Assert.False(feature.RawActiveSession.IsAvailable);
+
+        }
+
+        [Fact]
+        public void SetSession()
+        {
+            const String ANOTHER_SESSION_ID = "ANOTHER_SESSION_ID";
+            Mock<ISession> StubNewSession = new Mock<ISession>();
+            StubNewSession.SetupGet(s => s.Id).Returns(ANOTHER_SESSION_ID);
+
+            LoadTestSetup test_setup = new LoadTestSetup();
+            ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+            Assert.False(feature.IsLoaded);
+            feature.SetSession(StubNewSession.Object, null);
+            Assert.Equal(StubNewSession.Object, feature.Session);
+
+            feature.Load();
+            Assert.True(feature.IsLoaded);
+            feature.SetSession(StubNewSession.Object, null);
+            Assert.Equal(StubNewSession.Object, feature.Session);
+            Assert.False(feature.IsLoaded);
+            Assert.False(feature.RawActiveSession.IsAvailable);
+
+        }
+
         enum SessionState { normal, absent, unavailable }
 
         class ConstructorTestSetup
@@ -155,6 +260,27 @@ namespace ActiveSession.Tests
 
         const String TEST_SESSION_ID = "TEST_SESSION_ID";
 
+        class LoadTestSetup : ConstructorTestSetup
+        {
+            public readonly Mock<IActiveSession> StubActiveSession;
+            public readonly Expression<Func<IActiveSessionStore, IActiveSession>> ActiveSessionLoadExpression;
+
+            public LoadTestSetup(Boolean Throws) : this(SessionState.normal, Throws) { }
+            public LoadTestSetup() : this(SessionState.normal, false) { }
+            public LoadTestSetup(SessionState State) : this(State, false) { }
+
+            protected LoadTestSetup(SessionState State, Boolean Throws) : base(State)
+            {
+                StubActiveSession=new Mock<IActiveSession>();
+                StubActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
+                ActiveSessionLoadExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>());
+                if (Throws)
+                    MockStore.Setup(ActiveSessionLoadExpression).Throws(new TestException());
+                else
+                    MockStore.Setup(ActiveSessionLoadExpression).Returns(StubActiveSession.Object);
+            }
+        }
+
         class ActiveSessionTestSetup : LoadTestSetup
         {
             public ActiveSessionTestSetup(SessionState State = SessionState.normal) : base(State)
@@ -173,24 +299,17 @@ namespace ActiveSession.Tests
             
         }
 
-
-        class LoadTestSetup: ConstructorTestSetup
+        class LoadAsyncTestSetup: LoadTestSetup
         {
-            public readonly Mock<IActiveSession> StubActiveSession;
-            public readonly Expression<Func<IActiveSessionStore,IActiveSession>> ActiveSessionLoadExpression;
+            public LoadAsyncTestSetup(Boolean Throws) : this(SessionState.normal, Throws) { }
+            public LoadAsyncTestSetup() : this(SessionState.normal, false) { }
+            public LoadAsyncTestSetup(SessionState State) : this(State, false) { }
 
-            public LoadTestSetup(Boolean Throws) : this(SessionState.normal, Throws) { }
-            public LoadTestSetup() : this(SessionState.normal, false) { }
-            public LoadTestSetup(SessionState State):this(State, false) { }
-
-            protected LoadTestSetup(SessionState State, Boolean Throws):base(State)
+            protected LoadAsyncTestSetup(SessionState State, Boolean Throws) : base(State,Throws) 
             {
-                StubActiveSession=new Mock<IActiveSession>();
-                StubActiveSession.SetupGet(s=>s.IsAvailable).Returns(true);
-                ActiveSessionLoadExpression = s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>());
-                if (Throws)  MockStore.Setup(ActiveSessionLoadExpression).Throws(new TestException());
-                else MockStore.Setup(ActiveSessionLoadExpression).Returns(StubActiveSession.Object);
+                MockSession?.Setup(s => s.LoadAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             }
+
         }
 
         class TestException : Exception
