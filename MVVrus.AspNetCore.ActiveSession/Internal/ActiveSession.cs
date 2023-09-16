@@ -2,7 +2,7 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IDisposable, IRunnerNumberManager
+    internal class ActiveSession : IActiveSession, IDisposable, IRunnerManager
     {
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
@@ -22,7 +22,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning restore IDE0052 // Remove unread private members
         readonly CancellationTokenSource _completionTokenSource;
         readonly CountdownEvent _runnersCounter;
-        internal readonly Object RunnerCreationLock = new Object();
 
 #if DEBUG
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -215,5 +214,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IServiceProvider Services { get { return _services; } }
 
+        public Object RunnerCreationLock { get; init; } = new Object();
     }
 }

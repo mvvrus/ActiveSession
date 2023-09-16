@@ -176,7 +176,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, 
-            IRunnerNumberManager NumberManager,
+            IRunnerManager NumberManager,
             TRequest Request, 
             String? TraceIdentifier)
         {
@@ -188,7 +188,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             Int32 runner_number = -1;
             Boolean use_session_lock = true;
-            Object? runner_lock= (Session as ActiveSession)?.RunnerCreationLock; 
+            Object? runner_lock= NumberManager.RunnerCreationLock; 
             if (runner_lock==null) {
                 _logger?.LogTraceFallbackToStoreGlobalLock(Session.Id, trace_identifier);
                 runner_lock=_creation_lock;
@@ -285,7 +285,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session, 
-            IRunnerNumberManager NumberManager,
+            IRunnerManager NumberManager,
             Int32 RunnerNumber, 
             String? TraceIdentifier)
         {
@@ -320,7 +320,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            ISession Session, IRunnerNumberManager NumberManager,
+            ISession Session, IRunnerManager NumberManager,
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         )
         {
@@ -503,7 +503,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         private IActiveSessionRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
-            IRunnerNumberManager NumberManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
+            IRunnerManager NumberManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
         {
             Object? value_from_cache;
             IActiveSessionRunner<TResult>? result;
@@ -537,7 +537,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private Task<IActiveSessionRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
 #pragma warning disable IDE0060 // Remove unused parameter
-            IRunnerNumberManager NumberManager,
+            IRunnerManager NumberManager,
             String HostId,
             String RunnerKey,
             String TraceIdentifier,
@@ -600,7 +600,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         internal class RunnerPostEvictionInfo
         {
-            public IRunnerNumberManager NumberManager;
+            public IRunnerManager NumberManager;
             public IDisposable? DisposableRunner;
             public IDisposable? ChangeSubscription;
             public String RunnerSessionKey;
@@ -608,7 +608,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             public Boolean UnregisterNumber;
 
             public RunnerPostEvictionInfo(
-                IRunnerNumberManager NumberManager, 
+                IRunnerManager NumberManager, 
                 IDisposable? DisposableRunner,
                 IDisposable? ChangeSubscription,
                 Int32 Number, 
