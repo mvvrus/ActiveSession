@@ -15,29 +15,6 @@ namespace ActiveSession.Tests
 {
     public class ActiveSessionServiceCollectionExtensionsTests
     {
-        public record Request1
-        {
-            public String Arg { get; set; } = "";
-        }
-
-        public class Result1
-        {
-            public String Value { get; init; }
-            public Result1(String Value)
-            {
-                this.Value=Value;
-            }
-        }
-
-        public class SpyRunner1 : SpyRunnerBase<Result1>
-        {
-            public Request1 Request { get; init; }
-            public SpyRunner1(Request1 Request)
-            {
-                this.Request=Request;
-            }
-        }
-
         int CountServiceImplementations(IServiceCollection ServiceDescriptors, Type ServiceType)
         {
             return ServiceDescriptors.Where(sd => sd.ServiceType==ServiceType).Count();
@@ -272,13 +249,6 @@ namespace ActiveSession.Tests
             CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1) }, typeof(SpyRunner1));
         }
 
-        class SpyRunner2: SpyRunner1
-        {
-            public SpyRunner2(Request1 Request) : base(Request) { }
-            public SpyRunner2(String StringRequest) : base(new Request1 { Arg = StringRequest}) { }
-            public SpyRunner2(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
-        }
-
         [Fact]
         public void TypeFactory3Constructors_NoAttribute()
         {
@@ -290,14 +260,6 @@ namespace ActiveSession.Tests
             CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(String), typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner2));
         }
 
-        class SpyRunner3 : SpyRunner1
-        {
-            public SpyRunner3(Request1 Request) : base(Request) { }
-            [ActiveSessionConstructor]
-            public SpyRunner3(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
-            public SpyRunner3(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
-        }
-
         [Fact]
         public void TypeFactory3Constructors_AttributeTrue()
         {
@@ -307,14 +269,6 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, false);
             CheckTypeFactories(services, new Type[] { typeof(String) }, new Type[] { typeof(Result1) }, typeof(SpyRunner3));
-        }
-
-        class SpyRunner4 : SpyRunner1
-        {
-            public SpyRunner4(Request1 Request) : base(Request) { }
-            [ActiveSessionConstructor(false)]
-            public SpyRunner4(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
-            public SpyRunner4(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
         }
 
         [Fact]
@@ -329,15 +283,6 @@ namespace ActiveSession.Tests
             CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner4));
         }
 
-        class SpyRunner5 : SpyRunner1
-        {
-            public SpyRunner5(Request1 Request) : base(Request) { }
-            [ActiveSessionConstructor]
-            public SpyRunner5(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
-            [ActivatorUtilitiesConstructor]
-            public SpyRunner5(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
-        }
-
         [Fact]
         public void TypeFactoryThreeConstructors_ActivatorUtilitiesConstructorAttribute()
         {
@@ -350,23 +295,6 @@ namespace ActiveSession.Tests
 
         }
 
-        class SpyRunner6 : SpyRunner1, IActiveSessionRunner<String>
-        {
-            public SpyRunner6(Request1 Request) : base(Request)
-            {
-            }
-
-            ActiveSessionRunnerResult<String> IActiveSessionRunner<String>.GetAvailable(Int32 StartPosition, Int32 Advance, String? TraceIdentifier)
-            {
-                throw new NotImplementedException();
-            }
-
-            ValueTask<ActiveSessionRunnerResult<String>> IActiveSessionRunner<String>.GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         [Fact]
         public void TypeFactory1Constructor_2Interfaces()
         {
@@ -376,13 +304,6 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, false);
             CheckTypeFactories(services, new Type[] { typeof(Request1) }, new Type[] { typeof(Result1), typeof(String) }, typeof(SpyRunner6));
-        }
-
-        class SpyRunner7 : SpyRunner6
-        {
-            public SpyRunner7(Request1 Request) : base(Request) { }
-            public SpyRunner7(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
-            public SpyRunner7(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
         }
 
         [Fact]
