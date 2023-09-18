@@ -8,5 +8,6 @@
         void UnregisterRunner(int RunnerNumber);
         IServiceProvider Services { get; }
         Object? RunnerCreationLock { get; }
+        Boolean WaitForRunners(Int32 Timeout);
     }
 }

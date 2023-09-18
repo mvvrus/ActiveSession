@@ -2,7 +2,7 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IDisposable, IRunnerManager
+    internal class ActiveSession : IActiveSession, IDisposable
     {
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
@@ -11,23 +11,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly String _sessionId;
         bool _disposed;
         bool _isFresh = true;
-        Int32 _newRunnerNumber;
-#pragma warning disable CS0169 // The field 'ActiveSession._keyMap' is never used
-#pragma warning disable IDE0051 // Remove unused private members
-        readonly Byte[] ? _keyMap;
-#pragma warning restore IDE0051 // Remove unused private members
-#pragma warning restore CS0169 // The field 'ActiveSession._keyMap' is never used
-#pragma warning disable IDE0052 // Remove unread private members
-        readonly Int32 _minRunnerNumber, _maxRunnerNumber;
-#pragma warning restore IDE0052 // Remove unread private members
         readonly CancellationTokenSource _completionTokenSource;
-        readonly CountdownEvent _runnersCounter;
+        readonly IRunnerManager _runnerManager;
+        readonly Boolean _isDefaultRunnerManagerUsed;
 
-#if DEBUG
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public ActiveSession() { }/*for mocking*/
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-#endif
+        //Properties used in tests
+        internal IRunnerManager RunnerManager { get { return _runnerManager; } }
+        internal Boolean IsDefaultRunnerManagerUsed { get { return _isDefaultRunnerManagerUsed; } }
 
         public ActiveSession(
             IServiceScope SessionScope
@@ -47,18 +37,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             _scope= SessionScope;
             _services = _scope.ServiceProvider;
+            IRunnerManager? runner_manager = _services.GetService<IRunnerManager>();
+            _isDefaultRunnerManagerUsed=runner_manager==null;
+            _runnerManager = runner_manager ?? new DefaultRunnerManager(_sessionId, _logger, _services, MinRunnerNumber, MaxRunnerNumber);
             _store = Store;
             _completionTokenSource = new CancellationTokenSource();
-            _runnersCounter=new CountdownEvent(1);
-            _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
-            _maxRunnerNumber=MaxRunnerNumber;
-            if (MaxRunnerNumber!=Int32.MaxValue) { 
-                //TODO Implement runner number reusage
-            }
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
-            //TODO LogTrace?
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
@@ -68,7 +54,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
             #endif
-            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session, this, Request, trace_identifier);
+            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session, _runnerManager, Request, trace_identifier);
             _isFresh = false;
             //TODO LogTrace?
             #if TRACE
@@ -84,7 +70,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,this, RequestedKey, trace_identifier);
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,_runnerManager, RequestedKey, trace_identifier);
             _isFresh = false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
@@ -99,7 +85,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, RequestedKey, trace_identifier, Token);
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, _runnerManager, RequestedKey, trace_identifier, Token);
             _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
@@ -149,14 +135,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDispose(_sessionId);
             #endif
-            _runnersCounter.Signal();
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDisposeWaitForRunners(_sessionId);
             #endif
-            Boolean wait_succeded=_runnersCounter.Wait(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
+            Boolean wait_succeded = _runnerManager.WaitForRunners(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
             #if TRACE
             _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);
             #endif
+            if(_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
             _scope.Dispose();
             _completionTokenSource.Dispose();
             #if TRACE
@@ -169,51 +155,99 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if(_disposed)  throw new ObjectDisposedException(this.GetType().FullName!);
         }
 
-        public void RegisterRunner (int RunnerNumber)
-        {
-            #if TRACE
-            _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
-            #endif
-            _runnersCounter.AddCount();    
-        }
+        internal class DefaultRunnerManager:IRunnerManager, IDisposable 
+        { 
+            readonly CountdownEvent _runnersCounter;
+            readonly String _sessionId;
+            readonly ILogger? _logger;
+            readonly IServiceProvider _services;
+            Int32 _newRunnerNumber;
+#pragma warning disable CS0169 // The field 'ActiveSession._keyMap' is never used
+#pragma warning disable IDE0051 // Remove unused private members
+            readonly Byte[]? _keyMap;
+#pragma warning restore IDE0051 // Remove unused private members
+#pragma warning restore CS0169 // The field 'ActiveSession._keyMap' is never used
+#pragma warning disable IDE0052 // Remove unread private members
+            readonly Int32 _minRunnerNumber, _maxRunnerNumber;
+#pragma warning restore IDE0052 // Remove unread private members
 
-        public void UnregisterRunner(int RunnerNumber)
-        {
-            #if TRACE
-            _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
-            #endif
-            _runnersCounter.Signal();
-            ReturnRunnerNumber(RunnerNumber);
-        }
-
-        public void ReturnRunnerNumber(Int32 RunnerNumber)
-        {
-            #if TRACE
-            _logger?.LogTraceReturnRunnerNumber(_sessionId, RunnerNumber);
-            #endif
-            //Do nothing until RunnerNumber reusage is implemented
-        }
-
-
-        public Int32 GetNewRunnerNumber(String? TraceIdentifier=null)
-        {
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            #if TRACE
-            _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
-            #endif
-            if (_newRunnerNumber>_maxRunnerNumber) {
-                _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
-                throw new InvalidOperationException("Cannot acquire a new runner number");
+            public DefaultRunnerManager(
+                String sessionId
+                , ILogger? logger
+                , IServiceProvider Services
+                , Int32 MinRunnerNumber = 0
+                , Int32 MaxRunnerNumber = Int32.MaxValue
+            )
+            {
+                _runnersCounter=new CountdownEvent(1);
+                _sessionId=sessionId;
+                _logger=logger;
+                _services=Services;
+                _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
+                _maxRunnerNumber=MaxRunnerNumber;
+                if (MaxRunnerNumber!=Int32.MaxValue) {
+                    //TODO Implement runner number reusage
+                }
             }
-            int result = _newRunnerNumber++;
-            #if TRACE
-            _logger?.LogTraceGetNewRunnerNumberExit(_sessionId, result, trace_identifier);
-            #endif
-            return result;
+
+            public void RegisterRunner (int RunnerNumber)
+            {
+                #if TRACE
+                _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
+                #endif
+                _runnersCounter.AddCount();    
+            }
+
+            public void UnregisterRunner(int RunnerNumber)
+            {
+                #if TRACE
+                _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
+                #endif
+                _runnersCounter.Signal();
+                ReturnRunnerNumber(RunnerNumber);
+            }
+
+            public void ReturnRunnerNumber(Int32 RunnerNumber)
+            {
+                #if TRACE
+                _logger?.LogTraceReturnRunnerNumber(_sessionId, RunnerNumber);
+                #endif
+                //Do nothing until RunnerNumber reusage is implemented
+            }
+
+
+            public Int32 GetNewRunnerNumber(String? TraceIdentifier=null)
+            {
+                String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+                #if TRACE
+                _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
+                #endif
+                if (_newRunnerNumber>_maxRunnerNumber) {
+                    _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
+                    throw new InvalidOperationException("Cannot acquire a new runner number");
+                }
+                int result = _newRunnerNumber++;
+                #if TRACE
+                _logger?.LogTraceGetNewRunnerNumberExit(_sessionId, result, trace_identifier);
+                #endif
+                return result;
+            }
+
+            public IServiceProvider Services { get { return _services; } }
+
+            public Object RunnerCreationLock { get; init; } = new Object();
+            
+            public Boolean WaitForRunners(Int32 Timeout)
+            {
+                _runnersCounter.Signal();
+                Boolean wait_succeded = _runnersCounter.Wait(Timeout);
+                return wait_succeded;
+            }
+
+            public void Dispose()
+            {
+                _runnersCounter?.Dispose();
+            }
         }
-
-        public IServiceProvider Services { get { return _services; } }
-
-        public Object RunnerCreationLock { get; init; } = new Object();
     }
 }
