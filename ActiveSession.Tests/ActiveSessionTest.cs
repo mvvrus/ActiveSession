@@ -83,9 +83,23 @@ namespace ActiveSession.Tests
             Assert.Null(unknown_runner);
         }
 
-        void GetRunnerAsync()
+        [Fact]
+        public void GetRunnerAsync()
         {
-            //TODO
+            RunnerTestSetup test_setup = new RunnerTestSetup();
+            Active_Session active_session = new Active_Session(test_setup.StubServiceScope.Object,
+                test_setup.MockStore.Object,
+                test_setup.StubSession.Object,
+                null);
+
+            var runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+            var unknown_runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+
+            Assert.False(active_session.IsFresh);
+            Assert.NotNull(runner);
+            Assert.IsType<SpyRunner1>(runner);
+            Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
+            Assert.Null(unknown_runner);
         }
 
         void CompletionToken()
@@ -180,6 +194,7 @@ namespace ActiveSession.Tests
 
             readonly Expression<Func<IActiveSessionStore, KeyedActiveSessionRunner<Result1>>> _createRunnerExpression;
             readonly Expression<Func<IActiveSessionStore,IActiveSessionRunner<Result1>?>> _getRunnerExpression;
+            readonly Expression<Func<IActiveSessionStore, ValueTask<IActiveSessionRunner<Result1>?>>> _getRunnerExpressionAsync;
             public readonly SpyRunner1 ExistingRunner = new SpyRunner1(new Request1 { Arg = EXISTING_TEST_RUNNER_ARG });
 
             public RunnerTestSetup() : base()
@@ -192,9 +207,14 @@ namespace ActiveSession.Tests
                         );
                 MockStore.Setup(_createRunnerExpression)
                     .Returns((ISession _, IRunnerManager _, Request1 r, String _) => new KeyedActiveSessionRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
-                MockStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>())).Returns((IActiveSessionRunner<Result1>?)null);
+                MockStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
+                    .Returns((IActiveSessionRunner<Result1>?)null);
                 _getRunnerExpression=s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
                 MockStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
+                MockStore.Setup(s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
+                    .Returns(new ValueTask<IActiveSessionRunner<Result1>?>((IActiveSessionRunner<Result1>?)null));
+                _getRunnerExpressionAsync=s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
+                MockStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IActiveSessionRunner<Result1>?>(ExistingRunner));
             }
 
         }
