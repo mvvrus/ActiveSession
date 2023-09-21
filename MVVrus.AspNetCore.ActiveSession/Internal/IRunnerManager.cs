@@ -9,5 +9,6 @@
         IServiceProvider Services { get; }
         Object? RunnerCreationLock { get; }
         Boolean WaitForRunners(Int32 Timeout);
+        CancellationToken SessionCompletionToken { get; }
     }
 }

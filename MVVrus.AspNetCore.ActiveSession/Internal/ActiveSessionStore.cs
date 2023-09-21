@@ -145,6 +145,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=Session.Id;
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger, trace_identifier);
+                                new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
                                 try {
                                     //An assignment to Value property should be the last one before new_entry.Dispose()
                                     //to avoid adding bad entry to the cache by Dispose() 
@@ -176,7 +177,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, 
-            IRunnerManager NumberManager,
+            IRunnerManager RunnerManager,
             TRequest Request, 
             String? TraceIdentifier)
         {
@@ -188,7 +189,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             Int32 runner_number = -1;
             Boolean use_session_lock = true;
-            Object? runner_lock= NumberManager.RunnerCreationLock; 
+            Object? runner_lock= RunnerManager.RunnerCreationLock; 
             if (runner_lock==null) {
                 _logger?.LogTraceFallbackToStoreGlobalLock(Session.Id, trace_identifier);
                 runner_lock=_creation_lock;
@@ -202,7 +203,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceAcquiredRunnerCreationLock(use_session_lock ? Session.Id : "<global>", trace_identifier);
                 #endif
-                runner_number= NumberManager.GetNewRunnerNumber(trace_identifier);
+                runner_number= RunnerManager.GetNewRunnerNumber(trace_identifier);
                 String runner_key = RunnerKey(Session, runner_number);
                 String runner_session_key = SessionKey(Session.Id);
                 #if TRACE
@@ -214,7 +215,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                         new_entry.Size=1; //TODO Size from config?
                         IActiveSessionRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
-                        runner=factory.Create(Request, NumberManager.Services);
+                        runner=factory.Create(Request, RunnerManager.Services);
                         if (runner==null) {
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");
@@ -230,24 +231,24 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 //TODO Don't forget to use IDisposable returned by the next call
                                 change_subscription=runner_completion_token.RegisterChangeCallback(
                                     RunnerCompletionCallback,
-                                    new RunnerPostCompletionInfo(runner, runner_session_key, runner_number)
+                                    new RunnerPostCompletionInfo(runner_session_key, runner_number)
                                 );
                             }
                             PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
                             end_runner.EvictionCallback=RunnerEvictionCallback;
                             end_runner.State=
                                 new RunnerPostEvictionInfo(
-                                    NumberManager,
-                                    runner as IDisposable,
-                                    change_subscription,
+                                    RunnerManager,
                                     runner_number,
                                     true,
-                                    runner_session_key
+                                    runner_session_key,
+                                    runner
                                 );
                             new_entry.PostEvictionCallbacks.Add(end_runner);
-                            NumberManager.RegisterRunner(runner_number);
+                            RunnerManager.RegisterRunner(runner_number);
                             RegisterRunnerInSession(Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
 
+                            new_entry.ExpirationTokens.Add(new CancellationChangeToken(RunnerManager.SessionCompletionToken));
                             //An assignment to Value property should be the last one before new_entry.Dispose()
                             //to avoid adding bad entry to the cache by Dispose() 
                             new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
@@ -270,7 +271,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceWaiveRunnerNumber(trace_identifier);
                     #endif
-                    NumberManager.ReturnRunnerNumber(runner_number);
+                    RunnerManager.ReturnRunnerNumber(runner_number);
                 }
                 throw;
             }
@@ -285,7 +286,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session, 
-            IRunnerManager NumberManager,
+            IRunnerManager RunnerManager,
             Int32 RunnerNumber, 
             String? TraceIdentifier)
         {
@@ -307,11 +308,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(RunnerNumber, trace_identifier);
-                result=ExtractRunnerFromCache<TResult>(Session, NumberManager, runner_session_key, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(RunnerNumber, host_id, trace_identifier);
-                result=MakeRemoteRunnerAsync<TResult>(NumberManager, host_id, runner_key, trace_identifier).GetAwaiter().GetResult();
+                result=MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, runner_key, trace_identifier).GetAwaiter().GetResult();
             }
             #if TRACE
             _logger?.LogTraceGetRunnerExit(result!=null,trace_identifier);
@@ -320,7 +321,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            ISession Session, IRunnerManager NumberManager,
+            ISession Session, IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         )
         {
@@ -346,14 +347,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(RunnerNumber, trace_identifier);
-                result= ExtractRunnerFromCache<TResult>(Session, NumberManager, runner_session_key, RunnerNumber, trace_identifier);
+                result= ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(RunnerNumber, host_id, trace_identifier);
                 #if TRACE
                 _logger?.LogTraceAwaitForProxyCreation(trace_identifier);
                 #endif
-                result= await MakeRemoteRunnerAsync<TResult>(NumberManager, runner_key, host_id, trace_identifier, Token);
+                result= await MakeRemoteRunnerAsync<TResult>(RunnerManager, runner_key, host_id, trace_identifier, Token);
             }
             #if TRACE
             _logger?.LogTraceGetRunnerAsyncExit(result!=null, trace_identifier);
@@ -365,16 +366,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #region PrivateMethods
         private void EndActiveSessionCallback(object key, object value, EvictionReason reason, object state)
         {
-            ActiveSession? active_session = value as ActiveSession;
+            IActiveSession? active_session = value as IActiveSession;
             String session_key = state as String??UNKNOWN_SESSION_KEY;
             #if TRACE
             _logger?.LogTraceSessionEvictionCallback(session_key);
             #endif
             if (active_session!=null) {
+                //TODO Remove extra trace?
                 #if TRACE
                 _logger?.LogTraceEvictRunners(session_key);
                 #endif
-                active_session.SignalCompletion(); //To evict all runners of the session
                 _logger?.LogDebugBeforeSessionDisposing(session_key);
                 active_session.Dispose();
             }
@@ -425,17 +426,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceRunnerCompletionCallback(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
             #endif
             String runner_key = RunnerKey(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-            ActiveSessionRunnerState state = runner_info.Runner.State;
-            switch (state) {
-                case ActiveSessionRunnerState.Aborted:
-                    #if TRACE
-                    _logger?.LogTraceRunnerCompletionRemoveAborted(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-                    #endif
-                    _memoryCache.Remove(runner_key);
-                    break;
-                default:
-                    break;
-            }
+            #if TRACE
+            _logger?.LogTraceRunnerCompletionRemoveAborted(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
+            #endif
+            _memoryCache.Remove(runner_key); //Do nothing if already removed
             #if TRACE
             _logger?.LogTraceRunnerCompletionCallbackExit(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
             #endif
@@ -447,19 +441,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceRunnerEvictionCallback(runner_info.RunnerSessionKey, runner_info.Number);
             #endif
-            if (runner_info.DisposableRunner!=null) {
+            runner_info.RunnerManager.UnregisterRunner(runner_info.Number);
+            IActiveSessionRunner runner = runner_info.Runner;
+            runner.Abort();
+            IDisposable? dispodsble_runner = runner as IDisposable;
+            if (dispodsble_runner!=null) {
                 #if TRACE
                 _logger?.LogTraceDisposeRunner(runner_info.RunnerSessionKey, runner_info.Number);
                 #endif
-                runner_info.DisposableRunner!.Dispose();
+                dispodsble_runner!.Dispose();
             }
-            if (runner_info.ChangeSubscription!=null) {
-#if TRACE
-                _logger?.LogTraceDisposeChangeSubscription(runner_info.RunnerSessionKey, runner_info.Number);
-#endif
-                runner_info.ChangeSubscription!.Dispose();
-            }
-            runner_info.NumberManager.UnregisterRunner(runner_info.Number);
             #if TRACE
             _logger?.LogTraceRunnerEvictionCallbackExit(runner_info.RunnerSessionKey, runner_info.Number);
             #endif
@@ -503,7 +494,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         private IActiveSessionRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
-            IRunnerManager NumberManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
+            IRunnerManager RunnerManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
         {
             Object? value_from_cache;
             IActiveSessionRunner<TResult>? result;
@@ -537,7 +528,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private Task<IActiveSessionRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
 #pragma warning disable IDE0060 // Remove unused parameter
-            IRunnerManager NumberManager,
+            IRunnerManager RunnerManager,
             String HostId,
             String RunnerKey,
             String TraceIdentifier,
@@ -553,7 +544,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return Task.FromResult<IActiveSessionRunner<TResult>?>(null); //Just now I do not want to implement remote runner
 
             //Possible future implementation draft
-            //String? runner_type_name = NumberManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
+            //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
             //if (runner_type_name==null) {
             //    //TODO? Log that runner has unknown type
             //    return null;
@@ -600,40 +591,35 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         internal class RunnerPostEvictionInfo
         {
-            public IRunnerManager NumberManager;
-            public IDisposable? DisposableRunner;
-            public IDisposable? ChangeSubscription;
+            public IRunnerManager RunnerManager;
             public String RunnerSessionKey;
             public Int32 Number;
             public Boolean UnregisterNumber;
+            public IActiveSessionRunner Runner;
 
             public RunnerPostEvictionInfo(
-                IRunnerManager NumberManager, 
-                IDisposable? DisposableRunner,
-                IDisposable? ChangeSubscription,
-                Int32 Number, 
-                Boolean UnregisterNumber, 
-                String RunnerSessionKey
+                IRunnerManager RunnerManager,
+                Int32 Number,
+                Boolean UnregisterNumber,
+                String RunnerSessionKey,
+                IActiveSessionRunner Runner
             )
             {
-                this.NumberManager=NumberManager;
-                this.DisposableRunner=DisposableRunner;
-                this.ChangeSubscription=ChangeSubscription;
+                this.RunnerManager=RunnerManager;
                 this.Number=Number;
                 this.UnregisterNumber=UnregisterNumber;
                 this.RunnerSessionKey= RunnerSessionKey;
+                this.Runner=Runner;
             }
         }
 
         private class RunnerPostCompletionInfo
         {
             internal String RunnerSessionKey;
-            internal IActiveSessionRunner Runner;
             internal Int32 RunnerNumber;
 
-            public RunnerPostCompletionInfo(IActiveSessionRunner Runner, String RunnerSessionKey, Int32 RunnerNumber)
+            public RunnerPostCompletionInfo(String RunnerSessionKey, Int32 RunnerNumber)
             {
-                this.Runner=Runner;
                 this.RunnerSessionKey=RunnerSessionKey;
                 this.RunnerNumber=RunnerNumber;
             }

@@ -10,6 +10,8 @@
 
         public String Id => "<null session Id>";
 
+        public CancellationToken CompletionToken => CancellationToken.None;
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -18,6 +20,11 @@
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
             throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            //do nothing
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)

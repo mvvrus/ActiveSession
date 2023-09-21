@@ -2,7 +2,7 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IDisposable
+    internal class ActiveSession : IActiveSession
     {
         readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
@@ -11,7 +11,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly String _sessionId;
         bool _disposed;
         bool _isFresh = true;
-        readonly CancellationTokenSource _completionTokenSource;
         readonly IRunnerManager _runnerManager;
         readonly Boolean _isDefaultRunnerManagerUsed;
 
@@ -41,7 +40,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _isDefaultRunnerManagerUsed=runner_manager==null;
             _runnerManager = runner_manager ?? new DefaultRunnerManager(_sessionId, _logger, _services, MinRunnerNumber, MaxRunnerNumber);
             _store = Store;
-            _completionTokenSource = new CancellationTokenSource();
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -101,30 +99,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public String Id { get { return _sessionId; } }
 
-        public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }
-
-        public void SignalCompletion()
-        {
-            if (_disposed) return;
-            SignalCompletionInternal();
-        }
-
-        void SignalCompletionInternal()
-        {
-            #if TRACE
-            _logger?.LogTraceActiveSessionSignalCompletion(_sessionId);
-            #endif
-            _completionTokenSource.Cancel();
-        }
+        public CancellationToken CompletionToken { get { return _runnerManager.SessionCompletionToken; } }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed) return; //TODO Avoid race condition
             #if TRACE
             _logger?.LogTraceActiveSessionDispose(_sessionId);
             #endif
             _disposed=true;
-            SignalCompletionInternal(); //Just in case, usually this is called by post-eviction proc.
             Task.Run(CompleteDispose);
         }
 
@@ -142,9 +125,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);
             #endif
-            if(_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
             _scope.Dispose();
-            _completionTokenSource.Dispose();
+            if (_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDisposeExit(_sessionId);
             #endif
@@ -155,8 +137,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if(_disposed)  throw new ObjectDisposedException(this.GetType().FullName!);
         }
 
-        internal class DefaultRunnerManager:IRunnerManager, IDisposable 
-        { 
+        internal class DefaultRunnerManager : IRunnerManager, IDisposable
+        {
             readonly CountdownEvent _runnersCounter;
             readonly String _sessionId;
             readonly ILogger? _logger;
@@ -170,6 +152,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning disable IDE0052 // Remove unread private members
             readonly Int32 _minRunnerNumber, _maxRunnerNumber;
 #pragma warning restore IDE0052 // Remove unread private members
+            readonly CancellationTokenSource _completionTokenSource;
 
             public DefaultRunnerManager(
                 String sessionId
@@ -185,17 +168,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _services=Services;
                 _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
                 _maxRunnerNumber=MaxRunnerNumber;
+                _completionTokenSource=new CancellationTokenSource();
                 if (MaxRunnerNumber!=Int32.MaxValue) {
                     //TODO Implement runner number reusage
                 }
             }
 
-            public void RegisterRunner (int RunnerNumber)
+            public void RegisterRunner(int RunnerNumber)
             {
                 #if TRACE
                 _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
                 #endif
-                _runnersCounter.AddCount();    
+                _runnersCounter.AddCount();
             }
 
             public void UnregisterRunner(int RunnerNumber)
@@ -216,7 +200,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
 
 
-            public Int32 GetNewRunnerNumber(String? TraceIdentifier=null)
+            public Int32 GetNewRunnerNumber(String? TraceIdentifier = null)
             {
                 String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
                 #if TRACE
@@ -236,10 +220,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             public IServiceProvider Services { get { return _services; } }
 
             public Object RunnerCreationLock { get; init; } = new Object();
-            
+
+            public CancellationToken SessionCompletionToken { get { return _completionTokenSource.Token; } }
+
             public Boolean WaitForRunners(Int32 Timeout)
             {
                 _runnersCounter.Signal();
+                _completionTokenSource.Cancel();
                 Boolean wait_succeded = _runnersCounter.Wait(Timeout);
                 return wait_succeded;
             }
@@ -247,7 +234,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             public void Dispose()
             {
                 _runnersCounter?.Dispose();
+                _completionTokenSource.Dispose();
             }
+
         }
     }
 }
