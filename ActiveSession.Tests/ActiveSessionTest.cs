@@ -62,6 +62,9 @@ namespace ActiveSession.Tests
             Assert.IsType<SpyRunner1>(runner);
             Assert.Equal(RunnerTestSetup.TEST_RUNNER_NUMBER, key);
             Assert.Equal(test_setup.Request, ((SpyRunner1)runner).Request);
+
+            active_session.SetDisposedForTests();
+            Assert.Throws<ObjectDisposedException>(()=>active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object));
         }
 
         [Fact]
@@ -81,6 +84,9 @@ namespace ActiveSession.Tests
             Assert.IsType<SpyRunner1>(runner);
             Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
             Assert.Null(unknown_runner);
+
+            active_session.SetDisposedForTests();
+            Assert.Throws<ObjectDisposedException>(() => active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
         }
 
         [Fact]
@@ -100,6 +106,9 @@ namespace ActiveSession.Tests
             Assert.IsType<SpyRunner1>(runner);
             Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
             Assert.Null(unknown_runner);
+
+            active_session.SetDisposedForTests();
+            Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
         }
 
         void CompletionToken()
