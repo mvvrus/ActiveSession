@@ -9,7 +9,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IServiceScope _scope;
         readonly ILogger? _logger;
         readonly String _sessionId;
-        bool _disposed;
+        Int32 _disposed=0;
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
         readonly Boolean _isDefaultRunnerManagerUsed;
@@ -103,12 +103,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void Dispose()
         {
-            if (_disposed) return; //TODO Avoid race condition
+            int disposed = Interlocked.Exchange(ref _disposed, 1);
+            if (disposed!=0) return; //TODO Avoid race condition
             #if TRACE
             _logger?.LogTraceActiveSessionDispose(_sessionId);
             #endif
-            _disposed=true;
-            Task.Run(CompleteDispose);
+            _disposeCompletionTask= Task.Run(CompleteDispose);
         }
 
         const Int32 RUNNERS_TIMEOUT_MSEC= 10000;
@@ -134,8 +134,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void CheckDisposed()
         {
-            if(_disposed)  throw new ObjectDisposedException(this.GetType().FullName!);
+            if(Volatile.Read(ref _disposed)!=0)  throw new ObjectDisposedException(this.GetType().FullName!);
         }
+
+        //Stuff used just for testing
+        internal void SetDisposedForTests()
+        {
+            _disposed=1;
+        }
+
+        internal Task? _disposeCompletionTask;
+
 
         internal class DefaultRunnerManager : IRunnerManager, IDisposable
         {
