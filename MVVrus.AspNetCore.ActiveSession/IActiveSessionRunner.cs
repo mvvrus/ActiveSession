@@ -42,9 +42,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         public void Abort();
 
         /// <value>
-        /// Method that acquires IChangeToken signalling about the r
+        /// Method that acquires CancellationToken signalling about the r
         /// </value>
-        IChangeToken GetCompletionToken();
+        CancellationToken GetCompletionToken();
     }
 
     /// <summary>

@@ -15,9 +15,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return default;
         }
 
-        public IChangeToken GetCompletionToken()
+        public CancellationToken GetCompletionToken()
         {
-            return s_NullChangeToken;
+            return CancellationToken.None;
         }
 
         public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
@@ -25,18 +25,5 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new NotImplementedException();
         }
 
-        public class NullChangeToken : IChangeToken
-        {
-            public Boolean ActiveChangeCallbacks => false;
-
-            public Boolean HasChanged => true;
-
-            public IDisposable RegisterChangeCallback(Action<Object> callback, Object state)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        static readonly IChangeToken s_NullChangeToken = new NullChangeToken();
     }
 }

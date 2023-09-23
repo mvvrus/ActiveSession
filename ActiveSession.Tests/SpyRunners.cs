@@ -19,7 +19,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public IChangeToken GetCompletionToken()
+        public CancellationToken GetCompletionToken()
         {
             throw new NotImplementedException();
         }

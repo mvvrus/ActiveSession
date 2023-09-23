@@ -118,9 +118,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDispose(_sessionId);
             #endif
-            #if TRACE
-            _logger?.LogTraceActiveSessionCompleteDisposeWaitForRunners(_sessionId);
-            #endif
             Boolean wait_succeded = _runnerManager.WaitForRunners(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
             #if TRACE
             _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);

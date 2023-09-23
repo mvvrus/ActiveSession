@@ -77,12 +77,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public override IChangeToken GetCompletionToken()
+        public override CancellationToken GetCompletionToken()
         {
             CheckDisposed();
 #if TRACE
 #endif
-            return new CancellationChangeToken(_completionTokenSource.Token);
+            return _completionTokenSource.Token;
         }
 
         /// <inheritdoc/>

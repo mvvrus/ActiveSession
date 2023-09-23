@@ -28,9 +28,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         public abstract void Abort();
 
         /// <inheritdoc/>
-        public virtual IChangeToken GetCompletionToken()
+        public virtual CancellationToken GetCompletionToken()
         {
-            return NullChangeToken.Singleton;
+            return CancellationToken.None; //TODO Imlement this method in conjecuntion with Abort method
         }
 
         /// <summary>

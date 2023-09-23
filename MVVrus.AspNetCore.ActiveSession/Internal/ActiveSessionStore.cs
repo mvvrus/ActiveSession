@@ -220,20 +220,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");
                         }
-                        IDisposable? change_subscription = null;
                         try {
                             _logger?.LogDebugCreateNewRunner(runner_number, trace_identifier);
-                            IChangeToken runner_completion_token = runner.GetCompletionToken();
-                            if (runner_completion_token.ActiveChangeCallbacks) {
-                                #if TRACE
-                                _logger?.LogTraceSettingRunnerCompletionCallback(trace_identifier);
-                                #endif
-                                //TODO Don't forget to use IDisposable returned by the next call
-                                change_subscription=runner_completion_token.RegisterChangeCallback(
-                                    RunnerCompletionCallback,
-                                    new RunnerPostCompletionInfo(runner_session_key, runner_number)
-                                );
-                            }
                             PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
                             end_runner.EvictionCallback=RunnerEvictionCallback;
                             end_runner.State=
@@ -248,13 +236,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             RunnerManager.RegisterRunner(runner_number);
                             RegisterRunnerInSession(Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
 
-                            new_entry.ExpirationTokens.Add(new CancellationChangeToken(RunnerManager.SessionCompletionToken));
+                            IChangeToken expiration_token = new CancellationChangeToken(RunnerManager.SessionCompletionToken);
+                            if (runner.GetCompletionToken().CanBeCanceled)
+                                expiration_token=new CompositeChangeToken(new IChangeToken[] { expiration_token, new CancellationChangeToken(runner.GetCompletionToken())});
+                            new_entry.ExpirationTokens.Add(expiration_token);
                             //An assignment to Value property should be the last one before new_entry.Dispose()
                             //to avoid adding bad entry to the cache by Dispose() 
                             new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
                         }
                         catch  {
-                            change_subscription?.Dispose();
                             (runner as IDisposable)?.Dispose();
                             throw;
                         }
@@ -417,22 +407,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceGetRunnerFactoryExit(TraceIdentifier);
             #endif
             return factory;
-        }
-
-        private void RunnerCompletionCallback(Object obj)
-        {
-            RunnerPostCompletionInfo runner_info = (RunnerPostCompletionInfo)obj;
-            #if TRACE
-            _logger?.LogTraceRunnerCompletionCallback(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-            #endif
-            String runner_key = RunnerKey(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-            #if TRACE
-            _logger?.LogTraceRunnerCompletionRemoveAborted(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-            #endif
-            _memoryCache.Remove(runner_key); //Do nothing if already removed
-            #if TRACE
-            _logger?.LogTraceRunnerCompletionCallbackExit(runner_info.RunnerSessionKey, runner_info.RunnerNumber);
-            #endif
         }
 
         private void RunnerEvictionCallback(object key, object value, EvictionReason reason, object state)
@@ -610,18 +584,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 this.UnregisterNumber=UnregisterNumber;
                 this.RunnerSessionKey= RunnerSessionKey;
                 this.Runner=Runner;
-            }
-        }
-
-        private class RunnerPostCompletionInfo
-        {
-            internal String RunnerSessionKey;
-            internal Int32 RunnerNumber;
-
-            public RunnerPostCompletionInfo(String RunnerSessionKey, Int32 RunnerNumber)
-            {
-                this.RunnerSessionKey=RunnerSessionKey;
-                this.RunnerNumber=RunnerNumber;
             }
         }
         #endregion
