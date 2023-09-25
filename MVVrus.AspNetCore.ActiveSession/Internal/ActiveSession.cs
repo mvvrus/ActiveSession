@@ -17,6 +17,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
         internal Boolean IsDefaultRunnerManagerUsed { get { return _isDefaultRunnerManagerUsed; } }
+        //Test constructor
+        internal ActiveSession(IRunnerManager RunnerManager, IServiceScope SessionScope, IActiveSessionStore Store, ISession Session):
+            this(SessionScope,Store,Session, null)
+        {
+            if (_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
+            _runnerManager=RunnerManager;
+            _isDefaultRunnerManagerUsed=true;
+        }
 
         public ActiveSession(
             IServiceScope SessionScope
@@ -141,7 +149,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         internal Task? _disposeCompletionTask;
-
+        internal Boolean Disposed { get { return _disposed!=0; } }
 
         internal class DefaultRunnerManager : IRunnerManager, IDisposable
         {

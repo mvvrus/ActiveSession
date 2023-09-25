@@ -24,8 +24,8 @@ namespace ActiveSession.Tests
             Active_Session active_session;
             test_setup=new ConstructorTestSetup();
 
-            active_session=new Active_Session(test_setup.StubServiceScope.Object,
-                test_setup.MockStore.Object,
+            active_session=new Active_Session(test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
 
@@ -35,23 +35,28 @@ namespace ActiveSession.Tests
             Assert.True(active_session.IsFresh);
             Assert.IsType<Active_Session.DefaultRunnerManager>(active_session.RunnerManager);
             Assert.True(active_session.IsDefaultRunnerManagerUsed);
+            Assert.False(active_session.Disposed);
 
-            Mock<IRunnerManager> fake_runner_manager = new Mock<IRunnerManager>();
-            test_setup=new ConstructorTestSetup(fake_runner_manager.Object);
-            active_session=new Active_Session(test_setup.StubServiceScope.Object,
-                test_setup.MockStore.Object,
-                test_setup.StubSession.Object,
-                null);
-            Assert.Equal(fake_runner_manager.Object, active_session.RunnerManager);
-            Assert.False(active_session.IsDefaultRunnerManagerUsed);
+            Mock<IRunnerManager> stub_runner_manager = new Mock<IRunnerManager>();
+            using (CancellationTokenSource cts = new CancellationTokenSource()) {
+                stub_runner_manager.SetupGet(s => s.SessionCompletionToken).Returns(cts.Token);
+                test_setup=new ConstructorTestSetup(stub_runner_manager.Object);
+                active_session=new Active_Session(test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null);
+                Assert.Equal(stub_runner_manager.Object, active_session.RunnerManager);
+                Assert.Equal(cts.Token, active_session.CompletionToken);
+                Assert.False(active_session.IsDefaultRunnerManagerUsed);
+            }
         }
 
         [Fact]
         public void CreateRunner()
         {
             RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session=new Active_Session(test_setup.StubServiceScope.Object,
-                test_setup.MockStore.Object,
+            Active_Session active_session=new Active_Session(test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
 
@@ -71,8 +76,8 @@ namespace ActiveSession.Tests
         public void GetRunner()
         {
             RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session = new Active_Session(test_setup.StubServiceScope.Object,
-                test_setup.MockStore.Object,
+            Active_Session active_session = new Active_Session(test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
 
@@ -93,8 +98,8 @@ namespace ActiveSession.Tests
         public void GetRunnerAsync()
         {
             RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session = new Active_Session(test_setup.StubServiceScope.Object,
-                test_setup.MockStore.Object,
+            Active_Session active_session = new Active_Session(test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
 
@@ -111,19 +116,54 @@ namespace ActiveSession.Tests
             Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
         }
 
-        void CompletionToken()
+        [Fact]
+        public void Dispose()
         {
-            //TODO
-        }
+            ConstructorTestSetup test_setup;
+            Active_Session active_session;
+            Mock<IRunnerManager> mock_runner_manager;
+            mock_runner_manager= MockRunnerManager.CreateMockedRunnermanager();
+            test_setup=new ConstructorTestSetup();
+            active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
+                test_setup.StubSession.Object);
 
-        void SignalCompletion()
-        {
-            //TODO
-        }
+            active_session.Dispose();
 
-        void Dispose()
-        {
-            //TODO
+            Assert.True(active_session.Disposed);
+            Assert.NotNull(active_session._disposeCompletionTask);
+            active_session._disposeCompletionTask.GetAwaiter().GetResult();
+            mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression,Times.Once);
+            test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
+            mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Once);
+
+            mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
+            test_setup=new ConstructorTestSetup(mock_runner_manager.Object);
+            active_session=new Active_Session( test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
+                test_setup.StubSession.Object,
+                null );
+
+            active_session.Dispose();
+
+            Assert.True(active_session.Disposed);
+            Assert.NotNull(active_session._disposeCompletionTask);
+            active_session._disposeCompletionTask.GetAwaiter().GetResult();
+            mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Once);
+            test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
+            mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
+
+            mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
+            test_setup=new ConstructorTestSetup();
+            active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
+                test_setup.FakeStore.Object,
+                test_setup.StubSession.Object);
+
+            active_session.SetDisposedForTests();
+            active_session.Dispose();
+
+            Assert.True(active_session.Disposed);
+            Assert.Null(active_session._disposeCompletionTask);
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +180,7 @@ namespace ActiveSession.Tests
 
         void RegisterRunner()
         {
+            
             //TODO
         }
 
@@ -171,22 +212,24 @@ namespace ActiveSession.Tests
         class ConstructorTestSetup
         {
             public readonly Mock<IServiceProvider> StubServiceProvider;
-            public readonly Mock<IServiceScope> StubServiceScope;
-            public readonly Mock<IActiveSessionStore> MockStore;
+            public readonly Mock<IServiceScope> MockServiceScope;
+            public readonly Mock<IActiveSessionStore> FakeStore;
             public readonly Mock<ISession> StubSession;
             public readonly Mock<HttpContext> StubContext;
             public readonly Request1 Request;
 
             public const String TEST_SESSION_ID = "TestSessionId";
             public const String TEST_REQUEST_ARG = "TesRequestArg";
+            public readonly Expression<Action<IServiceScope>> DisposeScopeExpression= s => s.Dispose();
 
             public ConstructorTestSetup(IRunnerManager? Manager = null)
             {
                 StubServiceProvider=new Mock<IServiceProvider>();
                 StubServiceProvider.Setup(s => s.GetService(typeof(IRunnerManager))).Returns(Manager);
-                StubServiceScope=new Mock<IServiceScope>();
-                StubServiceScope.SetupGet(s => s.ServiceProvider).Returns(StubServiceProvider.Object);
-                MockStore=new Mock<IActiveSessionStore>();
+                MockServiceScope=new Mock<IServiceScope>();
+                MockServiceScope.SetupGet(s => s.ServiceProvider).Returns(StubServiceProvider.Object);
+                MockServiceScope.Setup(DisposeScopeExpression);
+                FakeStore=new Mock<IActiveSessionStore>();
                 StubSession=new Mock<ISession>();
                 StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
                 StubContext = new Mock<HttpContext>();
@@ -214,18 +257,31 @@ namespace ActiveSession.Tests
                         Request,
                         It.IsAny<String>()
                         );
-                MockStore.Setup(_createRunnerExpression)
+                FakeStore.Setup(_createRunnerExpression)
                     .Returns((ISession _, IRunnerManager _, Request1 r, String _) => new KeyedActiveSessionRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
-                MockStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
+                FakeStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
                     .Returns((IActiveSessionRunner<Result1>?)null);
                 _getRunnerExpression=s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
-                MockStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
-                MockStore.Setup(s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
+                FakeStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
+                FakeStore.Setup(s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
                     .Returns(new ValueTask<IActiveSessionRunner<Result1>?>((IActiveSessionRunner<Result1>?)null));
                 _getRunnerExpressionAsync=s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
-                MockStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IActiveSessionRunner<Result1>?>(ExistingRunner));
+                FakeStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IActiveSessionRunner<Result1>?>(ExistingRunner));
             }
+        }
 
+        static class MockRunnerManager {
+            public static readonly Expression<Func<IRunnerManager, Boolean>> WaitForRunnersExpression = (IRunnerManager s) => s.WaitForRunners(It.IsAny<Int32>());
+            public static readonly Expression<Action<IDisposable>> DisposeExpression = (IDisposable s) => s.Dispose();
+
+            public static Mock<IRunnerManager> CreateMockedRunnermanager()
+            {
+                Mock<IRunnerManager> mock_runner_manager = new Mock<IRunnerManager>();
+                mock_runner_manager.Setup(WaitForRunnersExpression).Returns(true);
+                Mock<IDisposable> disposable_runner_manager = mock_runner_manager.As<IDisposable>();
+                disposable_runner_manager.Setup(DisposeExpression);
+                return mock_runner_manager;
+            }
         }
     }
 }
