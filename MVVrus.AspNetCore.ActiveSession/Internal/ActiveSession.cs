@@ -168,6 +168,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning restore IDE0052 // Remove unread private members
             readonly CancellationTokenSource _completionTokenSource;
 
+            //For tests
+            internal CountdownEvent RunnersCounter => _runnersCounter;
+
             public DefaultRunnerManager(
                 String sessionId
                 , ILogger? logger
@@ -220,7 +223,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
                 #endif
-                if (_newRunnerNumber>_maxRunnerNumber) {
+                if (_newRunnerNumber>=_maxRunnerNumber) {
                     _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
                     throw new InvalidOperationException("Cannot acquire a new runner number");
                 }
