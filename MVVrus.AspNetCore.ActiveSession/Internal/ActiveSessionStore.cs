@@ -37,7 +37,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         #region PublicAPI
         public ActiveSessionStore(
-            IMemoryCache Cache,
+            IMemoryCache? Cache,
             IServiceProvider RootServiceProvider,
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
@@ -80,12 +80,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceActiveSessionStoreConstructorUseSharedCache();
                 #endif
             }
-            _memoryCache=_memoryCache ?? Cache;
+            _memoryCache ??= Cache!;
             if (_memoryCache == null) {
                 _logger?.LogErrorNoSharedCacheException();
                 throw new InvalidOperationException("Shared cache must be used but is not available");
             }
-            _hostId= options.HostId!;
+            _hostId = options.HostId!;
             _prefix = options.Prefix;
             _idleTimeout = SessionOptions.Value.IdleTimeout;
             _maxLifetime = options.MaxLifetime;
@@ -141,7 +141,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                                 new_entry.Size=1; //TODO Size from config?
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
-                                end_activesession.EvictionCallback=EndActiveSessionCallback;
+                                end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
                                 end_activesession.State=Session.Id;
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger, trace_identifier);
@@ -354,7 +354,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #endregion
 
         #region PrivateMethods
-        private void EndActiveSessionCallback(object key, object value, EvictionReason reason, object state)
+        private void ActiveSessionEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
             IActiveSession? active_session = value as IActiveSession;
             String session_key = state as String??UNKNOWN_SESSION_KEY;
@@ -369,6 +369,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogDebugBeforeSessionDisposing(session_key);
                 active_session.Dispose();
             }
+            Object dummy;
+            _memoryCache.TryGetValue(session_key, out dummy); //To start expiration checks
             #if TRACE
             _logger?.LogTraceSessionEvictionCallbackExit(session_key);
             #endif
@@ -418,12 +420,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             runner_info.RunnerManager.UnregisterRunner(runner_info.Number);
             IActiveSessionRunner runner = runner_info.Runner;
             runner.Abort();
-            IDisposable? dispodsble_runner = runner as IDisposable;
-            if (dispodsble_runner!=null) {
+            IDisposable? disposable_runner = runner as IDisposable;
+            if (disposable_runner!=null) {
                 #if TRACE
                 _logger?.LogTraceDisposeRunner(runner_info.RunnerSessionKey, runner_info.Number);
                 #endif
-                dispodsble_runner!.Dispose();
+                disposable_runner!.Dispose();
             }
             #if TRACE
             _logger?.LogTraceRunnerEvictionCallbackExit(runner_info.RunnerSessionKey, runner_info.Number);
