@@ -25,6 +25,7 @@ namespace ActiveSession.Tests
             //Test case: null IMemoryCahe argument while own caches is not used
             Assert.Throws<InvalidOperationException>(()=>new ActiveSessionStore(
                 null, ts.SP, ts.IActSessionOptions, ts.ISessOptions));
+
             //Test case: null IServiceProvider argument
             Assert.Throws<ArgumentNullException>(() => new ActiveSessionStore(
                 dummy_cache.Object, null!, ts.IActSessionOptions, ts.ISessOptions));
@@ -40,6 +41,34 @@ namespace ActiveSession.Tests
             //Test case: using shared cache
             using (ts.CreateStore()) {
                 ts.MockLogerFactory.Verify(ts.LoggerCreateExpression, Times.Once);
+            }
+        }
+
+        [Fact]
+        public void GetCurrentStatisticsTest()
+        {
+            ConstructorTestSetup ts;
+            Mock<IMemoryCache> dummy_cache = new Mock<IMemoryCache>();
+            ActiveSessionStore store;
+            ActiveSessionStoreStats? stats;
+            ts =new ConstructorTestSetup(dummy_cache);
+
+            //Test case: no statistics tracking
+            using (store=ts.CreateStore()) {
+                stats=store.GetCurrentStatistics();
+
+                Assert.Null(stats);
+            }
+
+            //Test case: statistics tracking active, store just created
+            ts.ActSessOptions.TrackStatistics=true;
+            using (store=ts.CreateStore()) {
+                stats=store.GetCurrentStatistics();
+
+                Assert.NotNull(stats);
+                Assert.Equal(0, stats.SessionCount);
+                Assert.Equal(0, stats.RunnerCount);
+                Assert.Equal(0, stats.StoreSize);
             }
         }
 

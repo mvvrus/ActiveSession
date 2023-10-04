@@ -25,6 +25,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         ILogger? _logger;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
         readonly Object _creation_lock = new Object();
+        Int32 _currentSessionCount = 0;
+        Int32 _currentRunnerCount = 0;
+        Int32 _currentStoreSize = 0;
+        Boolean _trackStatistics = false;
         #endregion
 
         #region StaticStuff
@@ -91,6 +95,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _maxLifetime = options.MaxLifetime;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
+            _trackStatistics=options.TrackStatistics;
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructorExit();
             #endif
@@ -139,7 +144,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
                                 new_entry.SlidingExpiration=_idleTimeout;
                                 new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
-                                new_entry.Size=1; //TODO Size from config?
+                                Int32 size = GetSessionSize();
+                                new_entry.Size=size; 
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
                                 end_activesession.State=Session.Id;
@@ -149,7 +155,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 try {
                                     //An assignment to Value property should be the last one before new_entry.Dispose()
                                     //to avoid adding bad entry to the cache by Dispose() 
-                                    new_entry.Value=result; 
+                                    new_entry.Value=result;
+                                    if(_trackStatistics) {
+                                        Interlocked.Increment(ref _currentSessionCount);
+                                        Interlocked.Add(ref _currentStoreSize, size);
+                                    }
                                 }
                                 catch {
                                     result.Dispose();
@@ -213,13 +223,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     using (ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key)) {
                         new_entry.SlidingExpiration=_idleTimeout;
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
-                        new_entry.Size=1; //TODO Size from config?
                         IActiveSessionRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
                         runner=factory.Create(Request, RunnerManager.Services);
                         if (runner==null) {
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");
                         }
+                        Int32 size = GetRunnerSize(runner.GetType());
+                        new_entry.Size=size; 
                         try {
                             _logger?.LogDebugCreateNewRunner(runner_number, trace_identifier);
                             PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
@@ -243,6 +254,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             //An assignment to Value property should be the last one before new_entry.Dispose()
                             //to avoid adding bad entry to the cache by Dispose() 
                             new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
+                            if (_trackStatistics) {
+                                Interlocked.Increment(ref _currentRunnerCount);
+                                Interlocked.Add(ref _currentStoreSize, size);
+                            }
                         }
                         catch  {
                             (runner as IDisposable)?.Dispose();
@@ -351,12 +366,30 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             return result;
         }
+
+        public ActiveSessionStoreStats? GetCurrentStatistics()
+        {
+            return _trackStatistics?new ActiveSessionStoreStats() { 
+                SessionCount=_currentSessionCount,
+                RunnerCount=_currentRunnerCount,
+                StoreSize=_currentStoreSize,
+            } :null;
+        }
+
+        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier)
+        {
+            return new ActiveSessionFeature(this, Session, _logger, TraceIdentier);
+        }
         #endregion
 
         #region PrivateMethods
         private void ActiveSessionEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
             IActiveSession? active_session = value as IActiveSession;
+            if(_trackStatistics) {
+                Interlocked.Decrement(ref _currentSessionCount);
+                Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
+            }
             String session_key = state as String??UNKNOWN_SESSION_KEY;
             #if TRACE
             _logger?.LogTraceSessionEvictionCallback(session_key);
@@ -420,6 +453,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             runner_info.RunnerManager.UnregisterRunner(runner_info.Number);
             IActiveSessionRunner runner = runner_info.Runner;
             runner.Abort();
+            if (_trackStatistics) {
+                Interlocked.Decrement(ref _currentRunnerCount);
+                if(runner!=null) Interlocked.Add(ref _currentStoreSize, -GetRunnerSize(runner.GetType()));
+            }
             IDisposable? disposable_runner = runner as IDisposable;
             if (disposable_runner!=null) {
                 #if TRACE
@@ -555,11 +592,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return $"{SessionKey(Session.Id)}_{RunnerNumber}";
         }
 
-        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier)
+        Int32 GetSessionSize()
         {
-            return new ActiveSessionFeature (this, Session, _logger, TraceIdentier);
-
+            return 1; //TODO: it's a stub
         }
+
+        Int32 GetRunnerSize(Type RunnerType)
+        {
+            return 1; //TODO: it's a stub
+        }
+
         #endregion
 
         #region AuxilaryTypes

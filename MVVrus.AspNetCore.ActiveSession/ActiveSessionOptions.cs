@@ -41,6 +41,9 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         ///<value>Replace value of RequestServices in HttpContext by the value of the ActiveSession.SessionServices</value>
         public Boolean UseSessionServicesAsRequestServices { get; set; }
+
+        /// <value> Track storage statistics</value>
+        public Boolean TrackStatistics { get; set; }
     }
 }
 

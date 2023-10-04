@@ -17,6 +17,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void CreateActiveSessionFeature()
         {
+            //Test case: create ActiveSessionFeture class instance
             ConstructorTestSetup test_setup = new ConstructorTestSetup();
 
             ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
@@ -36,12 +37,14 @@ namespace ActiveSession.Tests
             ActiveSessionFeature feature;
             IActiveSession active_session;
 
+            //Test case: fill ActiveSession property, success
             test_setup= new ActiveSessionTestSetup();
             feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
             active_session=feature.ActiveSession;
             Assert.True(active_session.IsAvailable);
             Assert.Equal(TEST_SESSION_ID, active_session.Id);
 
+            //Test case: fill ActiveSession property, whlie ActiveSession class instance cannot be created
             test_setup=new ActiveSessionTestSetup(SessionState.unavailable);
             feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
             active_session=feature.ActiveSession;
@@ -53,6 +56,7 @@ namespace ActiveSession.Tests
         {
             CommitAsyncTestSetup test_setup = new CommitAsyncTestSetup(SessionState.normal);
             ActiveSessionFeature feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+            //Test case: the ActiveSession instance is available
             feature.CommitAsync().GetAwaiter().GetResult();
 
             test_setup.MockSession!.Verify(test_setup.SessionCommitAsyncExpression, Times.Never);
@@ -60,12 +64,14 @@ namespace ActiveSession.Tests
             feature.CommitAsync().GetAwaiter().GetResult();
             test_setup.MockSession!.Verify(test_setup.SessionCommitAsyncExpression, Times.Once);
 
+            //Test case: the ActiveSession instance is not available
             test_setup=new CommitAsyncTestSetup(SessionState.unavailable);
             feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
             feature.Load();
             feature.CommitAsync().GetAwaiter().GetResult();
             test_setup.MockSession!.Verify(test_setup.SessionCommitAsyncExpression, Times.Never);
 
+            //Test case: no session
             test_setup=new CommitAsyncTestSetup(SessionState.absent);
             feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
             feature.Load();
@@ -212,7 +218,33 @@ namespace ActiveSession.Tests
             Assert.False(feature.IsLoaded);
             Assert.Null(feature.Session);
             Assert.False(feature.RawActiveSession.IsAvailable);
+        }
 
+        [Fact]
+        public void GetCurrentStoreStatistics()
+        {
+            CurrentStoreStatisticsSetup test_setup;
+            IActiveSessionFeature feature;
+            ActiveSessionStoreStats? statistics;
+
+            //Test case: no statistics tracking
+            test_setup=new CurrentStoreStatisticsSetup(false);
+            feature = new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+            statistics = feature.GetCurrentStoreStatistics();
+
+            Assert.Null(statistics);
+
+            //Test case: statistics tracking active
+            test_setup=new CurrentStoreStatisticsSetup(true);
+            feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+
+            statistics = feature.GetCurrentStoreStatistics();
+
+            Assert.NotNull(statistics);
+            Assert.Equal(1, statistics.SessionCount);
+            Assert.Equal(2, statistics.RunnerCount);
+            Assert.Equal(0, statistics.StoreSize);
         }
 
         [Fact]
@@ -310,6 +342,17 @@ namespace ActiveSession.Tests
                 MockSession?.Setup(s => s.LoadAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             }
 
+        }
+
+        class CurrentStoreStatisticsSetup: ConstructorTestSetup
+        {
+            public CurrentStoreStatisticsSetup(Boolean TraceStatistics):base() 
+            {
+                MockStore.Setup(s => s.GetCurrentStatistics())
+                    .Returns(TraceStatistics ? new ActiveSessionStoreStats() { 
+                        SessionCount=1,RunnerCount=2,StoreSize=0} 
+                    : null);
+            }
         }
 
         class TestException : Exception

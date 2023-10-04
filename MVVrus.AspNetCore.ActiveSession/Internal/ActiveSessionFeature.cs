@@ -118,6 +118,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return;
         }
 
+        public ActiveSessionStoreStats? GetCurrentStoreStatistics()
+        {
+            return _store.GetCurrentStatistics();
+        }
+
         internal void Load()
         {
             if (_isLoaded) return;
