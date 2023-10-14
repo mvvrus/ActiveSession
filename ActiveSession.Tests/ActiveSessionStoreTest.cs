@@ -15,10 +15,13 @@ using Microsoft.AspNetCore.Http;
 using Active_Session = MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
 using Microsoft.Extensions.DependencyInjection;
 
+
 namespace ActiveSession.Tests
 {
     public class ActiveSessionStoreTest
     {
+        static readonly TimeSpan s_defaultIdleTimeout = TimeSpan.FromMinutes(20);
+
         [Fact]
         public void CreateActiveSessionStore()
         {
@@ -49,7 +52,7 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        public void GetCurrentStatisticsTest()
+        public void GetCurrentStatistics()
         {
             ConstructorTestSetup ts;
             Mock<IMemoryCache> dummy_cache = new Mock<IMemoryCache>();
@@ -77,14 +80,89 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        public void CreateOrFetchSessionTest()
+        public void CreateOrFetchSession_MockedCache()
         {
             CreateFetchTestSetup ts;
             ActiveSessionStore store;
-            IActiveSession session;
+            IActiveSession? session;
+            IRunnerManager? manager;
+
             ts= new CreateFetchTestSetup();
             using (store=ts.CreateStore()) {
+
+                //Test case: create new ActiveSession
                 session = store.FetchOrCreateSession(ts.StubSession.Object, null);
+
+                //Assess
+                Assert.NotNull(session);
+                //Assess IActiveSession
+                Assert.Equal(CreateFetchTestSetup.TEST_SESSION_ID, session.Id);
+                Assert.Equal(ts.ScopeServiceProvider, session.SessionServices);
+                Assert.True(session.CompletionToken.CanBeCanceled);
+                Assert.False(session.CompletionToken.IsCancellationRequested);
+                //Assess IRunnerManager
+                manager=(session as Active_Session)?.RunnerManager;
+                Assert.NotNull(manager);
+                Assert.NotNull(manager.RunnerCreationLock);
+                Assert.Equal(ts.ScopeServiceProvider, manager.Services);
+                Assert.Equal(session.CompletionToken, manager.SessionCompletionToken);
+                //Assess a cache entry
+                ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));//2-nd time - after obtainning lock. Fragile!!! 
+                ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
+                Assert.True(ts.Cache.IsEntryStored);
+                Assert.Equal(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID,ts.Cache.Key);
+                Assert.True(ReferenceEquals(session, ts.Cache.Value));
+                Assert.Equal(s_defaultIdleTimeout, ts.Cache.SlidingExpiration);
+                Assert.Equal(DEFAULT_MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
+                Assert.Null(ts.Cache.AbsoluteExpiration);
+                Assert.Equal(CacheItemPriority.Normal, ts.Cache.Priority);
+                Assert.Equal(1, ts.Cache.ExpirationTokens.Count);
+                Assert.True(ts.Cache.ExpirationTokens[0].ActiveChangeCallbacks);
+                Assert.False(ts.Cache.ExpirationTokens[0].HasChanged);
+                Assert.Equal(1, ts.Cache.PostEvictionCallbacks.Count);
+
+                //Test case: fetch ActiveSession from cache
+                IActiveSession? session2 = store.FetchOrCreateSession(ts.StubSession.Object, null);
+                ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(3));
+                ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
+                Assert.True(Object.ReferenceEquals(session, session2));
+
+                //Test case: dispoing ActiveSession while in a cache object w/o runners associated
+                (session as IDisposable)?.Dispose();
+                (session as Active_Session)?._disposeCompletionTask?.GetAwaiter().GetResult();
+                Assert.False(ts.Cache.IsEntryStored);
+                Assert.Equal(1,ts.Cache.CalledCallbacksCount);
+
+            }
+            //Test case: options passed to ActiveSessionStore constructor affects cache entry
+            TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
+            TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
+            String PREFIX = "TestPrefix";
+            Int32 AS_SIZE = 1;
+
+            ts.SessOptions.IdleTimeout=EXPIRATION;
+            ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
+            ts.ActSessOptions.Prefix=PREFIX;
+            ts.ActSessOptions.TrackStatistics=true;
+            using (store=ts.CreateStore()) {
+
+                session=store.FetchOrCreateSession(ts.StubSession.Object, null);
+
+                //Assess
+                Assert.NotNull(session);
+                Assert.True(ts.Cache.IsEntryStored);
+                Assert.Equal(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID, ts.Cache.Key);
+                Assert.Equal(EXPIRATION, ts.Cache.SlidingExpiration);
+                Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
+                Assert.Equal(AS_SIZE, store.GetCurrentStatistics()!.StoreSize);
+
+                //Test case: removing ActiveSession from cache
+                ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
+                Assert.Equal(0, store.GetCurrentStatistics()!.StoreSize);
+                Assert.False(ts.Cache.IsEntryStored);
+                Assert.Equal(1, ts.Cache.CalledCallbacksCount);
+                Assert.True((session as Active_Session)!.Disposed);
+
             }
 
         }
@@ -93,40 +171,61 @@ namespace ActiveSession.Tests
         {
             public readonly Mock<IMemoryCache> CacheMock;
             public readonly Mock<ICacheEntry> EntryMock;
+            public static readonly Expression<Func<IMemoryCache, ICacheEntry>> CreateEntryEnpression = s => s.CreateEntry(It.IsAny<Object>());
+            public static readonly Expression<Func<IMemoryCache, Boolean>> TryGetValueExpression =
+                s => s.TryGetValue(It.IsAny<Object>(), out It.Ref<Object>.IsAny);
+
             Boolean _isEntryStored;
             Object? _key;
             Object? _value;
             DateTimeOffset? _absoluteExpiration;
             TimeSpan? _absoluteExpirationRelativeToNow;
-            IList<IChangeToken> _expirationTokens = new List<IChangeToken>();
+            readonly IList<IChangeToken> _expirationTokens = new List<IChangeToken>();
             readonly IList<PostEvictionCallbackRegistration> _postEvictionCallbacks = new List<PostEvictionCallbackRegistration>();
             CacheItemPriority _priority=CacheItemPriority.Normal;
             Int64? _size;
             TimeSpan? _slidingExpiration;
+            IDisposable? _subscription = null;
+            Int32 _calledCallbacksCount=0;
 
             public MockedCache()
             {
                 CacheMock=new Mock<IMemoryCache>();
                 EntryMock=new Mock<ICacheEntry>();
 
-                CacheMock.Setup(s => s.CreateEntry(It.IsAny<Object>()))
+                CacheMock.Setup(CreateEntryEnpression)
                     .Callback((Object key) => { ClearStoredEntry(); _key=key; })
                     .Returns(EntryMock.Object);
-                CacheMock.Setup(s => s.TryGetValue(It.IsAny<Object>(), out It.Ref<Object>.IsAny))
-                    .Callback((Object key, ref Object value) => { value=_value!; })
-                    .Returns(_isEntryStored&&Key.Equals(_key));
+                CacheMock.Setup(TryGetValueExpression)
+                    .Callback((Object _, ref Object value) => { value=_value!; })
+                    .Returns((Object key, ref Object _ ) => _isEntryStored&&key.Equals(_key));
                 CacheMock.Setup(s => s.Remove(It.IsAny<Object>()))
-                    .Callback((Object Key) => { CheckKey(Key); ClearStoredEntry(); });
+                    .Callback((Object Key) => { CheckKey(Key); Evict(EvictionReason.Removed); });
 
-                EntryMock.Setup(s => s.Dispose()).Callback(() => { if (!_isEntryStored&&EntryMock.Object.Value!=null) StoreEntry(); });
+                EntryMock.Setup(s => s.Dispose())
+                    .Callback(() => { if (!_isEntryStored&&EntryMock.Object.Value!=null) StoreEntry();});
                 EntryMock.SetupProperty(s => s.Value);
                 EntryMock.SetupProperty(s => s.AbsoluteExpiration);
                 EntryMock.SetupProperty(s => s.AbsoluteExpirationRelativeToNow);
                 EntryMock.SetupGet(s => s.ExpirationTokens).Returns(_expirationTokens);
                 EntryMock.SetupGet(s=>s.PostEvictionCallbacks).Returns(_postEvictionCallbacks);
-                EntryMock.SetupProperty(s=>s.Priority).Object.Value = CacheItemPriority.Normal;
+                EntryMock.SetupProperty(s=>s.Priority).Object.Priority = CacheItemPriority.Normal;
                 EntryMock.SetupProperty(s => s.Size);
                 EntryMock.SetupProperty(s => s.SlidingExpiration);
+            }
+
+            void Evict(Object State)
+            {
+                EvictionReason reason = (EvictionReason)State;
+                if (_isEntryStored) {
+                    List<PostEvictionCallbackRegistration> callbacks = _postEvictionCallbacks.ToList();
+                    Object? old_value = _value;
+                    ClearStoredEntry();
+                    foreach (PostEvictionCallbackRegistration reg in callbacks) {
+                        reg.EvictionCallback(_key, old_value, reason, reg.State);
+                        _calledCallbacksCount++;
+                    }
+                }
             }
 
             void CheckKey(Object Key)
@@ -147,6 +246,8 @@ namespace ActiveSession.Tests
                 _priority = CacheItemPriority.Normal;
                 _size=null;
                 _slidingExpiration=null;
+                _subscription?.Dispose();
+                _subscription=null;
             }
 
             void StoreEntry()
@@ -157,14 +258,20 @@ namespace ActiveSession.Tests
                 _priority=EntryMock.Object.Priority;
                 _size=EntryMock.Object.Size;
                 _slidingExpiration=EntryMock.Object.SlidingExpiration;
-                _isEntryStored =true;
+                CompositeChangeToken token = new CompositeChangeToken(_expirationTokens as IReadOnlyList<IChangeToken>);
+                if (token.ActiveChangeCallbacks)
+                    _subscription=token.RegisterChangeCallback(Evict, EvictionReason.TokenExpired);
+                _calledCallbacksCount=0;
+                _isEntryStored=true;
             }
 
+            public  Boolean IsEntryStored { get => _isEntryStored; }
+            public Int32 CalledCallbacksCount { get => _calledCallbacksCount; }
             //Tracked ICacheEntry properties
             public Object? Value { get => _value; }
             public DateTimeOffset? AbsoluteExpiration { get => _absoluteExpiration; }
             public TimeSpan? AbsoluteExpirationRelativeToNow { get => _absoluteExpirationRelativeToNow; }
-            // TODO ExpirationTokens are not tracked
+            public IList<IChangeToken> ExpirationTokens { get =>_expirationTokens; }
             public Object Key { get => _key!; }
             public IList<PostEvictionCallbackRegistration> PostEvictionCallbacks { get => _postEvictionCallbacks; } 
             public CacheItemPriority Priority { get => _priority; }
