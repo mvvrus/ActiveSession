@@ -44,6 +44,9 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <value> Track storage statistics</value>
         public Boolean TrackStatistics { get; set; }
+
+        /// <value> Dispose a session evicted from the cache synchronously </value>
+        public Boolean WaitForEvictedSessionDisposal { get; set; }
     }
 }
 

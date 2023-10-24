@@ -122,6 +122,7 @@ namespace ActiveSession.Tests
             ConstructorTestSetup test_setup;
             Active_Session active_session;
             Mock<IRunnerManager> mock_runner_manager;
+            //Test case: disposing ActiveSession with internal runner manager
             mock_runner_manager= MockRunnerManager.CreateMockedRunnermanager();
             test_setup=new ConstructorTestSetup();
             active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
@@ -131,12 +132,11 @@ namespace ActiveSession.Tests
             active_session.Dispose();
 
             Assert.True(active_session.Disposed);
-            Assert.NotNull(active_session._disposeCompletionTask);
-            active_session._disposeCompletionTask.GetAwaiter().GetResult();
             mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression,Times.Once);
             test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
             mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Once);
 
+            //Test case: disposing ActiveSession with external runner manager
             mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
             test_setup=new ConstructorTestSetup(mock_runner_manager.Object);
             active_session=new Active_Session( test_setup.MockServiceScope.Object,
@@ -147,12 +147,11 @@ namespace ActiveSession.Tests
             active_session.Dispose();
 
             Assert.True(active_session.Disposed);
-            Assert.NotNull(active_session._disposeCompletionTask);
-            active_session._disposeCompletionTask.GetAwaiter().GetResult();
             mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Once);
             test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
             mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
 
+            //Test case: simulate disposing of an already disposed ActiveSession
             mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
             test_setup=new ConstructorTestSetup();
             active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
@@ -163,8 +162,13 @@ namespace ActiveSession.Tests
             active_session.Dispose();
 
             Assert.True(active_session.Disposed);
-            Assert.Null(active_session._disposeCompletionTask);
         }
+
+        //TODO Test case: ActiveSession.DisposeAsync() test
+        // Assert.NotNull(active_session.GetCleanupCompletionTask());
+        // active_session.GetCleanupCompletionTask()?.GetAwaiter().GetResult();
+        //TODO Test case: Dispose ActiveSession with pendinding runners 
+        //TODO Test case: DisposeAsync ActiveSession with pendinding runners 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         // DefaultRunnerManager tests

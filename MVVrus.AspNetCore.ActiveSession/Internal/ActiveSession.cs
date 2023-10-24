@@ -111,15 +111,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void Dispose()
         {
-            int disposed = Interlocked.Exchange(ref _disposed, 1);
-            if (disposed!=0) return; //TODO Avoid race condition
-            #if TRACE
-            _logger?.LogTraceActiveSessionDispose(_sessionId);
-            #endif
-            _disposeCompletionTask= Task.Run(CompleteDispose);
+            if (Interlocked.Exchange(ref _disposed, 1)!=0) return; 
+            DisposeAsyncCore().GetAwaiter().GetResult();
         }
 
         const Int32 RUNNERS_TIMEOUT_MSEC= 10000;
+
+        public ValueTask DisposeAsync()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1)!=0) return ValueTask.CompletedTask;
+            else return DisposeAsyncCore();
+        }
+
+        ValueTask DisposeAsyncCore()
+        {
+            #if TRACE
+            _logger?.LogTraceActiveSessionDispose(_sessionId);
+            #endif
+            return new ValueTask(Task.Run(CompleteDispose));
+        }
+
+        public Boolean HasAbandonedRunners { get; private set; }
 
         private void CompleteDispose()
         {
@@ -135,6 +147,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDisposeExit(_sessionId);
             #endif
+            HasAbandonedRunners=wait_succeded;
         }
 
         private void CheckDisposed()
@@ -148,7 +161,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _disposed=1;
         }
 
-        internal Task? _disposeCompletionTask;
         internal Boolean Disposed { get { return _disposed!=0; } }
 
         internal class DefaultRunnerManager : IRunnerManager, IDisposable
@@ -205,7 +217,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
                 #endif
                 _runnersCounter.Signal();
-                ReturnRunnerNumber(RunnerNumber);
             }
 
             public void ReturnRunnerNumber(Int32 RunnerNumber)

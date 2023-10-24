@@ -12,6 +12,8 @@
 
         public CancellationToken CompletionToken => CancellationToken.None;
 
+        public Boolean HasAbandonedRunners => false;
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -25,6 +27,11 @@
         public void Dispose()
         {
             //do nothing
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            throw new NotImplementedException();
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)

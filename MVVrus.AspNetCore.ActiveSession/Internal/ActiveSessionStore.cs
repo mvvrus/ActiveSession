@@ -33,6 +33,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         #region StaticStuff
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
+        private readonly Boolean _waitForEvictedSessionDisposal;
+
         internal static void RegisterTResult(Type TResult)
         {
             s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
@@ -96,6 +98,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
             _trackStatistics=options.TrackStatistics;
+            _waitForEvictedSessionDisposal=options.WaitForEvictedSessionDisposal;
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructorExit();
             #endif
@@ -162,7 +165,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     }
                                 }
                                 catch {
-                                    result.Dispose();
+                                    DisposeActiveSession(result);
                                     throw;
                                 }
                             } //Commit the entry to the cache via implicit Dispose call 
@@ -244,7 +247,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     runner
                                 );
                             new_entry.PostEvictionCallbacks.Add(end_runner);
-                            RunnerManager.RegisterRunner(runner_number);
                             RegisterRunnerInSession(Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
 
                             IChangeToken expiration_token = new CancellationChangeToken(RunnerManager.SessionCompletionToken);
@@ -254,6 +256,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             //An assignment to Value property should be the last one before new_entry.Dispose()
                             //to avoid adding bad entry to the cache by Dispose() 
                             new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
+                            RunnerManager.RegisterRunner(runner_number);
                             if (_trackStatistics) {
                                 Interlocked.Increment(ref _currentRunnerCount);
                                 Interlocked.Add(ref _currentStoreSize, size);
@@ -383,9 +386,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #endregion
 
         #region PrivateMethods
+        private void DisposeActiveSession(ActiveSession Session)
+        {
+            if (_waitForEvictedSessionDisposal) Session.Dispose();
+            else Session.DisposeAsync();
+        }
+
         private void ActiveSessionEvictionCallback(object key, object value, EvictionReason reason, object state)
         {
-            IActiveSession? active_session = value as IActiveSession;
+            ActiveSession? active_session = value as ActiveSession;
             if(_trackStatistics) {
                 Interlocked.Decrement(ref _currentSessionCount);
                 Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
@@ -400,7 +409,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceEvictRunners(session_key);
                 #endif
                 _logger?.LogDebugBeforeSessionDisposing(session_key);
-                active_session.Dispose();
+                DisposeActiveSession(active_session);
             }
             Object dummy;
             _memoryCache.TryGetValue(session_key, out dummy); //To start expiration checks
@@ -451,6 +460,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceRunnerEvictionCallback(runner_info.RunnerSessionKey, runner_info.Number);
             #endif
             runner_info.RunnerManager.UnregisterRunner(runner_info.Number);
+            runner_info.RunnerManager.ReturnRunnerNumber(runner_info.Number);
             IActiveSessionRunner runner = runner_info.Runner;
             runner.Abort();
             if (_trackStatistics) {

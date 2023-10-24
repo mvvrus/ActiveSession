@@ -129,7 +129,6 @@ namespace ActiveSession.Tests
 
                 //Test case: dispoing ActiveSession while in a cache object w/o runners associated
                 (session as IDisposable)?.Dispose();
-                (session as Active_Session)?._disposeCompletionTask?.GetAwaiter().GetResult();
                 Assert.False(ts.Cache.IsEntryStored);
                 Assert.Equal(1,ts.Cache.CalledCallbacksCount);
 
@@ -144,6 +143,7 @@ namespace ActiveSession.Tests
             ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
             ts.ActSessOptions.Prefix=PREFIX;
             ts.ActSessOptions.TrackStatistics=true;
+            ts.ActSessOptions.WaitForEvictedSessionDisposal=true;
             using (store=ts.CreateStore()) {
 
                 session=store.FetchOrCreateSession(ts.StubSession.Object, null);
@@ -163,8 +163,10 @@ namespace ActiveSession.Tests
                 Assert.Equal(1, ts.Cache.CalledCallbacksCount);
                 Assert.True((session as Active_Session)!.Disposed);
 
+                //Test case: race condition in FetchOrCreateSession method
+                //TODO
+                //Test case: dispoing ActiveSession asynchronously while in a cache object w/o runners associated
             }
-
         }
 
         class MockedCache
@@ -361,7 +363,39 @@ namespace ActiveSession.Tests
                 _fakeRootServiceProvider.Setup(s => s.GetService(typeof(IServiceScopeFactory)))
                     .Returns(_fakeScopeFactory.Object);
             }
+        }
 
+        class RunnerTestSetup: MockedCaheTestSetup
+        {
+            public readonly Mock<ISession> StubSession;
+            public readonly Mock<IRunnerManager> MockRunnerManager;
+
+            public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<String>()));
+            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(RUNNER_1));
+            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(RUNNER_1));
+            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(RUNNER_1));
+            public Expression<Func<IRunnerManager, IServiceProvider>> ServicesExpression = (s => s.Services);
+            public Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
+            public Expression<Func<IRunnerManager, CancellationToken>> SessionCompletionTokenExpression = (s=>s.SessionCompletionToken);
+
+            public const Int32 RUNNER_1 = 1;
+
+
+            public RunnerTestSetup() : base(new MockedCache()) 
+            {
+                StubSession=new Mock<ISession>();
+                StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
+                MockRunnerManager=new Mock<IRunnerManager>();
+                MockRunnerManager.Setup(GetRunnerNumberExpression).Returns(RUNNER_1);
+                MockRunnerManager.Setup(ReturnRunnerNumberExpression);
+                MockRunnerManager.Setup(RegisterRunnerExpression);
+                MockRunnerManager.Setup(UnregisterRunnerExpression);
+                MockRunnerManager.Setup(ServicesExpression);
+                MockRunnerManager.Setup(RunnerCreationLockExpression);
+                MockRunnerManager.Setup(SessionCompletionTokenExpression);
+                //TODO Setup properties and methods
+
+            }
         }
 
     }
