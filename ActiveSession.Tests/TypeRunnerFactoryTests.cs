@@ -3,7 +3,7 @@ using MVVrus.AspNetCore.ActiveSession.Internal;
 
 namespace ActiveSession.Tests
 {
-    public class TypeRunnerFactoryTest
+    public class TypeRunnerFactoryTests
     {
 
         [Fact]

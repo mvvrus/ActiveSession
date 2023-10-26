@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionMiddlewareTest
+    public class ActiveSessionMiddlewareTests
     {
         [Fact]
         public void ConstructActiveSessionMiddleware()

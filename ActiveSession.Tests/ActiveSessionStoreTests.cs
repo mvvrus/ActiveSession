@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionStoreTest
+    public class ActiveSessionStoreTests
     {
         static readonly TimeSpan s_defaultIdleTimeout = TimeSpan.FromMinutes(20);
 

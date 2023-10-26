@@ -12,7 +12,7 @@ using Active_Session= MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionTest
+    public class ActiveSessionTests
     {
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         // IActiveSession tests

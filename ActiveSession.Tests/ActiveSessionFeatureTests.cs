@@ -10,7 +10,7 @@ using MVVrus.AspNetCore.ActiveSession.Internal;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionFeatureTest
+    public class ActiveSessionFeatureTests
     {
         const String TEST_TRACE_IDENTIFIER = "TEST_TRACE_IDENTIFIER";
 

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionBuilderExtensionsTest
+    public class ActiveSessionBuilderExtensionsTests
     {
         [Fact]
         public void UseActiveSessions_ServicesAdded()
