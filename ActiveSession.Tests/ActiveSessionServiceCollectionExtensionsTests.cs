@@ -23,6 +23,7 @@ namespace ActiveSession.Tests
         void CheckInfrastructure(IServiceCollection Services, Boolean IsConfigDelegateUsed)
         {
             Assert.Equal(1, CountServiceImplementations(Services, typeof(IActiveSessionStore)));
+            Assert.Equal(1, CountServiceImplementations(Services, typeof(IRunnerManagerFactory)));
             Assert.Equal(1, CountServiceImplementations(Services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(IsConfigDelegateUsed ? 1 : 0, CountServiceImplementations(Services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
         }
@@ -44,6 +45,7 @@ namespace ActiveSession.Tests
             services.AddSingleton<IConfiguration>(config);
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, null);
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IRunnerManagerFactory)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(0, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
 

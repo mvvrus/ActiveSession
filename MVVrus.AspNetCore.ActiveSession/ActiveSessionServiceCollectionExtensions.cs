@@ -305,6 +305,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             //Add common services for the active sessions feature
             if (!Services.Any(s => s.ServiceType==typeof(IActiveSessionStore))) { //The first run of this method
                 Services.TryAddSingleton<IActiveSessionStore, ActiveSessionStore>();
+                Services.TryAddSingleton<IRunnerManagerFactory, RunnerManagerFactory>();
                 Services.AddOptions<ActiveSessionOptions>().Configure<IConfiguration>(ReadActiveSessionsConfig);
             }
             if (PostConfigurator!=null)
