@@ -14,6 +14,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #region InstannceFields
         readonly IMemoryCache _memoryCache;
         readonly IServiceProvider _rootServiceProvider;
+        readonly IRunnerManagerFactory _runnerManagerFactory;
         readonly string _prefix;
         readonly string _hostId;
         readonly bool _useOwnCache;
@@ -45,6 +46,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public ActiveSessionStore(
             IMemoryCache? Cache,
             IServiceProvider RootServiceProvider,
+            IRunnerManagerFactory RunnerManagerFactory,
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
             ILoggerFactory? LoggerFactory = null
@@ -55,6 +57,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (SessionOptions is null)
                 throw new ArgumentNullException(nameof(SessionOptions));
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
+            _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructor();
@@ -148,12 +151,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_entry.SlidingExpiration=_idleTimeout;
                                 new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                                 Int32 size = GetSessionSize();
-                                new_entry.Size=size; 
+                                new_entry.Size=size;
+                                IServiceScope session_scope = _rootServiceProvider.CreateScope();
+                                IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
+                                    Session.Id
+                                    , _logger
+                                    , session_scope.ServiceProvider
+                                    ); //TODO MinRunnerNumber & MaxRunnerNumber
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
-                                end_activesession.State=Session.Id;
+                                end_activesession.State=new SessionPostEvictionInfo(Session.Id, session_scope, runner_manager);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
-                                result=new ActiveSession(_rootServiceProvider.CreateScope(), this, Session, _logger, trace_identifier);
+                                result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, trace_identifier);
                                 new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
                                 try {
                                     //An assignment to Value property should be the last one before new_entry.Dispose()
@@ -392,25 +401,50 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             else Session.DisposeAsync();
         }
 
-        private void ActiveSessionEvictionCallback(object key, object value, EvictionReason reason, object state)
+        record RunnerManagerInfo(IRunnerManager RunnerManager, String SessionId);
+
+        void RunnerCompletion(Object? State) //TODO This code is a subject of re-factoring
         {
-            ActiveSession? active_session = value as ActiveSession;
-            if(_trackStatistics) {
-                Interlocked.Decrement(ref _currentSessionCount);
-                Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
-            }
-            String session_key = state as String??UNKNOWN_SESSION_KEY;
+            RunnerManagerInfo state = (RunnerManagerInfo)State!;
+            const Int32 RUNNERS_TIMEOUT_MSEC = 10000;
+            #if TRACE
+            _logger?.LogTraceActiveSessionCompleteDispose(state.SessionId); //TODO Change log message
+            #endif
+            Boolean wait_succeded = state.RunnerManager.WaitForRunners(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
+            #if TRACE
+            _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(state.SessionId, wait_succeded);
+            #endif
+            #if TRACE
+            _logger?.LogTraceActiveSessionCompleteDisposeExit(state.SessionId);
+            #endif
+            (state.RunnerManager as IDisposable)?.Dispose(); //TODO Do smth else for the case of shared runner used
+        }
+
+        private void ActiveSessionEvictionCallback(object Key, object Value, EvictionReason Reason, object State)
+        {
+            SessionPostEvictionInfo session_info = (SessionPostEvictionInfo)State;
+            //TODO Check that session_info is not null?
+            String session_key = session_info.SessionId??UNKNOWN_SESSION_KEY;
             #if TRACE
             _logger?.LogTraceSessionEvictionCallback(session_key);
             #endif
+            ActiveSession? active_session = Value as ActiveSession;
+            if (_trackStatistics) {
+                Interlocked.Decrement(ref _currentSessionCount);
+                Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
+            }
             if (active_session!=null) {
-                //TODO Remove extra trace?
-                #if TRACE
-                _logger?.LogTraceEvictRunners(session_key);
-                #endif
                 _logger?.LogDebugBeforeSessionDisposing(session_key);
                 DisposeActiveSession(active_session);
             }
+            #if TRACE
+            _logger?.LogTraceEvictRunners(session_key);
+            #endif      
+            //TODO Next 2 lines are subject of future refactoring 
+            Task runner_completion_task = new Task(RunnerCompletion, new RunnerManagerInfo(session_info.RunnerManager, session_key));
+            runner_completion_task.Start();
+            //TODO LogTrace session scope dispose
+            session_info?.SessionScope.Dispose();
             Object dummy;
             _memoryCache.TryGetValue(session_key, out dummy); //To start expiration checks
             #if TRACE
@@ -640,6 +674,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 this.Runner=Runner;
             }
         }
+
+        internal record SessionPostEvictionInfo(String SessionId, IServiceScope SessionScope, IRunnerManager RunnerManager);
         #endregion
     }
 }

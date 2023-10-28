@@ -22,40 +22,70 @@ namespace ActiveSession.Tests
         {
             ConstructorTestSetup test_setup;
             Active_Session active_session;
-            test_setup=new ConstructorTestSetup();
 
-            active_session=new Active_Session(test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object,
-                null);
-
-            Assert.True(active_session.IsAvailable);
-            Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
-            Assert.Equal(test_setup.StubServiceProvider.Object, active_session.SessionServices);
-            Assert.True(active_session.IsFresh);
-            Assert.IsType<DefaultRunnerManager>(active_session.RunnerManager);
-            Assert.True(active_session.IsDefaultRunnerManagerUsed);
-            Assert.False(active_session.Disposed);
-
-            Mock<IRunnerManager> stub_runner_manager = new Mock<IRunnerManager>();
-            using (CancellationTokenSource cts = new CancellationTokenSource()) {
-                stub_runner_manager.SetupGet(s => s.SessionCompletionToken).Returns(cts.Token);
-                test_setup=new ConstructorTestSetup(stub_runner_manager.Object);
-                active_session=new Active_Session(test_setup.MockServiceScope.Object,
+            using (test_setup=new ConstructorTestSetup()) {
+                //Test case: normal creation
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
                     null);
-                Assert.Equal(stub_runner_manager.Object, active_session.RunnerManager);
-                Assert.Equal(cts.Token, active_session.CompletionToken);
-                Assert.False(active_session.IsDefaultRunnerManagerUsed);
+
+                Assert.True(active_session.IsAvailable);
+                Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
+                Assert.Equal(test_setup.DummyRunnerManager.Object, active_session.RunnerManager);
+                Assert.Equal(test_setup.Token, active_session.CompletionToken);
+                Assert.Equal(test_setup.StubServiceProvider.Object, active_session.SessionServices);
+                Assert.True(active_session.IsFresh);
+                Assert.False(active_session.Disposed);
+
+                //Test case: null RunnerManager constructor parameter
+                Assert.Throws<ArgumentNullException>(
+                    () => new Active_Session(null!,
+                        test_setup.MockServiceScope.Object,
+                        test_setup.FakeStore.Object,
+                        test_setup.StubSession.Object,
+                        null)
+                    );
+
+                //Test case: null SessionScope constructor parameter
+                Assert.Throws<ArgumentNullException>(
+                    () => new Active_Session(test_setup.DummyRunnerManager.Object,
+                        null!,
+                        test_setup.FakeStore.Object,
+                        test_setup.StubSession.Object,
+                        null)
+                    );
+
+                //Test case: null Store constructor parameter
+                Assert.Throws<ArgumentNullException>(
+                    () => new Active_Session(test_setup.DummyRunnerManager.Object,
+                        test_setup.MockServiceScope.Object,
+                        null!,
+                        test_setup.StubSession.Object,
+                        null)
+                    );
+
+                //Test case: null Session constructor parameter
+                Assert.Throws<ArgumentNullException>(
+                    () => new Active_Session(test_setup.DummyRunnerManager.Object,
+                        test_setup.MockServiceScope.Object,
+                        test_setup.FakeStore.Object,
+                        null!,
+                        null)
+                    );
+
             }
+
         }
 
         [Fact]
         public void CreateRunner()
         {
-            RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session=new Active_Session(test_setup.MockServiceScope.Object,
+            using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
+
+            Active_Session active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                test_setup.MockServiceScope.Object,
                 test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
@@ -70,50 +100,56 @@ namespace ActiveSession.Tests
 
             active_session.SetDisposedForTests();
             Assert.Throws<ObjectDisposedException>(()=>active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object));
+            }
         }
 
         [Fact]
         public void GetRunner()
         {
-            RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session = new Active_Session(test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object,
-                null);
+            using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null);
 
-            var runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
-            var unknown_runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
+                var runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
+                var unknown_runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
 
-            Assert.False(active_session.IsFresh);
-            Assert.NotNull(runner);
-            Assert.IsType<SpyRunner1>(runner);
-            Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
-            Assert.Null(unknown_runner);
+                Assert.False(active_session.IsFresh);
+                Assert.NotNull(runner);
+                Assert.IsType<SpyRunner1>(runner);
+                Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
+                Assert.Null(unknown_runner);
 
-            active_session.SetDisposedForTests();
-            Assert.Throws<ObjectDisposedException>(() => active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
+                active_session.SetDisposedForTests();
+                Assert.Throws<ObjectDisposedException>(() => active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
+
+            }
         }
 
         [Fact]
         public void GetRunnerAsync()
         {
-            RunnerTestSetup test_setup = new RunnerTestSetup();
-            Active_Session active_session = new Active_Session(test_setup.MockServiceScope.Object,
+            using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                test_setup.MockServiceScope.Object,
                 test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
                 null);
 
-            var runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
-            var unknown_runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+                var runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+                var unknown_runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
 
-            Assert.False(active_session.IsFresh);
-            Assert.NotNull(runner);
-            Assert.IsType<SpyRunner1>(runner);
-            Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
-            Assert.Null(unknown_runner);
+                Assert.False(active_session.IsFresh);
+                Assert.NotNull(runner);
+                Assert.IsType<SpyRunner1>(runner);
+                Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
+                Assert.Null(unknown_runner);
 
-            active_session.SetDisposedForTests();
-            Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
+                active_session.SetDisposedForTests();
+                Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
+            }
         }
 
         [Fact]
@@ -121,47 +157,34 @@ namespace ActiveSession.Tests
         {
             ConstructorTestSetup test_setup;
             Active_Session active_session;
-            Mock<IRunnerManager> mock_runner_manager;
-            //Test case: disposing ActiveSession with internal runner manager
-            mock_runner_manager= MockRunnerManager.CreateMockedRunnermanager();
-            test_setup=new ConstructorTestSetup();
-            active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object);
+            //Test case: disposing ActiveSession once
+            using (test_setup=new ConstructorTestSetup()) {
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null);
 
-            active_session.Dispose();
+                active_session.Dispose();
 
-            Assert.True(active_session.Disposed);
-            mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression,Times.Once);
-            test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
-            mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Once);
-
-            //Test case: disposing ActiveSession with external runner manager
-            mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
-            test_setup=new ConstructorTestSetup(mock_runner_manager.Object);
-            active_session=new Active_Session( test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object,
-                null );
-
-            active_session.Dispose();
-
-            Assert.True(active_session.Disposed);
-            mock_runner_manager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Once);
-            test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Once);
-            mock_runner_manager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
+                Assert.True(active_session.Disposed);
+                test_setup.DummyRunnerManager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Never);
+                test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Never);
+                test_setup.DummyRunnerManager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
+            }
 
             //Test case: simulate disposing of an already disposed ActiveSession
-            mock_runner_manager=MockRunnerManager.CreateMockedRunnermanager();
-            test_setup=new ConstructorTestSetup();
-            active_session=new Active_Session(mock_runner_manager.Object, test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object);
+            using (test_setup=new ConstructorTestSetup()) {
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object, test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null);
 
-            active_session.SetDisposedForTests();
-            active_session.Dispose();
+                active_session.SetDisposedForTests();
+                active_session.Dispose();
 
-            Assert.True(active_session.Disposed);
+                Assert.True(active_session.Disposed);
+            }
         }
 
         //TODO Test case: ActiveSession.DisposeAsync() test
@@ -170,7 +193,7 @@ namespace ActiveSession.Tests
         //TODO Test case: Dispose ActiveSession with pendinding runners 
         //TODO Test case: DisposeAsync ActiveSession with pendinding runners 
 
-        class ConstructorTestSetup
+        class ConstructorTestSetup: IDisposable
         {
             public readonly Mock<IServiceProvider> StubServiceProvider;
             public readonly Mock<IServiceScope> MockServiceScope;
@@ -178,15 +201,17 @@ namespace ActiveSession.Tests
             public readonly Mock<ISession> StubSession;
             public readonly Mock<HttpContext> StubContext;
             public readonly Request1 Request;
+            public readonly Mock<IRunnerManager> DummyRunnerManager;
+            readonly CancellationTokenSource _cts;
+            public CancellationToken Token { get => _cts.Token; }
 
             public const String TEST_SESSION_ID = "TestSessionId";
             public const String TEST_REQUEST_ARG = "TesRequestArg";
             public readonly Expression<Action<IServiceScope>> DisposeScopeExpression= s => s.Dispose();
 
-            public ConstructorTestSetup(IRunnerManager? Manager = null)
+            public ConstructorTestSetup()
             {
                 StubServiceProvider=new Mock<IServiceProvider>();
-                StubServiceProvider.Setup(s => s.GetService(typeof(IRunnerManager))).Returns(Manager);
                 MockServiceScope=new Mock<IServiceScope>();
                 MockServiceScope.SetupGet(s => s.ServiceProvider).Returns(StubServiceProvider.Object);
                 MockServiceScope.Setup(DisposeScopeExpression);
@@ -195,9 +220,16 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
                 StubContext = new Mock<HttpContext>();
                 StubContext.SetupGet(s=>s.Session).Returns(StubSession.Object);
+                DummyRunnerManager=MockRunnerManager.CreateMockedRunnermanager();
+                _cts = new CancellationTokenSource();
+                DummyRunnerManager.SetupGet(s => s.SessionCompletionToken).Returns(_cts.Token);
                 Request=new Request1 { Arg=TEST_REQUEST_ARG };
             }
 
+            public void Dispose()
+            {
+                _cts?.Dispose();
+            }
         }
 
         class RunnerTestSetup : ConstructorTestSetup

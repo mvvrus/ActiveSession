@@ -4,7 +4,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class ActiveSession : IActiveSession
     {
-        readonly IServiceProvider _services;
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
         readonly ILogger? _logger;
@@ -12,42 +11,29 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Int32 _disposed=0;
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
-        readonly Boolean _isDefaultRunnerManagerUsed;
 
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
-        internal Boolean IsDefaultRunnerManagerUsed { get { return _isDefaultRunnerManagerUsed; } }
-        //Test constructor
-        internal ActiveSession(IRunnerManager RunnerManager, IServiceScope SessionScope, IActiveSessionStore Store, ISession Session):
-            this(SessionScope,Store,Session, null)
-        {
-            if (_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
-            _runnerManager=RunnerManager;
-            _isDefaultRunnerManagerUsed=true;
-        }
 
         public ActiveSession(
-            IServiceScope SessionScope
+            IRunnerManager RunnerManager
+            , IServiceScope SessionScope
             , IActiveSessionStore Store
             , ISession Session
             , ILogger? Logger
             , String? TraceIdentifier = null
-            , Int32 MinRunnerNumber = 0
-            , Int32 MaxRunnerNumber = Int32.MaxValue
         )
         {
+            if (Session is null) throw new ArgumentNullException(nameof(Session));
             _logger=Logger;
             _sessionId=Session.Id;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
             #endif
-            _scope= SessionScope;
-            _services = _scope.ServiceProvider;
-            IRunnerManager? runner_manager = _services.GetService<IRunnerManager>();
-            _isDefaultRunnerManagerUsed=runner_manager==null;
-            _runnerManager = runner_manager ?? new DefaultRunnerManager(_sessionId, _logger, _services, MinRunnerNumber, MaxRunnerNumber);
-            _store = Store;
+            _scope = SessionScope??throw new ArgumentNullException(nameof(SessionScope));
+            _runnerManager = RunnerManager??throw new ArgumentNullException(nameof(RunnerManager));
+            _store = Store??throw new ArgumentNullException(nameof(Store));
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -62,7 +48,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session, _runnerManager, Request, trace_identifier);
             _isFresh = false;
-            //TODO LogTrace?
             #if TRACE
             _logger?.LogTraceCreateActiveSessionCreateRunnerExit(trace_identifier);
             #endif
@@ -103,7 +88,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public bool IsFresh => _isFresh;
 
-        public IServiceProvider SessionServices { get { return _services; } }
+        public IServiceProvider SessionServices { get { return _scope.ServiceProvider; } }
 
         public String Id { get { return _sessionId; } }
 
@@ -115,7 +100,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             DisposeAsyncCore().GetAwaiter().GetResult();
         }
 
-        const Int32 RUNNERS_TIMEOUT_MSEC= 10000;
 
         public ValueTask DisposeAsync()
         {
@@ -135,19 +119,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         private void CompleteDispose()
         {
-            #if TRACE
-            _logger?.LogTraceActiveSessionCompleteDispose(_sessionId);
-            #endif
-            Boolean wait_succeded = _runnerManager.WaitForRunners(RUNNERS_TIMEOUT_MSEC); //Wait for disposing all runners
-            #if TRACE
-            _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(_sessionId, wait_succeded);
-            #endif
-            _scope.Dispose();
-            if (_isDefaultRunnerManagerUsed) (_runnerManager as IDisposable)?.Dispose();
-            #if TRACE
-            _logger?.LogTraceActiveSessionCompleteDisposeExit(_sessionId);
-            #endif
-            HasAbandonedRunners=wait_succeded;
+            //TODO to be removed in conjucntion with DisposeAsync & DisposeAsyncCore
         }
 
         private void CheckDisposed()
