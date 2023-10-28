@@ -109,7 +109,6 @@ namespace ActiveSession.Tests
                     Assert.NotNull(manager);
                     Assert.NotNull(manager.RunnerCreationLock);
                     Assert.Equal(ts.ScopeServiceProvider, manager.Services);
-                    Assert.Equal(session.CompletionToken, manager.SessionCompletionToken);
                     //Assess a cache entry
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));//2-nd time - after obtainning lock. Fragile!!! 
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
@@ -133,9 +132,9 @@ namespace ActiveSession.Tests
 
                     //Test case: dispoing ActiveSession while in a cache object w/o runners associated
                     (session as IDisposable)?.Dispose();
-                    //TODO Ignore these tests until ActiveSession.Dispose is re-implemented
-                    //Assert.False(ts.Cache.IsEntryStored);
-                    //Assert.Equal(1,ts.Cache.CalledCallbacksCount);
+                    //Due to the cache is moked and we have no active runners here the cache eviction is to be synchronous
+                    Assert.False(ts.Cache.IsEntryStored);
+                    Assert.Equal(1,ts.Cache.CalledCallbacksCount);
 
                 }
                 //Test case: options passed to ActiveSessionStore constructor affects cache entry

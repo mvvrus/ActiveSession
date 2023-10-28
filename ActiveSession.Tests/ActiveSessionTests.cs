@@ -34,7 +34,8 @@ namespace ActiveSession.Tests
                 Assert.True(active_session.IsAvailable);
                 Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
                 Assert.Equal(test_setup.DummyRunnerManager.Object, active_session.RunnerManager);
-                Assert.Equal(test_setup.Token, active_session.CompletionToken);
+                Assert.True(active_session.CompletionToken.CanBeCanceled);
+                Assert.False(active_session.CompletionToken.IsCancellationRequested);
                 Assert.Equal(test_setup.StubServiceProvider.Object, active_session.SessionServices);
                 Assert.True(active_session.IsFresh);
                 Assert.False(active_session.Disposed);
@@ -168,6 +169,7 @@ namespace ActiveSession.Tests
                 active_session.Dispose();
 
                 Assert.True(active_session.Disposed);
+                Assert.True(active_session.CompletionToken.IsCancellationRequested);
                 test_setup.DummyRunnerManager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Never);
                 test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Never);
                 test_setup.DummyRunnerManager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);

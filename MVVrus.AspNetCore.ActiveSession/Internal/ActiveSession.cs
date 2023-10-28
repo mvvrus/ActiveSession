@@ -11,6 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Int32 _disposed=0;
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
+        readonly CancellationTokenSource _cts;
 
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
@@ -34,6 +35,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _scope = SessionScope??throw new ArgumentNullException(nameof(SessionScope));
             _runnerManager = RunnerManager??throw new ArgumentNullException(nameof(RunnerManager));
             _store = Store??throw new ArgumentNullException(nameof(Store));
+            _cts=new CancellationTokenSource();
+            CompletionToken=_cts.Token;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -92,7 +95,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public String Id { get { return _sessionId; } }
 
-        public CancellationToken CompletionToken { get { return _runnerManager.SessionCompletionToken; } }
+        public CancellationToken CompletionToken { get; private set; }
 
         public void Dispose()
         {
@@ -100,7 +103,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionDispose(_sessionId);
             #endif
-            //TODO Notify about the disposing
+            _cts.Cancel();
+            _cts.Dispose();
         }
 
         private void CheckDisposed()
