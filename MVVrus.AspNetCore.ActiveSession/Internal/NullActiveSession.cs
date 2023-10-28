@@ -12,24 +12,12 @@
 
         public CancellationToken CompletionToken => CancellationToken.None;
 
-        public Boolean HasAbandonedRunners => false;
-
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
-        {
-            //do nothing
-        }
-
-        public ValueTask DisposeAsync()
         {
             throw new NotImplementedException();
         }

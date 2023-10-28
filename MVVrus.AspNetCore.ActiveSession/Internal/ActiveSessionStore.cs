@@ -174,7 +174,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     }
                                 }
                                 catch {
-                                    DisposeActiveSession(result);
+                                    result.Dispose();
                                     throw;
                                 }
                             } //Commit the entry to the cache via implicit Dispose call 
@@ -395,12 +395,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #endregion
 
         #region PrivateMethods
-        private void DisposeActiveSession(ActiveSession Session)
-        {
-            if (_waitForEvictedSessionDisposal) Session.Dispose();
-            else Session.DisposeAsync();
-        }
-
         record RunnerManagerInfo(IRunnerManager RunnerManager, String SessionId);
 
         void RunnerCompletion(Object? State) //TODO This code is a subject of re-factoring
@@ -435,7 +429,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             if (active_session!=null) {
                 _logger?.LogDebugBeforeSessionDisposing(session_key);
-                DisposeActiveSession(active_session);
+                active_session.Dispose();
             }
             #if TRACE
             _logger?.LogTraceEvictRunners(session_key);

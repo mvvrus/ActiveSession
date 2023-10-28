@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// An interface used to access Active Session object
     /// </summary>
-    public interface IActiveSession: IDisposable, IAsyncDisposable
+    public interface IActiveSession
     {
         /// <summary>
         /// A method used to create a new runner
@@ -58,9 +58,5 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>Cancellation token that will be fired after session completion (eviction/disposal)</value>
         CancellationToken CompletionToken { get;}
 
-        /// <value>
-        /// Flag showing that some incomplete runners were abandoned during Dispose/DisposeAsync (if corresponding interfaces are supported)
-        /// </value>
-        Boolean HasAbandonedRunners { get;}
     }
 }

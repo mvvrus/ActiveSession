@@ -2,7 +2,7 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession
+    internal class ActiveSession : IActiveSession, IDisposable
     {
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
@@ -96,30 +96,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, 1)!=0) return; 
-            DisposeAsyncCore().GetAwaiter().GetResult();
-        }
-
-
-        public ValueTask DisposeAsync()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1)!=0) return ValueTask.CompletedTask;
-            else return DisposeAsyncCore();
-        }
-
-        ValueTask DisposeAsyncCore()
-        {
+            if (Interlocked.Exchange(ref _disposed, 1)!=0) return;
             #if TRACE
             _logger?.LogTraceActiveSessionDispose(_sessionId);
             #endif
-            return new ValueTask(Task.Run(CompleteDispose));
-        }
-
-        public Boolean HasAbandonedRunners { get; private set; }
-
-        private void CompleteDispose()
-        {
-            //TODO to be removed in conjucntion with DisposeAsync & DisposeAsyncCore
+            //TODO Notify about the disposing
         }
 
         private void CheckDisposed()
