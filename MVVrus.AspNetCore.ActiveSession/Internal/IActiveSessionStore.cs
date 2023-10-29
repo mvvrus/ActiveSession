@@ -17,6 +17,7 @@
             IRunnerManager RunnerManager, 
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         );
+        public void TerminateSession(IActiveSession Session, Boolean Global);
         public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
         public ActiveSessionStoreStats? GetCurrentStatistics();
     }

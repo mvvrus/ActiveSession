@@ -12,6 +12,8 @@
 
         public CancellationToken CompletionToken => CancellationToken.None;
 
+        public Task CleanupCompletionTask => throw new NotImplementedException();
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -34,6 +36,11 @@
                     (IActiveSessionRunner<TResult>?) new NullActiveSessionRunner<TResult>()
                 )
             );
+        }
+
+        public void Terminate(Boolean Global = false)
+        {
+            throw new NotImplementedException();
         }
     }
 }

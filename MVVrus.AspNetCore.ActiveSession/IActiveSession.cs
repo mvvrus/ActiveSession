@@ -43,6 +43,16 @@ namespace MVVrus.AspNetCore.ActiveSession
             CancellationToken CancellationToken = default
         );
 
+        /// <summary>
+        /// Terminate the active session aborting all runners. 
+        /// </summary>
+        /// <param name="Global">If true terminate all ActiveSessions with the same id on all nodes (currently ignored)</param>
+        /// <remarks>
+        /// This operation may be asynchronous. 
+        /// To await for completion of this operation use a task returned via CleanupCompletionTask property
+        /// </remarks>
+        void Terminate(Boolean Global = false);
+
         /// <value>Indicator that the Active Session object is properly initialized and may be used.</value>
         Boolean IsAvailable { get; }
 
@@ -57,6 +67,10 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <value>Cancellation token that will be fired after session completion (eviction/disposal)</value>
         CancellationToken CompletionToken { get;}
+
+        /// <value>Task that performs asynchronous cleanup of this active session (waits for all runners completion etc).</value>
+        /// <remarks>If the asynchronous cleanup isn't used, it will be an aready completed task.</remarks>
+        Task CleanupCompletionTask { get; }
 
     }
 }

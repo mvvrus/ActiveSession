@@ -168,7 +168,8 @@ namespace ActiveSession.Tests
 
                     //Test case: race condition in FetchOrCreateSession method
                     //TODO
-                    //Test case: dispoing ActiveSession asynchronously while in a cache object w/o runners associated
+                    //Test case: dispoing ActiveSession asynchronously with some runners associated
+                    //TODO
                 }
             }
                 ;
@@ -412,8 +413,6 @@ namespace ActiveSession.Tests
                 MockRunnerManager.Setup(UnregisterRunnerExpression);
                 MockRunnerManager.Setup(RunnerCreationLockExpression);
                 MockRunnerManager.Setup(SessionCompletionTokenExpression);
-                //TODO Setup properties and methods
-
             }
         }
 

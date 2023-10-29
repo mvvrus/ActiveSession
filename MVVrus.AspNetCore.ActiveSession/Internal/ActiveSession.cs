@@ -8,7 +8,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IServiceScope _scope;
         readonly ILogger? _logger;
         readonly String _sessionId;
-        Int32 _disposed=0;
+        Int32 _disposed = 0;
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
         readonly CancellationTokenSource _cts;
@@ -22,6 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , IActiveSessionStore Store
             , ISession Session
             , ILogger? Logger
+            , Task? CleanupCompletionTask = null
             , String? TraceIdentifier = null
         )
         {
@@ -32,11 +33,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
             #endif
-            _scope = SessionScope??throw new ArgumentNullException(nameof(SessionScope));
-            _runnerManager = RunnerManager??throw new ArgumentNullException(nameof(RunnerManager));
-            _store = Store??throw new ArgumentNullException(nameof(Store));
+            _scope=SessionScope??throw new ArgumentNullException(nameof(SessionScope));
+            _runnerManager=RunnerManager??throw new ArgumentNullException(nameof(RunnerManager));
+            _store=Store??throw new ArgumentNullException(nameof(Store));
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
+            this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -51,14 +53,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
                 this,
-                _runnerManager, 
-                Request, 
+                _runnerManager,
+                Request,
                 trace_identifier);
-            _isFresh = false;
+            _isFresh=false;
             #if TRACE
             _logger?.LogTraceCreateActiveSessionCreateRunnerExit(trace_identifier);
             #endif
-            return created; 
+            return created;
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
@@ -68,8 +70,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,this,_runnerManager, RequestedKey, trace_identifier);
-            _isFresh = false;
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier);
+            _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
             #endif
@@ -91,6 +93,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
+        public void Terminate(Boolean Global = false)
+        {
+            _store.TerminateSession(this, Global);
+        }
+
+
         public bool IsAvailable { get { return true; } }
 
         public bool IsFresh => _isFresh;
@@ -100,6 +108,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public String Id { get { return _sessionId; } }
 
         public CancellationToken CompletionToken { get; private set; }
+
+        public Task CleanupCompletionTask { get; private set; }
 
         public void Dispose()
         {
@@ -123,5 +133,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         internal Boolean Disposed { get { return _disposed!=0; }}
+
     }
 }

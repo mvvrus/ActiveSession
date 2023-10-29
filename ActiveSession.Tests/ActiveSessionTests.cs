@@ -78,6 +78,8 @@ namespace ActiveSession.Tests
 
             }
 
+            //TODO Setting CleanupCompletionTask property tests;
+
         }
 
         [Fact]
@@ -189,11 +191,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //TODO Test case: ActiveSession.DisposeAsync() test
-        // Assert.NotNull(active_session.GetCleanupCompletionTask());
-        // active_session.GetCleanupCompletionTask()?.GetAwaiter().GetResult();
-        //TODO Test case: Dispose ActiveSession with pendinding runners 
-        //TODO Test case: DisposeAsync ActiveSession with pendinding runners 
+        //TODO Terminate() method tests
 
         class ConstructorTestSetup: IDisposable
         {

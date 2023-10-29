@@ -162,7 +162,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
-                                result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, trace_identifier);
+                                //TODO Next lines is palnned future refactoring 
+                                Task runner_completion_task = new Task(RunnerCompletion, new RunnerManagerInfo(runner_manager, result));
+                                result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, runner_completion_task, trace_identifier);
                                 new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
                                 try {
                                     //An assignment to Value property should be the last one before new_entry.Dispose()
@@ -386,6 +388,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
+        public void TerminateSession(IActiveSession Session, Boolean Global)
+        {
+            //TODO-Future Implement Global parameter processing
+            (Session as IDisposable)?.Dispose();
+        }
+
         public ActiveSessionStoreStats? GetCurrentStatistics()
         {
             return _trackStatistics?new ActiveSessionStoreStats() { 
@@ -439,9 +447,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceEvictRunners(session_key);
             #endif      
-            //TODO Next 2 lines are subject of future refactoring 
-            Task runner_completion_task = new Task(RunnerCompletion, new RunnerManagerInfo(session_info.RunnerManager, active_session));
-            runner_completion_task.Start();
+            if(!active_session.CleanupCompletionTask.IsCompleted) active_session.CleanupCompletionTask.Start();
             //TODO LogTrace session scope dispose
             session_info?.SessionScope.Dispose();
             Object dummy;
