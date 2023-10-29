@@ -108,7 +108,6 @@ namespace ActiveSession.Tests
                     manager=(session as Active_Session)?.RunnerManager;
                     Assert.NotNull(manager);
                     Assert.NotNull(manager.RunnerCreationLock);
-                    Assert.Equal(ts.ScopeServiceProvider, manager.Services);
                     //Assess a cache entry
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));//2-nd time - after obtainning lock. Fragile!!! 
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
@@ -315,7 +314,7 @@ namespace ActiveSession.Tests
                 MockRunnerManager=new Mock<IRunnerManager>();
                 MockRunnerManager.SetupGet(s => s.RunnerCreationLock).Returns(_lockObject);
                 StubRMFactory=new Mock<IRunnerManagerFactory>();
-                StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<String>(), It.IsAny<ILogger>(),
+                StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<ILogger>(),
                     It.IsAny<IServiceProvider>(), It.IsAny<Int32>(), It.IsAny<Int32>())).Returns(MockRunnerManager.Object);
             }
 
@@ -380,8 +379,7 @@ namespace ActiveSession.Tests
                 _fakeRootServiceProvider.Setup(s => s.GetService(typeof(IServiceScopeFactory)))
                     .Returns(_fakeScopeFactory.Object);
                 _cts=new CancellationTokenSource();
-                MockRunnerManager.SetupGet(s => s.SessionCompletionToken).Returns(_cts.Token);
-                MockRunnerManager.SetupGet(s => s.Services).Returns(_fakeSessionServiceProvider.Object);
+                MockRunnerManager.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
             }
 
             public void Dispose()
@@ -394,13 +392,12 @@ namespace ActiveSession.Tests
         {
             public readonly Mock<ISession> StubSession;
 
-            public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<String>()));
-            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(RUNNER_1));
-            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(RUNNER_1));
-            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(RUNNER_1));
-            public Expression<Func<IRunnerManager, IServiceProvider>> ServicesExpression = (s => s.Services);
+            public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<String>()));
+            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(It.IsAny<IActiveSession>(), RUNNER_1));
+            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
+            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
             public Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
-            public Expression<Func<IRunnerManager, CancellationToken>> SessionCompletionTokenExpression = (s=>s.SessionCompletionToken);
+            public Expression<Func<IRunnerManager, CancellationToken>> SessionCompletionTokenExpression = (s=>s.CompletionToken);
 
             public const Int32 RUNNER_1 = 1;
 
@@ -413,7 +410,6 @@ namespace ActiveSession.Tests
                 MockRunnerManager.Setup(ReturnRunnerNumberExpression);
                 MockRunnerManager.Setup(RegisterRunnerExpression);
                 MockRunnerManager.Setup(UnregisterRunnerExpression);
-                MockRunnerManager.Setup(ServicesExpression);
                 MockRunnerManager.Setup(RunnerCreationLockExpression);
                 MockRunnerManager.Setup(SessionCompletionTokenExpression);
                 //TODO Setup properties and methods

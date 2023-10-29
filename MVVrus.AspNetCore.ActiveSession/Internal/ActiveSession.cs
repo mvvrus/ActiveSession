@@ -49,7 +49,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
             #endif
-            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session, _runnerManager, Request, trace_identifier);
+            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
+                this,
+                _runnerManager, 
+                Request, 
+                trace_identifier);
             _isFresh = false;
             #if TRACE
             _logger?.LogTraceCreateActiveSessionCreateRunnerExit(trace_identifier);
@@ -64,7 +68,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,_runnerManager, RequestedKey, trace_identifier);
+            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session,this,_runnerManager, RequestedKey, trace_identifier);
             _isFresh = false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
@@ -79,7 +83,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, _runnerManager, RequestedKey, trace_identifier, Token);
+            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier, Token);
             _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);

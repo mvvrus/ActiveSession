@@ -5,7 +5,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     internal class DefaultRunnerManager : IRunnerManager, IDisposable
     {
         readonly CountdownEvent _runnersCounter;
-        readonly String _sessionId;
         readonly ILogger? _logger;
         readonly IServiceProvider _services;
         Int32 _newRunnerNumber;
@@ -23,15 +22,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal CountdownEvent RunnersCounter => _runnersCounter;
 
         public DefaultRunnerManager(
-            String sessionId
-            , ILogger? logger
+            ILogger? logger
             , IServiceProvider Services
             , Int32 MinRunnerNumber = 0
             , Int32 MaxRunnerNumber = Int32.MaxValue
         )
         {
             _runnersCounter=new CountdownEvent(1);
-            _sessionId=sessionId;
             _logger=logger;
             _services=Services;
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
@@ -42,56 +39,55 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        public void RegisterRunner(int RunnerNumber)
+        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber)
         {
             #if TRACE
-            _logger?.LogTraceRegisterRunnerNumber(_sessionId, RunnerNumber);
+            _logger?.LogTraceRegisterRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
             _runnersCounter.AddCount();
         }
 
-        public void UnregisterRunner(int RunnerNumber)
+        public void UnregisterRunner(IActiveSession SessionKey, int RunnerNumber)
         {
             #if TRACE
-            _logger?.LogTraceUnregisterRunnerNumber(_sessionId, RunnerNumber);
+            _logger?.LogTraceUnregisterRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
             _runnersCounter.Signal();
         }
 
-        public void ReturnRunnerNumber(Int32 RunnerNumber)
+        public void ReturnRunnerNumber(IActiveSession SessionKey, Int32 RunnerNumber)
         {
             #if TRACE
-            _logger?.LogTraceReturnRunnerNumber(_sessionId, RunnerNumber);
+            _logger?.LogTraceReturnRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
             //Do nothing until RunnerNumber reusage is implemented
         }
 
 
-        public Int32 GetNewRunnerNumber(String? TraceIdentifier = null)
+        public Int32 GetNewRunnerNumber(IActiveSession SessionKey, String? TraceIdentifier = null)
         {
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumber(_sessionId, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumber(SessionKey.Id, trace_identifier);
             #endif
             if (_newRunnerNumber>=_maxRunnerNumber) {
-                _logger?.LogErrorCannotAllocateRunnerNumber(_sessionId, trace_identifier);
+                _logger?.LogErrorCannotAllocateRunnerNumber(SessionKey.Id, trace_identifier);
                 throw new InvalidOperationException("Cannot acquire a new runner number");
             }
             int result = _newRunnerNumber++;
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumberExit(_sessionId, result, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumberExit(SessionKey.Id, result, trace_identifier);
             #endif
             return result;
         }
 
-        public IServiceProvider Services { get { return _services; } }
-
         public Object RunnerCreationLock { get; init; } = new Object();
 
-        public CancellationToken SessionCompletionToken { get { return _completionTokenSource.Token; } }
+        public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }
 
-        public Boolean WaitForRunners(Int32 Timeout)
+        public Boolean WaitForRunners(IActiveSession SessionKey, Int32 Timeout)
         {
+            //TODO LogTrace
             _runnersCounter.Signal();
             _completionTokenSource.Cancel();
             Boolean wait_succeded = _runnersCounter.Wait(Timeout);
