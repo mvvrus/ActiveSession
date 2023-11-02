@@ -12,7 +12,7 @@
 
         public CancellationToken CompletionToken => CancellationToken.None;
 
-        public Task CleanupCompletionTask => throw new NotImplementedException();
+        public Task<Boolean> CleanupCompletionTask => throw new NotImplementedException();
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
@@ -38,7 +38,7 @@
             );
         }
 
-        public void Terminate(Boolean Global = false)
+        public Task<Boolean> Terminate(Boolean Global = false)
         {
             throw new NotImplementedException();
         }

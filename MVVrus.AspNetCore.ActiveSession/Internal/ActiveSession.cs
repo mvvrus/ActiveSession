@@ -22,7 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , IActiveSessionStore Store
             , ISession Session
             , ILogger? Logger
-            , Task? CleanupCompletionTask = null
+            , Task<Boolean>? CleanupCompletionTask = null
             , String? TraceIdentifier = null
         )
         {
@@ -38,7 +38,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _store=Store??throw new ArgumentNullException(nameof(Store));
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
-            this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
+            this.CleanupCompletionTask=CleanupCompletionTask??Task.FromResult(true);
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -93,9 +93,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public void Terminate(Boolean Global = false)
+        public Task<Boolean> Terminate(Boolean Global = false)
         {
-            _store.TerminateSession(this, Global);
+            return _store.TerminateSession(this, Global);
         }
 
 
@@ -109,7 +109,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public CancellationToken CompletionToken { get; private set; }
 
-        public Task CleanupCompletionTask { get; private set; }
+        public Task<Boolean> CleanupCompletionTask { get; private set; }
 
         public void Dispose()
         {

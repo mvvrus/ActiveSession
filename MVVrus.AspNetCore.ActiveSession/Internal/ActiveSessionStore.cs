@@ -163,7 +163,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 //TODO Next lines is palnned future refactoring 
-                                Task runner_completion_task = new Task(RunnerCompletion, new RunnerManagerInfo(runner_manager, result));
+                                Task<Boolean> runner_completion_task = new Task<Boolean>(RunnerCompletion, new RunnerManagerInfo(runner_manager, result));
                                 result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, runner_completion_task, trace_identifier);
                                 new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
                                 try {
@@ -388,10 +388,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public void TerminateSession(IActiveSession Session, Boolean Global)
+        public Task<Boolean> TerminateSession(IActiveSession Session, Boolean Global)
         {
             //TODO-Future Implement Global parameter processing
             (Session as IDisposable)?.Dispose();
+            return Session.CleanupCompletionTask;
         }
 
         public ActiveSessionStoreStats? GetCurrentStatistics()
@@ -412,7 +413,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #region PrivateMethods
         record RunnerManagerInfo(IRunnerManager RunnerManager, IActiveSession ActiveSession);
 
-        void RunnerCompletion(Object? State) //TODO This code is a subject of re-factoring
+        Boolean RunnerCompletion(Object? State) //TODO This code is a subject of re-factoring
         {
             RunnerManagerInfo state = (RunnerManagerInfo)State!;
             const Int32 RUNNERS_TIMEOUT_MSEC = 10000;
@@ -427,6 +428,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceActiveSessionCompleteDisposeExit(state.ActiveSession.Id);
             #endif
             (state.RunnerManager as IDisposable)?.Dispose(); //TODO Do smth else for the case of shared runner used
+            return wait_succeded;
         }
 
         private void ActiveSessionEvictionCallback(object Key, object Value, EvictionReason Reason, object State)

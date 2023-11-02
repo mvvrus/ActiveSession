@@ -24,7 +24,7 @@ namespace ActiveSession.Tests
             Active_Session active_session;
 
             using (test_setup=new ConstructorTestSetup()) {
-                //Test case: normal creation
+                //Test case: normal creation w/o specific cleanup completion task
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
@@ -39,6 +39,19 @@ namespace ActiveSession.Tests
                 Assert.Equal(test_setup.StubServiceProvider.Object, active_session.SessionServices);
                 Assert.True(active_session.IsFresh);
                 Assert.False(active_session.Disposed);
+                Assert.True(active_session.CleanupCompletionTask.IsCompletedSuccessfully);
+
+                //Test case: normal creation with specific cleanup completion task
+                Task<Boolean> dummy_completion_task = Task.FromCanceled<Boolean>(new CancellationToken(true));
+
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null,
+                    dummy_completion_task);
+
+                Assert.True(ReferenceEquals(dummy_completion_task, active_session.CleanupCompletionTask));
 
                 //Test case: null RunnerManager constructor parameter
                 Assert.Throws<ArgumentNullException>(
@@ -75,40 +88,40 @@ namespace ActiveSession.Tests
                         null!,
                         null)
                     );
-
             }
-
-            //TODO Setting CleanupCompletionTask property tests;
 
         }
 
         [Fact]
         public void CreateRunner()
         {
+            //Test case: normal runner creation
             using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
 
-            Active_Session active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
-                test_setup.MockServiceScope.Object,
-                test_setup.FakeStore.Object,
-                test_setup.StubSession.Object,
-                null);
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null);
 
-            (var runner, var key) = active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object);
+                (var runner, var key)=active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object);
 
-            Assert.False(active_session.IsFresh);
-            Assert.NotNull(runner);
-            Assert.IsType<SpyRunner1>(runner);
-            Assert.Equal(RunnerTestSetup.TEST_RUNNER_NUMBER, key);
-            Assert.Equal(test_setup.Request, ((SpyRunner1)runner).Request);
+                Assert.False(active_session.IsFresh);
+                Assert.NotNull(runner);
+                Assert.IsType<SpyRunner1>(runner);
+                Assert.Equal(RunnerTestSetup.TEST_RUNNER_NUMBER, key);
+                Assert.Equal(test_setup.Request, ((SpyRunner1)runner).Request);
 
-            active_session.SetDisposedForTests();
-            Assert.Throws<ObjectDisposedException>(()=>active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object));
+                //Test case: runner creation after ActiveSession disposal
+                active_session.SetDisposedForTests();
+                Assert.Throws<ObjectDisposedException>(() => active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object));
             }
         }
 
         [Fact]
         public void GetRunner()
         {
+            //Test case: successful and unsuccessful runner search
             using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
                 Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
@@ -125,6 +138,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
                 Assert.Null(unknown_runner);
 
+                //Test case: runner search after disposal
                 active_session.SetDisposedForTests();
                 Assert.Throws<ObjectDisposedException>(() => active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
 
@@ -134,6 +148,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void GetRunnerAsync()
         {
+            //Test case: successful and unsuccessful async runner search
             using (RunnerTestSetup test_setup = new RunnerTestSetup()) {
                 Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
                 test_setup.MockServiceScope.Object,
@@ -150,6 +165,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
                 Assert.Null(unknown_runner);
 
+                //Test case: async runner search after disposal
                 active_session.SetDisposedForTests();
                 Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
             }
@@ -167,17 +183,20 @@ namespace ActiveSession.Tests
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
                     null);
+                Boolean called_back = false;
+                active_session.CompletionToken.Register(() => { if(!called_back) called_back=true; });
 
                 active_session.Dispose();
 
                 Assert.True(active_session.Disposed);
                 Assert.True(active_session.CompletionToken.IsCancellationRequested);
+                Assert.True(called_back);
                 test_setup.DummyRunnerManager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Never);
                 test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Never);
                 test_setup.DummyRunnerManager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
             }
 
-            //Test case: simulate disposing of an already disposed ActiveSession
+            //Test case: simulate disposing an already disposed ActiveSession
             using (test_setup=new ConstructorTestSetup()) {
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object, test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
@@ -191,7 +210,64 @@ namespace ActiveSession.Tests
             }
         }
 
-        //TODO Terminate() method tests
+        [Fact]
+        public void Terminate()
+        {
+            TerminateTestSetup test_setup;
+            Task<Boolean> task;
+            Active_Session active_session;
+
+            //Test case: Terminate - simulate all runners have been completed in time
+            using(test_setup=new TerminateTestSetup()) {
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null,
+                    test_setup.CleanupCompletionTask);
+
+                task=active_session.Terminate();
+
+                Assert.False(task.IsCompleted);
+                test_setup.Complete(true);
+                Assert.True(task.IsCompletedSuccessfully);
+                Assert.True(task.Result);
+            }
+
+            //Test case: Terminate - simulate not all runners have been completed in time
+            using (test_setup=new TerminateTestSetup()) {
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.FakeStore.Object,
+                    test_setup.StubSession.Object,
+                    null,
+                    test_setup.CleanupCompletionTask);
+
+                task=active_session.Terminate();
+
+                Assert.False(task.IsCompleted);
+                test_setup.Complete(false);
+                Assert.True(task.IsCompletedSuccessfully);
+                Assert.False(task.Result);
+            }
+
+            //Test case: Terminate - call on disposed ActiveSession
+            using (ConstructorTestSetup ts=new ConstructorTestSetup()) {
+                ts.FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<Boolean>()))
+                    .Returns(Task.FromResult(true));
+                active_session=new Active_Session(ts.DummyRunnerManager.Object,
+                    ts.MockServiceScope.Object,
+                    ts.FakeStore.Object,
+                    ts.StubSession.Object,
+                    null);
+                active_session.SetDisposedForTests();
+
+                task=active_session.Terminate();
+
+                Assert.True(task.IsCompletedSuccessfully);
+            }
+
+        }
 
         class ConstructorTestSetup: IDisposable
         {
@@ -261,6 +337,24 @@ namespace ActiveSession.Tests
                     .Returns(new ValueTask<IActiveSessionRunner<Result1>?>((IActiveSessionRunner<Result1>?)null));
                 _getRunnerExpressionAsync=s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
                 FakeStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IActiveSessionRunner<Result1>?>(ExistingRunner));
+            }
+        }
+
+        class TerminateTestSetup: ConstructorTestSetup
+        {
+            readonly TaskCompletionSource<Boolean> _tcs;
+            public Task<Boolean> CleanupCompletionTask { get {return _tcs.Task; } }
+
+            public TerminateTestSetup(): base()
+            {
+                _tcs=new TaskCompletionSource<Boolean>();
+                FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<Boolean>()))
+                    .Returns(CleanupCompletionTask);
+            }
+
+            public void Complete(Boolean InTime)
+            {
+                _tcs.SetResult(InTime);
             }
         }
 
