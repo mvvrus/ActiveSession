@@ -19,7 +19,6 @@ namespace ActiveSession.Tests
                 Assert.NotNull(manager.RunnerCreationLock);
                 Assert.NotNull(manager.RunnersCounter);
                 Assert.Equal(1, manager.RunnersCounter.CurrentCount);
-                Assert.True(manager.CompletionToken.CanBeCanceled);
             }
         }
 
@@ -132,7 +131,6 @@ namespace ActiveSession.Tests
             DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object, 0, 2);
 
             manager.Dispose();
-            Assert.Throws<ObjectDisposedException>(() => manager.CompletionToken);
             Assert.Throws<ObjectDisposedException>(() => manager.RegisterRunner(MakeStubAs().Object, TEST_RUNNER_NUMBER));
         }
 

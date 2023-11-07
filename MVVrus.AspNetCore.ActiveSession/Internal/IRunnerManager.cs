@@ -8,6 +8,5 @@
         void UnregisterRunner(IActiveSession SessionKey, int RunnerNumber);
         Object? RunnerCreationLock { get; }
         Boolean WaitForRunners(IActiveSession SessionKey, Int32 Timeout);
-        CancellationToken CompletionToken { get; }
     }
 }

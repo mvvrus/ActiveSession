@@ -16,7 +16,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning disable IDE0052 // Remove unread private members
         readonly Int32 _minRunnerNumber, _maxRunnerNumber;
 #pragma warning restore IDE0052 // Remove unread private members
-        readonly CancellationTokenSource _completionTokenSource;
 
         //For tests
         internal CountdownEvent RunnersCounter => _runnersCounter;
@@ -33,7 +32,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _services=Services;
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
             _maxRunnerNumber=MaxRunnerNumber;
-            _completionTokenSource=new CancellationTokenSource();
             if (MaxRunnerNumber!=Int32.MaxValue) {
                 //TODO Implement runner number reusage
             }
@@ -83,13 +81,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Object RunnerCreationLock { get; init; } = new Object();
 
-        public CancellationToken CompletionToken { get { return _completionTokenSource.Token; } }
-
         public Boolean WaitForRunners(IActiveSession SessionKey, Int32 Timeout)
         {
             //TODO LogTrace
             _runnersCounter.Signal();
-            _completionTokenSource.Cancel();
             Boolean wait_succeded = _runnersCounter.Wait(Timeout);
             return wait_succeded;
         }
@@ -97,7 +92,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public void Dispose()
         {
             _runnersCounter?.Dispose();
-            _completionTokenSource.Dispose();
         }
 
     }

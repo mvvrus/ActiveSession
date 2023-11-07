@@ -293,21 +293,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(4243, Trace, "Exit ActiveSession.CompleteDispose, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceActiveSessionCompleteDisposeExit(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(4250, Trace, "Register the runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRegisterRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
-
-        [LoggerMessage(4251, Trace, "Unregister the runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
-
-        [LoggerMessage(4252, Trace, "Return unused runner number, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceReturnRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
-
-        [LoggerMessage(4253, Trace, "Exiting ActiveSession.GetNewRunnerNumber, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetNewRunnerNumber(this ILogger Logger, String SessionId, String TraceIdentifier);
-
-        [LoggerMessage(4254, Trace, "Enter ActiveSession.GetNewRunnerNumber, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetNewRunnerNumberExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
-
         [LoggerMessage(4300, Trace, "Enter ActiveSessionFeature constructor, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionFeatureConstructor(this ILogger Logger, String TraceIdentifier);
 
@@ -376,6 +361,21 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(4411, Trace, "Invoke type-based runner factory implementing IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult);
+
+        [LoggerMessage(4500, Trace, "DefaultRunnerManager: Register the runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceRegisterRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+
+        [LoggerMessage(4501, Trace, "DefaultRunnerManager: Unregister the runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceUnregisterRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+
+        [LoggerMessage(4502, Trace, "Enter DefaultRunnerManager.GetNewRunnerNumber, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetNewRunnerNumber(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(4503, Trace, "Exit DefaultRunnerManager.GetNewRunnerNumber returning the number, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetNewRunnerNumberExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(4504, Trace, "DefaultRunnerManager: Return back unused runner number, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceReturnRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
 
 #endif
 

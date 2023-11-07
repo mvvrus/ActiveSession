@@ -131,7 +131,7 @@ namespace ActiveSession.Tests
 
                     //Test case: dispoing ActiveSession while in a cache object w/o runners associated
                     (session as IDisposable)?.Dispose();
-                    //Due to the cache is moked and we have no active runners here the cache eviction is to be synchronous
+                    Assert.True(session.CleanupCompletionTask.GetAwaiter().GetResult());
                     Assert.False(ts.Cache.IsEntryStored);
                     Assert.Equal(1,ts.Cache.CalledCallbacksCount);
 
@@ -172,7 +172,45 @@ namespace ActiveSession.Tests
                     //TODO
                 }
             }
-                ;
+        }
+
+        [Fact]
+        public void CreateRunner_MockedCache()
+        {
+            const String TEST_ARG1 = "TEST_ARG1";
+            RunnerTestSetup ts;
+            ActiveSessionStore store;
+            KeyedActiveSessionRunner<Result1> runner_and_key;
+            Request1 request = new Request1() { Arg=TEST_ARG1 };
+
+            using(ts=new RunnerTestSetup()) {
+                ts.AddRunnerFactory<Request1, Result1>(x => new SpyRunner1(x));
+
+                //Test case: create new runner with ActiveSession level lock and default options
+                using(store=ts.CreateStore()) {
+                    runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                        ts.DummyActiveSession.Object,
+                        ts.MockRunnerManager.Object,
+                        request,
+                        null);
+                    //TODO
+
+                }
+                //Test case: try to create new runner with an exception occures
+                //TODO
+
+                //Test case: try to create new runner while the store is disposed
+                //TODO
+
+
+            }
+            //Test case: create new runner with store level lock and custom options
+            //TODO
+            //Test case: race conditions - ActiveSession level lock
+            //TODO
+            //Test case: race conditions - store level lock
+            //TODO
+            //Test case: get runner factory from cache
 
         }
 
@@ -314,6 +352,7 @@ namespace ActiveSession.Tests
                 ISessOptions=Options.Create(SessOptions);
                 MockRunnerManager=new Mock<IRunnerManager>();
                 MockRunnerManager.SetupGet(s => s.RunnerCreationLock).Returns(_lockObject);
+                MockRunnerManager.Setup(s => s.WaitForRunners(It.IsAny<IActiveSession>(), It.IsAny<Int32>())).Returns(true);
                 StubRMFactory=new Mock<IRunnerManagerFactory>();
                 StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<ILogger>(),
                     It.IsAny<IServiceProvider>(), It.IsAny<Int32>(), It.IsAny<Int32>())).Returns(MockRunnerManager.Object);
@@ -346,41 +385,59 @@ namespace ActiveSession.Tests
 
         }
 
+        class ServiceProviderMock
+        {
+            readonly Mock<IServiceScopeFactory> _fakeScopeFactory;
+            readonly Mock<IServiceScope> _fakeServiceScope;
+            readonly Expression<Action<IServiceScope>> _disposeExpression = s => s.Dispose();
+
+            readonly Mock<IServiceProvider> _fakeSessionServiceProvider;
+
+            public Boolean ScopeDisposed { get; private set; }
+            public IServiceProvider ScopeServiceProvider
+            {
+                get
+                {
+                    if (ScopeDisposed)
+                        throw new ObjectDisposedException("IServiceScope");
+                    return _fakeSessionServiceProvider.Object;
+                }
+            }
+
+            public ServiceProviderMock(Mock<IServiceProvider> RootServiceProviderMock)
+            {
+                _fakeSessionServiceProvider=new Mock<IServiceProvider>();
+                _fakeSessionServiceProvider.Setup(s => s.GetService(It.IsAny<Type>()))
+                    .Returns((Type x) => RootServiceProviderMock.Object.GetService(x));
+                _fakeServiceScope=new Mock<IServiceScope>();
+                _fakeServiceScope.SetupGet(s => s.ServiceProvider).Returns(ScopeServiceProvider);
+                _fakeServiceScope.Setup(_disposeExpression).Callback(() => { ScopeDisposed=true; });
+
+                _fakeScopeFactory=new Mock<IServiceScopeFactory>();
+                _fakeScopeFactory.Setup(s => s.CreateScope())
+                    .Callback(() => ScopeDisposed=false)
+                    .Returns(_fakeServiceScope.Object);
+                RootServiceProviderMock.Setup(s => s.GetService(typeof(IServiceScopeFactory)))
+                    .Returns(_fakeScopeFactory.Object);
+            }
+        } 
+
         class CreateFetchTestSetup : MockedCaheTestSetup, IDisposable
         {
             public readonly Mock<ISession> StubSession;
-            public Boolean ScopeDisposed { get; private set; }
-            public IServiceProvider ScopeServiceProvider { 
-                get {
-                    if (ScopeDisposed) throw new ObjectDisposedException("IServiceScope");
-                    return _fakeSessionServiceProvider.Object; 
-                } 
-            }
+            public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
+            public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
 
-            protected  readonly Mock<IServiceProvider> _fakeSessionServiceProvider;
-
-            readonly Mock<IServiceScopeFactory> _fakeScopeFactory;
-            readonly Mock<IServiceScope> _fakeServiceScope;
-            readonly Expression<Action<IServiceScope>> _disposeExpression = s=>s.Dispose();
             readonly CancellationTokenSource _cts;
+            readonly ServiceProviderMock _mockedSessionServiceProvider;
 
 
             public CreateFetchTestSetup() : base(new MockedCache())
             {
                 StubSession=new Mock<ISession>();
                 StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
-                _fakeSessionServiceProvider = new Mock<IServiceProvider>();
-                _fakeServiceScope=new Mock<IServiceScope>();
-                _fakeServiceScope.SetupGet(s => s.ServiceProvider).Returns(ScopeServiceProvider); 
-                _fakeServiceScope.Setup(_disposeExpression).Callback(() => { ScopeDisposed=true; });
-                _fakeScopeFactory=new Mock<IServiceScopeFactory>();
-                _fakeScopeFactory.Setup(s => s.CreateScope())
-                    .Callback(() => ScopeDisposed=false)
-                    .Returns(_fakeServiceScope.Object);
-                _fakeRootServiceProvider.Setup(s => s.GetService(typeof(IServiceScopeFactory)))
-                    .Returns(_fakeScopeFactory.Object);
+                _mockedSessionServiceProvider=new ServiceProviderMock(_fakeRootServiceProvider);
                 _cts=new CancellationTokenSource();
-                MockRunnerManager.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
             }
 
             public void Dispose()
@@ -389,31 +446,61 @@ namespace ActiveSession.Tests
             }
         }
 
-        class RunnerTestSetup: MockedCaheTestSetup
+        class RunnerTestSetup: MockedCaheTestSetup, IDisposable
         {
-            public readonly Mock<ISession> StubSession;
+            public readonly Mock<ISession> MockSession;
+            public readonly Mock<IActiveSession> DummyActiveSession;
+            readonly Object? _lockObject=null;
 
             public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<String>()));
             public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(It.IsAny<IActiveSession>(), RUNNER_1));
             public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
             public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
             public Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
-            public Expression<Func<IRunnerManager, CancellationToken>> SessionCompletionTokenExpression = (s=>s.CompletionToken);
 
             public const Int32 RUNNER_1 = 1;
 
 
-            public RunnerTestSetup() : base(new MockedCache()) 
+            public RunnerTestSetup(Boolean PerSessionLock=true) : base(new MockedCache()) 
             {
-                StubSession=new Mock<ISession>();
-                StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
+                MockSession=new Mock<ISession>();
+                MockSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
+                //TODO Setup methods for ISession calls verification 
+                DummyActiveSession=new Mock<IActiveSession>();
+                //TODO Is any additional IActiveSession setup required?
+                if (PerSessionLock) _lockObject=new Object();
                 MockRunnerManager.Setup(GetRunnerNumberExpression).Returns(RUNNER_1);
                 MockRunnerManager.Setup(ReturnRunnerNumberExpression);
                 MockRunnerManager.Setup(RegisterRunnerExpression);
                 MockRunnerManager.Setup(UnregisterRunnerExpression);
                 MockRunnerManager.Setup(RunnerCreationLockExpression);
-                MockRunnerManager.Setup(SessionCompletionTokenExpression);
+                MockRunnerManager.SetupGet(s => s.RunnerCreationLock).Returns(_lockObject);
             }
+
+            public Expression<Func<IServiceProvider, Object?>> RunnerFactoryExpression<TRequest, TResult>()
+            {
+                return s => s.GetService(typeof(IActiveSessionRunnerFactory<TRequest, TResult>));
+            }
+
+            IActiveSessionRunnerFactory<TRequest,TResult> MockRunnerFactory<TRequest, TResult>(
+                Func<TRequest, IActiveSessionRunner<TResult>> Factory)
+            {
+                Mock<IActiveSessionRunnerFactory<TRequest, TResult>>? factory_mock = new ();
+                factory_mock.Setup(s => s.Create(It.IsAny<TRequest>(), It.IsAny<IServiceProvider>()))
+                    .Returns((TRequest r,IServiceProvider sp) => Factory(r));
+                return factory_mock.Object;
+            }
+
+            public void AddRunnerFactory<TRequest,TResult>(Func<TRequest,IActiveSessionRunner<TResult>> Factory)
+            {
+                _fakeRootServiceProvider.Setup(RunnerFactoryExpression<TRequest, TResult>())
+                    .Returns(MockRunnerFactory(Factory));
+            }
+
+            public void Dispose()
+            {
+            }
+
         }
 
     }

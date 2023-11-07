@@ -262,14 +262,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             new_entry.PostEvictionCallbacks.Add(end_runner);
                             RegisterRunnerInSession(Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
 
-                            IChangeToken expiration_token = new CancellationChangeToken(RunnerManager.CompletionToken);
+                            IChangeToken expiration_token = new CancellationChangeToken(ActiveSession.CompletionToken);
                             if (runner.GetCompletionToken().CanBeCanceled)
                                 expiration_token=new CompositeChangeToken(new IChangeToken[] { expiration_token, new CancellationChangeToken(runner.GetCompletionToken())});
                             new_entry.ExpirationTokens.Add(expiration_token);
                             //An assignment to Value property should be the last one before new_entry.Dispose()
                             //to avoid adding bad entry to the cache by Dispose() 
                             new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
-                            RunnerManager.RegisterRunner(ActiveSession, runner_number);
+                            try {
+                                RunnerManager.RegisterRunner(ActiveSession, runner_number);
+                            }
+                            catch {
+                                new_entry.Value=null;
+                                throw;
+                            }
                             if (_trackStatistics) {
                                 Interlocked.Increment(ref _currentRunnerCount);
                                 Interlocked.Add(ref _currentStoreSize, size);

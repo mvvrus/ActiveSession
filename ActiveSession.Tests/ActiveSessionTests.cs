@@ -298,7 +298,6 @@ namespace ActiveSession.Tests
                 StubContext.SetupGet(s=>s.Session).Returns(StubSession.Object);
                 DummyRunnerManager=MockRunnerManager.CreateMockedRunnermanager();
                 _cts = new CancellationTokenSource();
-                DummyRunnerManager.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
                 Request=new Request1 { Arg=TEST_REQUEST_ARG };
             }
 
