@@ -8,7 +8,7 @@
         public static readonly String DEFAULT_HOST_NAME = "localhost";
         public static readonly String DEFAULT_SESSION_KEY_PREFIX = "##ActiveSession##";
         public static readonly String UNKNOWN_TRACE_IDENTIFIER = "<unknown>";
-        public static readonly String UNKNOWN_SESSION_KEY = "<unknown session key>";
+        public static readonly String UNKNOWN_SESSION_ID = "<unknown session id>";
         public static readonly String UNKNOWN_TYPE = "<unknown type>";
 
     }
