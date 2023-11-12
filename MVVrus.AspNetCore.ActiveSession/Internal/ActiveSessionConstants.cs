@@ -10,6 +10,8 @@
         public static readonly String UNKNOWN_TRACE_IDENTIFIER = "<unknown>";
         public static readonly String UNKNOWN_SESSION_ID = "<unknown session id>";
         public static readonly String UNKNOWN_TYPE = "<unknown type>";
+        public const Int32 DEFAULT_ACTIVESESSIONSIZE = 1;
+        public const Int32 DEFAULT_RUNNERSIZE = 1;
 
     }
 }

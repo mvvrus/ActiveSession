@@ -30,12 +30,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Int32 _currentRunnerCount = 0;
         Int32 _currentStoreSize = 0;
         Boolean _trackStatistics = false;
+        Int32 _activeSessionSize = DEFAULT_ACTIVESESSIONSIZE;
+        Int32 _runnerSize = DEFAULT_RUNNERSIZE;
         #endregion
 
         #region StaticStuff
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
-        private readonly Boolean _waitForEvictedSessionDisposal;
-
         internal static void RegisterTResult(Type TResult)
         {
             s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
@@ -101,7 +101,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
             _trackStatistics=options.TrackStatistics;
-            _waitForEvictedSessionDisposal=options.WaitForEvictedSessionDisposal;
+            _activeSessionSize=options.ActiveSessionSize;
+            _runnerSize=options.DefaultRunnerSize;
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructorExit();
             #endif
@@ -246,10 +247,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");
                         }
-                        Int32 size = GetRunnerSize(runner.GetType());
-                        new_entry.Size=size; 
                         try {
                             _logger?.LogDebugCreateNewRunner(runner_number, trace_identifier);
+                            Int32 size = GetRunnerSize(runner.GetType());
+                            new_entry.Size=size;
                             PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
                             end_runner.EvictionCallback=RunnerEvictionCallback;
                             end_runner.State=
@@ -266,7 +267,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
                                 IChangeToken expiration_token = new CancellationChangeToken(ActiveSession.CompletionToken);
                                 if (runner.GetCompletionToken().CanBeCanceled)
-                                    expiration_token=new CompositeChangeToken(new IChangeToken[] { expiration_token, new CancellationChangeToken(runner.GetCompletionToken()) });
+                                    expiration_token=new CompositeChangeToken(new IChangeToken[] { 
+                                        expiration_token, 
+                                        new CancellationChangeToken(runner.GetCompletionToken()) 
+                                    });
                                 new_entry.ExpirationTokens.Add(expiration_token);
                                 //An assignment to Value property should be the last one before new_entry.Dispose()
                                 //to avoid adding bad entry to the cache by Dispose() 
@@ -658,12 +662,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         Int32 GetSessionSize()
         {
-            return 1; //TODO: it's a stub
+            return _activeSessionSize; 
         }
 
         Int32 GetRunnerSize(Type RunnerType)
         {
-            return 1; //TODO: it's a stub
+            return _runnerSize; //TODO: it's a stub
         }
 
         #endregion

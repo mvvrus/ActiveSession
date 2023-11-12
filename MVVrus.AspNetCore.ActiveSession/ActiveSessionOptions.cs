@@ -45,8 +45,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value> Track storage statistics</value>
         public Boolean TrackStatistics { get; set; }
 
-        /// <value> Dispose a session evicted from the cache synchronously </value>
-        public Boolean WaitForEvictedSessionDisposal { get; set; }
+        /// <value> Default size of an IActiveSession-implementing  object</value>
+        public Int32 ActiveSessionSize { get; set; } = DEFAULT_ACTIVESESSIONSIZE;
+
+        /// <value> Default size of an IActiveSessionRunner-implementing  object</value>
+        public Int32 DefaultRunnerSize { get; set; } = DEFAULT_RUNNERSIZE;
     }
 }
 

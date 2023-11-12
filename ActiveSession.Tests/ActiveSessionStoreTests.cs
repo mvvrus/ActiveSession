@@ -142,13 +142,13 @@ namespace ActiveSession.Tests
                 TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
                 TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
                 String PREFIX = "TestPrefix";
-                Int32 AS_SIZE = 1;
+                Int32 AS_SIZE = 2;
                 //Arrange
                 ts.SessOptions.IdleTimeout=EXPIRATION;
                 ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
                 ts.ActSessOptions.Prefix=PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
-                ts.ActSessOptions.WaitForEvictedSessionDisposal=true;
+                ts.ActSessOptions.ActiveSessionSize=AS_SIZE;
                 using (store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.StubSession.Object, null);
                     //Assess
@@ -167,7 +167,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(1, ts.Cache.CalledCallbacksCount);
                     Assert.True((session as Active_Session)!.Disposed);
 
-                    //TODO Test case: disposing ActiveSession while in the cache w/runners associated
+                    //TODO? Test case: disposing ActiveSession while in the cache w/runners associated
                 }
             }
         }
@@ -406,9 +406,91 @@ namespace ActiveSession.Tests
             }
         }
 
+        [Fact]
+        public void CreateRunner_NonDefaultOptions()
+        {
+            RunnerTestSetup ts;
+            ActiveSessionStore store;
+            KeyedActiveSessionRunner<Result1> runner_and_key;
+            Request1 request = new Request1() { Arg=TEST_ARG1 };
+            MockedRunner<Request1, Result1>? dummy_runner1 = null;
+            CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
+
+            //TODO Test case: create new runner with store level lock and custom options
+            TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
+            TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
+            String PREFIX = "TestPrefix";
+            Int32 ASR_SIZE = 10;
+            //Arrange
+            using (ts=new RunnerTestSetup()) {
+                ts.SessOptions.IdleTimeout=EXPIRATION;
+                ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
+                ts.ActSessOptions.Prefix=PREFIX;
+                ts.ActSessOptions.TrackStatistics=true;
+                ts.ActSessOptions.CacheRunnerAsTask=true;
+                ts.ActSessOptions.DefaultRunnerSize=ASR_SIZE;
+                ts.AddRunnerFactory<Request1, Result1>(
+                    arg => {
+                        dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
+                        return dummy_runner1.Runner;
+                    }
+                );
+
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        //Act
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Assess
+                        //Check method result
+                        Assert.Equal(dummy_runner1?.Runner, runner_and_key.Runner);
+                        Assert.Equal(RunnerTestSetup.RUNNER_1, runner_and_key.RunnerNumber);
+                        Assert.Equal(TEST_ARG1, dummy_runner1?.Arg.Arg);
+                        //Check cache entry (TODO)
+                        ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
+                        Assert.True(ts.Cache.IsEntryStored);
+                        String runner_key = PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID
+                            +"_"+RunnerTestSetup.RUNNER_1.ToString();
+                        Assert.IsType<Task<IActiveSessionRunner<Result1>>>(ts.Cache.Value);
+                        Assert.True(ReferenceEquals(runner_and_key.Runner, ((Task<IActiveSessionRunner<Result1>>)(ts.Cache.Value)).Result));
+                        Assert.Equal(runner_key, ts.Cache.Key);
+                        Assert.Equal(EXPIRATION, ts.Cache.SlidingExpiration);
+                        Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
+                        Assert.Equal(ASR_SIZE, store.GetCurrentStatistics()!.StoreSize);
+
+                        //Test case: Evict the runner from the cache (via Remove) and check StoreSize (already arranged)
+                        //Act
+                        ts.Cache.CacheMock.Object.Remove(runner_key);
+                        //Assess
+                        Assert.Equal(0, store.GetCurrentStatistics()!.StoreSize);
+                        Assert.False(ts.Cache.IsEntryStored);
+                        Assert.Equal(1, ts.Cache.CalledCallbacksCount);
+                    }
+                }
+            }
+        }
+
+
         //TODO Test case: race conditions - ActiveSession level lock
         //TODO Test case: race conditions - store level lock
-        //TODO Test case: create new runner with store level lock and custom options
+
+        /*More ethods to test
+        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session,
+            IActiveSession ActiveSession,
+            IRunnerManager RunnerManager,
+            Int32 RunnerNumber, String? TraceIdentifier);
+        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+            ISession Session,
+            IActiveSession ActiveSession,
+            IRunnerManager RunnerManager,
+            Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token );
+        public Task<Boolean> TerminateSession(IActiveSession Session, Boolean Global);
+        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
+        */
+
 
         /////////////////////////////////////////////////////////////////////////////////////////////
         //Auxilary clases
