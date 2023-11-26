@@ -15,7 +15,8 @@ namespace ActiveSession.Tests
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
 
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 Assert.NotNull(manager.RunnerCreationLock);
                 Assert.NotNull(manager.RunnersCounter);
                 Assert.Equal(1, manager.RunnersCounter.CurrentCount);
@@ -26,7 +27,8 @@ namespace ActiveSession.Tests
         public void RegisterRunner()
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
 
                 manager.RegisterRunner(MakeStubAs().Object, TEST_RUNNER_NUMBER);
 
@@ -39,7 +41,8 @@ namespace ActiveSession.Tests
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER);
 
                 manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER);
@@ -59,7 +62,8 @@ namespace ActiveSession.Tests
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object, 0, 2)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object, 0, 2)) {
                 int number;
                 number=manager.GetNewRunnerNumber(stub_as.Object);
                 Assert.Equal(0, number);
@@ -74,7 +78,8 @@ namespace ActiveSession.Tests
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 int runner_delay = 100;
                 Task<Boolean> wait_for_runners_task = new Task<Boolean>(() => manager.WaitForRunners(stub_as.Object, runner_delay));
                 using (ManualResetEventSlim runner_event = new ManualResetEventSlim(false)) {
@@ -99,7 +104,8 @@ namespace ActiveSession.Tests
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object)) {
+            using (DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 int runner_delay = 300;
                 Task<Boolean> wait_for_runners_task = new Task<Boolean>(() => manager.WaitForRunners(stub_as.Object,runner_delay));
                 using (CancellationTokenSource cts = new CancellationTokenSource(500)) {
@@ -128,7 +134,8 @@ namespace ActiveSession.Tests
         public void Dispose_RunnerManager()
         {
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
-            DefaultRunnerManager manager = new DefaultRunnerManager(null, dummy_sp.Object, 0, 2);
+            DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object, 0, 2);
 
             manager.Dispose();
             Assert.Throws<ObjectDisposedException>(() => manager.RegisterRunner(MakeStubAs().Object, TEST_RUNNER_NUMBER));

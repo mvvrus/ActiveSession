@@ -53,7 +53,7 @@ namespace ActiveSession.Tests
 
             //Test case: using shared cache
             using (ts.CreateStore()) {
-                ts.MockLogerFactory.Verify(ts.LoggerCreateExpression, Times.Once);
+                Assert.True(ts.LoggerCreated());
             }
         }
 
@@ -223,6 +223,7 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: test normal flow around CreatRunner method called for an ActiveSessinonStore object created with default options
         [Fact]
         public void CreateRunner()
         {
@@ -329,6 +330,7 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: test clanup procedures used when an exception occurs during a call of a CreateRunner method 
         [Fact]
         public void CreateRunner_WithExceptions()
         {
@@ -406,6 +408,7 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: call CreatRunner method for an ActiveSessinonStore object created with non-default options
         [Fact]
         public void CreateRunner_NonDefaultOptions()
         {
@@ -416,7 +419,7 @@ namespace ActiveSession.Tests
             MockedRunner<Request1, Result1>? dummy_runner1 = null;
             CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
 
-            //TODO Test case: create new runner with store level lock and custom options
+            //Test case: create new runner with store level lock and custom options
             TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
             TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
             String PREFIX = "TestPrefix";
@@ -473,20 +476,101 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: GetRunner method call
+        [Fact]
+        public void GetRunner()
+        {
+            RunnerTestSetup ts;
+            ActiveSessionStore store;
+            KeyedActiveSessionRunner<Result1> runner_and_key;
+            Request1 request = new Request1() { Arg=TEST_ARG1 };
+            MockedRunner<Request1, Result1>? dummy_runner1 = null;
+            CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
+            IActiveSessionRunner<Result1>? runner;
+
+            //Test case: search for an existing runner
+            //Arrange
+            using (ts=new RunnerTestSetup()) {
+                ts.AddRunnerFactory<Request1, Result1>(
+                    arg => {
+                        dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
+                        return dummy_runner1.Runner;
+                    }
+                );
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                    }
+                    //Act
+                    runner=store.GetRunner<Result1>(ts.MockSession.Object, 
+                        ts.StubActiveSession.Object,
+                        ts.MockRunnerManager.Object,
+                        runner_and_key.RunnerNumber,
+                        null);
+                    //Assess
+                    Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
+
+                    //TODO Test case: search for an existing runner with incompatible type
+
+                    //Test case: search for a non-existing runner, no associated session values (already arranged)
+                    //Act
+                    runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                        ts.StubActiveSession.Object,
+                        ts.MockRunnerManager.Object,
+                        runner_and_key.RunnerNumber+1,
+                        null);
+                    //Assess
+                    Assert.Null(runner);
+                    //TODO Test case: search for an already removed runner
+                    //Arrange:Evict the runner from the cache (via Remove)
+                    String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
+                    ts.Cache.CacheMock.Object.Remove(runner_key);
+                    //Act
+                    runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                        ts.StubActiveSession.Object,
+                        ts.MockRunnerManager.Object,
+                        runner_and_key.RunnerNumber,
+                        null);
+                    //Assess
+                    Assert.Null(runner);
+                    //Check that ISesson variables have been cleared
+                    Assert.Null(ts.MockSession.Object.GetString(runner_key));
+                    Assert.Null(ts.MockSession.Object.GetString(runner_key+"_Type"));
+                }
+                //TODO Test case: try to get a runner from the disposed store
+            }
+
+            //TODO Test case: search for an existing runner, cached as task
+            //TODO Test case: search for an existing runner, cached as task, incompatible type
+
+        }
 
         //TODO Test case: race conditions - ActiveSession level lock
         //TODO Test case: race conditions - store level lock
 
-        /*More ethods to test
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session,
+        /*More methods to test
+        public IActiveSessionRunner<TResult>?> GetRunner<TResult>(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier);
+
         public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token );
+            //TODO Test case: search for an existing runner
+            //TODO Test case: search for an existing runner with incompatible type
+            //TODO Test case: search for a non-existing runner, no associated session values
+            //TODO Test case: search for an already removed runner
+                //TODO Test case: try to get a runner from the disposed store
+            //TODO Test case: search for an existing runner, cached as task
+            //TODO Test case: search for an existing runner, cached as task, incompatible type
+
         public Task<Boolean> TerminateSession(IActiveSession Session, Boolean Global);
         public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
         */
@@ -689,21 +773,25 @@ namespace ActiveSession.Tests
             public readonly IOptions<ActiveSessionOptions> IActSessionOptions;
             public readonly IOptions<SessionOptions> ISessOptions;
             public readonly Mock<IMemoryCache>? MockCache;
-            public readonly Mock<ILoggerFactory> MockLogerFactory;
             public readonly Mock<IRunnerManagerFactory> StubRMFactory;
             public readonly Mock<IRunnerManager> MockRunnerManager;
-            public Expression<Func<ILoggerFactory, ILogger>> LoggerCreateExpression = s => s.CreateLogger(LOGGING_CATEGORY_NAME);
+
+            protected MockedLoggerFactory _loggerFactory;
             public IServiceProvider RootSP { get { return MockRootServiceProvider.Object; } }
             public Object LockObject { get => _lockObject; }
 
             public readonly Mock<IServiceProvider> MockRootServiceProvider;
             readonly Object _lockObject=new Object();
 
+            public Boolean LoggerCreated() {
+                return _loggerFactory.LoggerCreationCount(LOGGING_CATEGORY_NAME)>0;
+            }
+
             public ConstructorTestSetup(Mock<IMemoryCache>? MockCache)
             {
                 MockRootServiceProvider=new Mock<IServiceProvider>();
-                MockLogerFactory = new Mock<ILoggerFactory>();
-                MockLogerFactory.Setup(LoggerCreateExpression).Returns<ILogger>(null);
+                _loggerFactory=new MockedLoggerFactory();
+                _loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
                 this.MockCache=MockCache;
                 IActSessionOptions=Options.Create(ActSessOptions);
                 ISessOptions=Options.Create(SessOptions);
@@ -724,7 +812,7 @@ namespace ActiveSession.Tests
                     StubRMFactory.Object, 
                     IActSessionOptions,
                     ISessOptions,
-                    MockLogerFactory.Object);
+                    _loggerFactory.LoggerFactory);
             }
         }
 
@@ -774,9 +862,9 @@ namespace ActiveSession.Tests
             readonly CancellationTokenSource _cts;
 
             public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<String>()));
-            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(It.IsAny<IActiveSession>(), RUNNER_1));
-            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
-            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(It.IsAny<IActiveSession>(), RUNNER_1));
+            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
+            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
+            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
             public Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
             public Expression<Action<ISession>> SessionKeyRemoveExpression= s => s.Remove(It.IsAny<String>());
 
@@ -792,7 +880,8 @@ namespace ActiveSession.Tests
                 MockSession=new Mock<ISession>();
                 MockSession.SetupGet(s => s.IsAvailable).Returns(true);
                 MockSession.SetupGet(s=>s.Id).Returns(TEST_SESSION_ID);
-                MockSession.Setup(SessionKeyRemoveExpression);
+                MockSession.Setup(SessionKeyRemoveExpression)
+                    .Callback((String key) => { _session_values.Remove(key); });
                 MockSession.Setup(s => s.Set(It.IsAny<String>(), It.IsAny<byte[]>()))
                     .Callback((String key, byte[] value) => {
                         CreateStage3Callback?.Invoke();

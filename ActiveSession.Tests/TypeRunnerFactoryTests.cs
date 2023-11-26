@@ -1,4 +1,5 @@
-﻿using MVVrus.AspNetCore.ActiveSession;
+﻿using Microsoft.Extensions.Logging;
+using MVVrus.AspNetCore.ActiveSession;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 
 namespace ActiveSession.Tests
@@ -11,7 +12,7 @@ namespace ActiveSession.Tests
         {
             var stub_sp = new Mock<IServiceProvider>();
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _)=>null);
-            var result=new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner1), null, null);
+            var result=new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner1), null, MakeLoggerFactory());
             var request=new Request1 { Arg="value" };
 
             var runner = result.Create(request, stub_sp.Object);
@@ -27,7 +28,7 @@ namespace ActiveSession.Tests
             var stub_sp = new Mock<IServiceProvider>();
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             var args = new Object[] { "ugu", 42, new SpyService() };
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, null);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
             var runner = result.Create(request, stub_sp.Object);
@@ -49,7 +50,7 @@ namespace ActiveSession.Tests
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             stub_sp.Setup(x => x.GetService(typeof(ISpyInterface1))).Returns((Type _) => new SpyService());
             var args = new Object[] { "ugu", 42};
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, null);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
             var runner = result.Create(request, stub_sp.Object);
@@ -69,20 +70,19 @@ namespace ActiveSession.Tests
             var stub_sp = new Mock<IServiceProvider>();
             stub_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns((Type _) => null);
             var args = new Object[] { "ugu", 42};
-            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, null);
+            var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
             IActiveSessionRunner<Result1>? runner;
             
             Assert.Throws<InvalidOperationException>(() => { runner=result.Create(request, stub_sp.Object); });
-
-            //Assert.NotNull(runner);
-            //Assert.IsType<SpyRunner2>(runner);
-            //Assert.Equal(request, (runner as SpyRunner2)!.Request);
-            //Assert.Equal((String)args[0], (runner as SpyRunner2)!.Param1);
-            //Assert.Equal((int)args[1], (runner as SpyRunner2)!.Param2);
-            //Assert.Null((runner as SpyRunner2)!.Param3);
         }
 
+        ILoggerFactory MakeLoggerFactory()
+        {
+            MockedLoggerFactory logger_factory = new MockedLoggerFactory();
+            logger_factory.MonitorLoggerCategory(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
+            return logger_factory.LoggerFactory;
+        }
     }
 }

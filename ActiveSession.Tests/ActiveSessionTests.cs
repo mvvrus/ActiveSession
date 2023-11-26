@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MVVrus.AspNetCore.ActiveSession;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using Active_Session= MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
@@ -29,7 +30,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null);
+                    test_setup.Logger);
 
                 Assert.True(active_session.IsAvailable);
                 Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
@@ -48,7 +49,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null,
+                    test_setup.Logger,
                     dummy_completion_task);
 
                 Assert.True(ReferenceEquals(dummy_completion_task, active_session.CleanupCompletionTask));
@@ -59,7 +60,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         test_setup.FakeStore.Object,
                         test_setup.StubSession.Object,
-                        null)
+                        test_setup.Logger)
                     );
 
                 //Test case: null SessionScope constructor parameter
@@ -68,7 +69,7 @@ namespace ActiveSession.Tests
                         null!,
                         test_setup.FakeStore.Object,
                         test_setup.StubSession.Object,
-                        null)
+                        test_setup.Logger)
                     );
 
                 //Test case: null Store constructor parameter
@@ -77,7 +78,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         null!,
                         test_setup.StubSession.Object,
-                        null)
+                        test_setup.Logger)
                     );
 
                 //Test case: null Session constructor parameter
@@ -86,7 +87,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         test_setup.FakeStore.Object,
                         null!,
-                        null)
+                        test_setup.Logger)
                     );
             }
 
@@ -102,7 +103,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null);
+                    test_setup.Logger);
 
                 (var runner, var key)=active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object);
 
@@ -127,7 +128,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null);
+                    test_setup.Logger);
 
                 var runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
                 var unknown_runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
@@ -154,7 +155,7 @@ namespace ActiveSession.Tests
                 test_setup.MockServiceScope.Object,
                 test_setup.FakeStore.Object,
                 test_setup.StubSession.Object,
-                null);
+                test_setup.Logger);
 
                 var runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
                 var unknown_runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
@@ -182,7 +183,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null);
+                    test_setup.Logger);
                 Boolean called_back = false;
                 active_session.CompletionToken.Register(() => { if(!called_back) called_back=true; });
 
@@ -201,7 +202,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object, test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null);
+                    test_setup.Logger);
 
                 active_session.SetDisposedForTests();
                 active_session.Dispose();
@@ -223,7 +224,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null,
+                    test_setup.Logger,
                     test_setup.CleanupCompletionTask);
 
                 task=active_session.Terminate();
@@ -240,7 +241,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.FakeStore.Object,
                     test_setup.StubSession.Object,
-                    null,
+                    test_setup.Logger,
                     test_setup.CleanupCompletionTask);
 
                 task=active_session.Terminate();
@@ -284,6 +285,8 @@ namespace ActiveSession.Tests
             public const String TEST_SESSION_ID = "TestSessionId";
             public const String TEST_REQUEST_ARG = "TesRequestArg";
             public readonly Expression<Action<IServiceScope>> DisposeScopeExpression= s => s.Dispose();
+            readonly MockedLogger _mockedLogger;
+            public ILogger Logger { get=>_mockedLogger.Logger; }
 
             public ConstructorTestSetup()
             {
@@ -299,6 +302,7 @@ namespace ActiveSession.Tests
                 DummyRunnerManager=MockRunnerManager.CreateMockedRunnermanager();
                 _cts = new CancellationTokenSource();
                 Request=new Request1 { Arg=TEST_REQUEST_ARG };
+                _mockedLogger=new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
             }
 
             public void Dispose()
