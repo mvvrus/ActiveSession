@@ -159,15 +159,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     _logger,
                                     session_scope.ServiceProvider
                                     ); //TODO Set MinRunnerNumber & MaxRunnerNumber
-                                //TODO De-register (Dispose for the default caseof  per-session runner manager) this ActiveSession in the case of errors
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 //TODO Next lines are planned to be changed by future refactoring 
-                                Task<Boolean> runner_completion_task = new Task<Boolean>(RunnersCompletionWait, new RunnerManagerInfo(runner_manager, result));
+                                RunnerManagerInfo info = new RunnerManagerInfo(runner_manager);
+                                Task<Boolean> runner_completion_task = new Task<Boolean>(RunnersCompletionWait, info);
                                 result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, runner_completion_task, trace_identifier);
                                 try {
+                                    info.ActiveSession=result;
+                                    //De-register (Dispose for the default caseof  per-session runner manager) this ActiveSession in the case of errors
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
                                     //An assignment to Value property should be the last operation before new_entry.Dispose()
                                     //to avoid adding bad entry to the cache by Dispose() 
@@ -428,11 +430,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #endregion
 
         #region PrivateMethods
-        record RunnerManagerInfo(IRunnerManager RunnerManager, IActiveSession ActiveSession);
+        record RunnerManagerInfo
+        {
+            public readonly IRunnerManager RunnerManager; 
+            public IActiveSession? ActiveSession;
+            public RunnerManagerInfo(IRunnerManager RunnerManager)
+            {
+                this.RunnerManager=RunnerManager;
+            }
+        }
 
         Boolean RunnersCompletionWait(Object? State) //TODO This code is a subject of re-factoring
         {
             RunnerManagerInfo state = (RunnerManagerInfo)State!;
+            if (state?.ActiveSession==null) return true; //Nothing to wait: Active Session was not just initialized
             const Int32 RUNNERS_TIMEOUT_MSEC = 10000;
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDispose(state.ActiveSession.Id); //TODO Change log message
