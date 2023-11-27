@@ -504,73 +504,287 @@ namespace ActiveSession.Tests
                             ts.MockRunnerManager.Object,
                             request,
                             null);
+                        //Act
+                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null);
+                        //Assess
+                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
+
+                        //Test case: search for a non-existing runner, no associated session values (already arranged)
+                        //Act
+                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber+1,
+                            null);
+                        //Assess
+                        Assert.Null(runner);
+                        //Test case: search for an already removed runner
+                        //Arrange:Evict the runner from the cache (via Remove)
+                        String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
+                        ts.Cache.CacheMock.Object.Remove(runner_key);
+                        //Act
+                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null);
+                        //Assess
+                        Assert.Null(runner);
+                        //Check that ISesson variables have been cleared
+                        Assert.Null(ts.MockSession.Object.GetString(runner_key));
+                        Assert.Null(ts.MockSession.Object.GetString(runner_key+"_Type"));
                     }
-                    //Act
-                    runner=store.GetRunner<Result1>(ts.MockSession.Object, 
-                        ts.StubActiveSession.Object,
-                        ts.MockRunnerManager.Object,
-                        runner_and_key.RunnerNumber,
-                        null);
-                    //Assess
-                    Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
-
-                    //TODO Test case: search for an existing runner with incompatible type
-
-                    //Test case: search for a non-existing runner, no associated session values (already arranged)
-                    //Act
-                    runner=store.GetRunner<Result1>(ts.MockSession.Object,
-                        ts.StubActiveSession.Object,
-                        ts.MockRunnerManager.Object,
-                        runner_and_key.RunnerNumber+1,
-                        null);
-                    //Assess
-                    Assert.Null(runner);
-                    //TODO Test case: search for an already removed runner
-                    //Arrange:Evict the runner from the cache (via Remove)
-                    String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
-                    ts.Cache.CacheMock.Object.Remove(runner_key);
-                    //Act
-                    runner=store.GetRunner<Result1>(ts.MockSession.Object,
-                        ts.StubActiveSession.Object,
-                        ts.MockRunnerManager.Object,
-                        runner_and_key.RunnerNumber,
-                        null);
-                    //Assess
-                    Assert.Null(runner);
-                    //Check that ISesson variables have been cleared
-                    Assert.Null(ts.MockSession.Object.GetString(runner_key));
-                    Assert.Null(ts.MockSession.Object.GetString(runner_key+"_Type"));
                 }
-                //TODO Test case: try to get a runner from the disposed store
+
+                //Test case: try to get a runner from the disposed store (Already arranged)
+                //Act & assess
+                Assert.Throws<ObjectDisposedException>(
+                        ()=> {
+                            store.GetRunner<Result1>(ts.MockSession.Object,
+                                ts.StubActiveSession.Object,
+                                ts.MockRunnerManager.Object,
+                                runner_and_key.RunnerNumber,
+                                null);
+                            }
+                        );
+
+                const int UNASSIGNABLE_TYPE_WARNING_ID = 1160;
+                //Test case: search for an existing runner with incompatible type
+                //Arrange
+                MockedLogger logger_mock = ts.InitLogger();
+                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        IActiveSessionRunner<String>? runner2 =store.GetRunner<String>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null);
+                        //Assess
+                        Assert.Null(runner2);
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once()); 
+                    }
+                }
+                logger_mock= ts.InitLogger();
+
+                //Test case: search for an existing runner, cached as task
+                //Arrange
+                ts.ActSessOptions.CacheRunnerAsTask=true;
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        runner = store.GetRunner<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null);
+                        //Assess
+                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
+                    }
+                }
+
+                //Test case: search for an existing runner, cached as task, incompatible type
+                //Arrange
+                logger_mock = ts.InitLogger();
+                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        IActiveSessionRunner<String>? runner2 = store.GetRunner<String>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null);
+                        //Assess
+                        Assert.Null(runner2);
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                    }
+                }
+                logger_mock=ts.InitLogger();
+
             }
-
-            //TODO Test case: search for an existing runner, cached as task
-            //TODO Test case: search for an existing runner, cached as task, incompatible type
-
         }
 
-        //TODO Test case: race conditions - ActiveSession level lock
-        //TODO Test case: race conditions - store level lock
+        //Test group: GetRunnerAsync method call
+        [Fact]
+        public void GetRunnerAsync()
+        {
+            RunnerTestSetup ts;
+            ActiveSessionStore store;
+            KeyedActiveSessionRunner<Result1> runner_and_key;
+            Request1 request = new Request1() { Arg=TEST_ARG1 };
+            MockedRunner<Request1, Result1>? dummy_runner1 = null;
+            CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
+            IActiveSessionRunner<Result1>? runner;
+
+            //Test case: search for an existing runner
+            //Arrange
+            using (ts=new RunnerTestSetup()) {
+                ts.AddRunnerFactory<Request1, Result1>(
+                    arg => {
+                        dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
+                        return dummy_runner1.Runner;
+                    }
+                );
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
+
+                        //Test case: search for a non-existing runner, no associated session values (already arranged)
+                        //Act
+                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber+1,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.Null(runner);
+                        //Test case: search for an already removed runner
+                        //Arrange:Evict the runner from the cache (via Remove)
+                        String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
+                        ts.Cache.CacheMock.Object.Remove(runner_key);
+                        //Act
+                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.Null(runner);
+                        //Check that ISesson variables have been cleared
+                        Assert.Null(ts.MockSession.Object.GetString(runner_key));
+                        Assert.Null(ts.MockSession.Object.GetString(runner_key+"_Type"));
+                    }
+                }
+
+                //Test case: try to get a runner from the disposed store (Already arranged)
+                //Act & assess
+                Assert.Throws<ObjectDisposedException>(
+                        () => {
+                            store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                                ts.StubActiveSession.Object,
+                                ts.MockRunnerManager.Object,
+                                runner_and_key.RunnerNumber,
+                                null,
+                                CancellationToken.None).GetAwaiter().GetResult();
+                        }
+                        );
+
+                const int UNASSIGNABLE_TYPE_WARNING_ID = 1160;
+                //Test case: search for an existing runner with incompatible type
+                //Arrange
+                MockedLogger logger_mock = ts.InitLogger();
+                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        IActiveSessionRunner<String>? runner2 = store.GetRunnerAsync<String>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.Null(runner2);
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                    }
+                }
+                logger_mock=ts.InitLogger();
+
+                //Test case: search for an existing runner, cached as task
+                //Arrange
+                ts.ActSessOptions.CacheRunnerAsTask=true;
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
+                    }
+                }
+
+                //Test case: search for an existing runner, cached as task, incompatible type
+                //Arrange
+                logger_mock=ts.InitLogger();
+                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                using (store=ts.CreateStore()) {
+                    using (cts=new CancellationTokenSource()) {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            request,
+                            null);
+                        //Act
+                        IActiveSessionRunner<String>? runner2 = store.GetRunnerAsync<String>(ts.MockSession.Object,
+                            ts.StubActiveSession.Object,
+                            ts.MockRunnerManager.Object,
+                            runner_and_key.RunnerNumber,
+                            null,
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        //Assess
+                        Assert.Null(runner2);
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                    }
+                }
+                logger_mock=ts.InitLogger();
+
+            }
+        }
+
+        //TODO Test case: Create runner race conditions - ActiveSession level lock
+        //TODO Test case: Create runner race conditions - store level lock
 
         /*More methods to test
-        public IActiveSessionRunner<TResult>?> GetRunner<TResult>(ISession Session,
-            IActiveSession ActiveSession,
-            IRunnerManager RunnerManager,
-            Int32 RunnerNumber, String? TraceIdentifier);
-
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
-            ISession Session,
-            IActiveSession ActiveSession,
-            IRunnerManager RunnerManager,
-            Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token );
-            //TODO Test case: search for an existing runner
-            //TODO Test case: search for an existing runner with incompatible type
-            //TODO Test case: search for a non-existing runner, no associated session values
-            //TODO Test case: search for an already removed runner
-                //TODO Test case: try to get a runner from the disposed store
-            //TODO Test case: search for an existing runner, cached as task
-            //TODO Test case: search for an existing runner, cached as task, incompatible type
-
         public Task<Boolean> TerminateSession(IActiveSession Session, Boolean Global);
         public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
         */
@@ -777,6 +991,7 @@ namespace ActiveSession.Tests
             public readonly Mock<IRunnerManager> MockRunnerManager;
 
             protected MockedLoggerFactory _loggerFactory;
+            protected MockedLogger _logger;
             public IServiceProvider RootSP { get { return MockRootServiceProvider.Object; } }
             public Object LockObject { get => _lockObject; }
 
@@ -791,7 +1006,7 @@ namespace ActiveSession.Tests
             {
                 MockRootServiceProvider=new Mock<IServiceProvider>();
                 _loggerFactory=new MockedLoggerFactory();
-                _loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
+                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
                 this.MockCache=MockCache;
                 IActSessionOptions=Options.Create(ActSessOptions);
                 ISessOptions=Options.Create(SessOptions);
@@ -874,6 +1089,13 @@ namespace ActiveSession.Tests
             public Action? CreateStage1Callback { get; set; }
             public Action? CreateStage3Callback { get; set; }
             public Action? CreateStage4Callback { get; set; }
+
+            public MockedLogger InitLogger()
+            {
+                _loggerFactory.ResetAllCategories();
+                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
+                return _logger;
+            }
 
             public RunnerTestSetup(Boolean PerSessionLock=true) : base(new MockedCache()) 
             {
