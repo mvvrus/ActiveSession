@@ -168,6 +168,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 Task<Boolean> runner_completion_task = new Task<Boolean>(RunnersCompletionWait, info);
                                 result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, runner_completion_task, trace_identifier);
                                 try {
+                                    runner_manager.RegisterSession(result);
                                     info.ActiveSession=result;
                                     //De-register (Dispose for the default caseof  per-session runner manager) this ActiveSession in the case of errors
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
@@ -180,6 +181,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     }
                                 }
                                 catch {
+                                    //TODO - runner_manager.UnregisterSession(result);
                                     result.Dispose();
                                     throw;
                                 }
@@ -278,7 +280,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 //to avoid adding bad entry to the cache by Dispose() 
                                 new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
                                 try {
-                                    RunnerManager.RegisterRunner(ActiveSession, runner_number);
+                                    RunnerManager.RegisterRunner(ActiveSession, runner_number, runner, typeof(TResult));
                                 }
                                 catch {
                                     new_entry.Value=null;
@@ -530,10 +532,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceRunnerEvictionCallback(runner_info.ActiveSession.Id, runner_info.Number);
             #endif
             //Do not call UnregisterRunnerInSession here because the session is inaccessible here and may even be destroyed
-            //One remove session variables of an unexisting runner while searching it and cannot find it in cache
+            //One remove session variables of an unexisting runner while searching for it and cannot find it in the cache
+            IActiveSessionRunner runner = runner_info.Runner;
             runner_info.RunnerManager.UnregisterRunner(runner_info.ActiveSession, runner_info.Number);
             runner_info.RunnerManager.ReturnRunnerNumber(runner_info.ActiveSession, runner_info.Number);
-            IActiveSessionRunner runner = runner_info.Runner;
             runner.Abort();
             if (_trackStatistics) {
                 Interlocked.Decrement(ref _currentRunnerCount);

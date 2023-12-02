@@ -7,6 +7,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly CountdownEvent _runnersCounter;
         readonly ILogger? _logger;
         readonly IServiceProvider _services;
+        IActiveSession? _sessionKey = null;
         Int32 _newRunnerNumber;
 #pragma warning disable CS0169 // The field 'ActiveSession._keyMap' is never used
 #pragma warning disable IDE0051 // Remove unused private members
@@ -37,8 +38,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber)
+        void CheckSession(IActiveSession SessionKey)
         {
+            if (!ReferenceEquals(_sessionKey, SessionKey))
+                throw new InvalidOperationException("DefaultRunnermanager can serve runners from one session only/");
+        }
+
+        public void RegisterSession(IActiveSession SessionKey)
+        {
+            if (_sessionKey==null) _sessionKey=SessionKey;
+            else CheckSession(SessionKey);
+        }
+
+
+        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IActiveSessionRunner Runner, Type ResultType)
+        {
+            CheckSession(SessionKey);
             #if TRACE
             _logger?.LogTraceRegisterRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
@@ -47,6 +62,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void UnregisterRunner(IActiveSession SessionKey, int RunnerNumber)
         {
+            CheckSession(SessionKey);
             #if TRACE
             _logger?.LogTraceUnregisterRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
@@ -55,6 +71,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void ReturnRunnerNumber(IActiveSession SessionKey, Int32 RunnerNumber)
         {
+            CheckSession(SessionKey);
             #if TRACE
             _logger?.LogTraceReturnRunnerNumber(SessionKey.Id, RunnerNumber);
             #endif
@@ -64,6 +81,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Int32 GetNewRunnerNumber(IActiveSession SessionKey, String? TraceIdentifier = null)
         {
+            CheckSession(SessionKey);
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceGetNewRunnerNumber(SessionKey.Id, trace_identifier);

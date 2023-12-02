@@ -110,6 +110,7 @@ namespace ActiveSession.Tests
                     manager=(session as Active_Session)?.RunnerManager;
                     Assert.NotNull(manager);
                     Assert.NotNull(manager.RunnerCreationLock);
+                    ts.MockRunnerManager.Verify(ts.RegisterSessionExpression, Times.Once);
                     //Assess a cache entry
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));//2-nd time - after obtainning lock. Fragile!!! 
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
@@ -1050,6 +1051,7 @@ namespace ActiveSession.Tests
             public readonly Mock<ISession> StubSession;
             public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
             public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
+            public readonly Expression<Action<IRunnerManager>> RegisterSessionExpression = (s => s.RegisterSession(It.IsAny<IActiveSession>()));
 
             readonly CancellationTokenSource _cts;
             readonly ServiceProviderMock _mockedSessionServiceProvider;
@@ -1061,6 +1063,7 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
                 _mockedSessionServiceProvider=new ServiceProviderMock(MockRootServiceProvider);
                 _cts=new CancellationTokenSource();
+                MockRunnerManager.Setup(RegisterSessionExpression);
             }
 
             public void Dispose()
@@ -1069,19 +1072,19 @@ namespace ActiveSession.Tests
             }
         }
 
-        class RunnerTestSetup: MockedCaheTestSetup, IDisposable
+        class RunnerTestSetup : MockedCaheTestSetup, IDisposable
         {
             public readonly Mock<ISession> MockSession;
             public readonly Mock<IActiveSession> StubActiveSession;
-            readonly Object? _lockObject=null;
+            readonly Object? _lockObject = null;
             readonly CancellationTokenSource _cts;
 
-            public Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression = (s => s.GetNewRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<String>()));
-            public Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression = (s => s.ReturnRunnerNumber(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
-            public Expression<Action<IRunnerManager>> RegisterRunnerExpression = (s => s.RegisterRunner(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
-            public Expression<Action<IRunnerManager>> UnregisterRunnerExpression = (s => s.UnregisterRunner(It.IsAny<IActiveSession>(), It.IsAny<Int32>()));
-            public Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
-            public Expression<Action<ISession>> SessionKeyRemoveExpression= s => s.Remove(It.IsAny<String>());
+            public readonly Expression<Func<IRunnerManager, Int32>> GetRunnerNumberExpression;
+            public readonly Expression<Action<IRunnerManager>> ReturnRunnerNumberExpression;
+            public readonly Expression<Action<IRunnerManager>> RegisterRunnerExpression;
+            public readonly Expression<Action<IRunnerManager>> UnregisterRunnerExpression;
+            public readonly Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
+            public readonly Expression<Action<ISession>> SessionKeyRemoveExpression= s => s.Remove(It.IsAny<String>());
 
             public const Int32 RUNNER_1 = 1;
             public Dictionary<String, byte[]> _session_values = new Dictionary<String, byte[]>();
@@ -1128,14 +1131,17 @@ namespace ActiveSession.Tests
                 _cts=new CancellationTokenSource();
                 StubActiveSession.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
                 StubActiveSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
-                //TODO Is any additional IActiveSession setup required?
                 if (PerSessionLock) _lockObject=new Object();
+                GetRunnerNumberExpression=(s => s.GetNewRunnerNumber(StubActiveSession.Object, It.IsAny<String>()));
+                ReturnRunnerNumberExpression=(s => s.ReturnRunnerNumber(StubActiveSession.Object, It.IsAny<Int32>()));
+                RegisterRunnerExpression=(s => s.RegisterRunner(StubActiveSession.Object, It.IsAny<Int32>(), It.IsAny<IActiveSessionRunner>(),It.IsAny<Type>()));
+                UnregisterRunnerExpression=(s => s.UnregisterRunner(StubActiveSession.Object, It.IsAny<Int32>()));
                 MockRunnerManager.Setup(GetRunnerNumberExpression)
                     .Callback((IActiveSession _, String _) => { CreateStage1Callback?.Invoke(); })
                     .Returns(RUNNER_1);
                 MockRunnerManager.Setup(ReturnRunnerNumberExpression);
                 MockRunnerManager.Setup(RegisterRunnerExpression)
-                    .Callback((IActiveSession _,Int32 _) => { CreateStage4Callback?.Invoke(); });
+                    .Callback((IActiveSession _,Int32 _,IActiveSessionRunner _, Type _) => { CreateStage4Callback?.Invoke(); });
                 MockRunnerManager.Setup(UnregisterRunnerExpression);
                 MockRunnerManager.SetupGet(RunnerCreationLockExpression).Returns(_lockObject);
             }
