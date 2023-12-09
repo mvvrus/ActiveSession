@@ -310,6 +310,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
             if (PostConfigurator!=null)
                 Services.AddOptions<ActiveSessionOptions>().PostConfigure(PostConfigurator);
+            Services.AddHttpContextAccessor();
+            Services.TryAddScoped<ActiveSessionServiceProviderRef>();
+            Services.TryAdd(ServiceDescriptor.Scoped(typeof(IActiveSessionService<>),typeof(ActiveSessionService<>)));
         }
 
         private static void ReadActiveSessionsConfig(ActiveSessionOptions Options, IConfiguration Configuration)

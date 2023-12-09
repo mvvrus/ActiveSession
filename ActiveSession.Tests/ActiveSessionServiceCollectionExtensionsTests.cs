@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Linq;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Http;
 
 namespace ActiveSession.Tests
 {
@@ -28,6 +29,7 @@ namespace ActiveSession.Tests
             Assert.Equal(IsConfigDelegateUsed ? 1 : 0, CountServiceImplementations(Services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
         }
 
+        //Test group: ActiveSession infrastructure services registratiom
         [Fact(DisplayName = "AddActiveSessionInfrastructure method")]
         public void AcitiveSessionInfrastructure()
         {
@@ -39,43 +41,60 @@ namespace ActiveSession.Tests
             IServiceCollection services;
             IServiceProvider sp;
 
-            //Check single AddActiveSessionInfrastructure w/o configuration delegate
+            //Test case: single AddActiveSessionInfrastructure w/o configuration delegate
+            //Arrange
             services=new ServiceCollection();
             services.AddSingleton<IMemoryCache>(dummy_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
+            //Act
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, null);
+            //Assess
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IRunnerManagerFactory)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionServiceProviderRef)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionService<>)));
             Assert.Equal(0, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
-
             //Check that value from the IConfiguration is accepted
             sp=services.BuildServiceProvider();
             Assert.Equal(HOST1, sp.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.HostId);
 
-            //Check single AddActiveSessionInfrastructure with configuration delegate
+            //Test case: single AddActiveSessionInfrastructure with configuration delegate
+            //Arrange
             services=new ServiceCollection();
             services.AddSingleton<IMemoryCache>(dummy_memory_cache.Object);
             services.AddSingleton<IConfiguration>(config);
+            //Act
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, o => o.Prefix=PREFIX1);
+            //Assss
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
 
-            //Check repeated AddActiveSessionInfrastructure w/o configuration delegate
+            //Test case repeated AddActiveSessionInfrastructure w/o configuration delegate (already arranged)
+            //Act
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, null);
             services.AddSingleton<IConfiguration>(config);
+            //Assess
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionServiceProviderRef)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionService<>)));
 
-            //Check repeated AddActiveSessionInfrastructure with configuration delegate
+            //Test case: repeated AddActiveSessionInfrastructure with configuration delegate (already arranged)
+            //Act
             ActiveSessionServiceCollectionExtensions.AddActiveSessionInfrastructure(services, o => o.HostId=HOST2);
+            //Assess
             Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionStore)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(IConfigureOptions<ActiveSessionOptions>)));
             Assert.Equal(2, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
-
-            //Check that value from configuration delegates are ccepted and a value from the IConfiguration is overriden
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionServiceProviderRef)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(IActiveSessionService<>)));
+            //Check that value from configuration delegates are accepted and a value from the IConfiguration is overriden
             sp=services.BuildServiceProvider();
             Assert.Equal(PREFIX1, sp.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.Prefix);
             Assert.Equal(HOST2, sp.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.HostId);
