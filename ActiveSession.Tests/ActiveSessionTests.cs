@@ -192,7 +192,7 @@ namespace ActiveSession.Tests
                 Assert.True(active_session.Disposed);
                 Assert.True(active_session.CompletionToken.IsCancellationRequested);
                 Assert.True(called_back);
-                test_setup.DummyRunnerManager.Verify(MockRunnerManager.WaitForRunnersExpression, Times.Never);
+                test_setup.DummyRunnerManager.Verify(MockRunnerManager.PerformRunnersCleanupExpression, Times.Never);
                 test_setup.MockServiceScope.Verify(test_setup.DisposeScopeExpression, Times.Never);
                 test_setup.DummyRunnerManager.As<IDisposable>().Verify(MockRunnerManager.DisposeExpression, Times.Never);
             }
@@ -215,7 +215,7 @@ namespace ActiveSession.Tests
         public void Terminate()
         {
             TerminateTestSetup test_setup;
-            Task<Boolean> task;
+            Task task;
             Active_Session active_session;
 
             //Test case: Terminate - simulate all runners have been completed in time
@@ -230,31 +230,13 @@ namespace ActiveSession.Tests
                 task=active_session.Terminate();
 
                 Assert.False(task.IsCompleted);
-                test_setup.Complete(true);
+                test_setup.Complete();
                 Assert.True(task.IsCompletedSuccessfully);
-                Assert.True(task.Result);
-            }
-
-            //Test case: Terminate - simulate not all runners have been completed in time
-            using (test_setup=new TerminateTestSetup()) {
-                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
-                    test_setup.MockServiceScope.Object,
-                    test_setup.FakeStore.Object,
-                    test_setup.StubSession.Object,
-                    test_setup.Logger,
-                    test_setup.CleanupCompletionTask);
-
-                task=active_session.Terminate();
-
-                Assert.False(task.IsCompleted);
-                test_setup.Complete(false);
-                Assert.True(task.IsCompletedSuccessfully);
-                Assert.False(task.Result);
             }
 
             //Test case: Terminate - call on disposed ActiveSession
             using (ConstructorTestSetup ts=new ConstructorTestSetup()) {
-                ts.FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<Boolean>()))
+                ts.FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Boolean>()))
                     .Returns(Task.FromResult(true));
                 active_session=new Active_Session(ts.DummyRunnerManager.Object,
                     ts.MockServiceScope.Object,
@@ -345,30 +327,30 @@ namespace ActiveSession.Tests
 
         class TerminateTestSetup: ConstructorTestSetup
         {
-            readonly TaskCompletionSource<Boolean> _tcs;
-            public Task<Boolean> CleanupCompletionTask { get {return _tcs.Task; } }
+            readonly TaskCompletionSource _tcs;
+            public Task CleanupCompletionTask { get {return _tcs.Task; } }
 
             public TerminateTestSetup(): base()
             {
-                _tcs=new TaskCompletionSource<Boolean>();
-                FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<Boolean>()))
+                _tcs=new TaskCompletionSource();
+                FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Boolean>()))
                     .Returns(CleanupCompletionTask);
             }
 
-            public void Complete(Boolean InTime)
+            public void Complete()
             {
-                _tcs.SetResult(InTime);
+                _tcs.SetResult();
             }
         }
 
         static class MockRunnerManager {
-            public static readonly Expression<Func<IRunnerManager, Boolean>> WaitForRunnersExpression = (IRunnerManager s) => s.WaitForRunners(It.IsAny<IActiveSession>(), It.IsAny<Int32>());
+            public static readonly Expression<Func<IRunnerManager, Task>> PerformRunnersCleanupExpression = (IRunnerManager s) => s.PerformRunnersCleanupAsync(It.IsAny<IActiveSession>());
             public static readonly Expression<Action<IDisposable>> DisposeExpression = (IDisposable s) => s.Dispose();
 
             public static Mock<IRunnerManager> CreateMockedRunnermanager()
             {
                 Mock<IRunnerManager> mock_runner_manager = new Mock<IRunnerManager>();
-                mock_runner_manager.Setup(WaitForRunnersExpression).Returns(true);
+                mock_runner_manager.Setup(PerformRunnersCleanupExpression).Returns(Task.CompletedTask);
                 Mock<IDisposable> disposable_runner_manager = mock_runner_manager.As<IDisposable>();
                 disposable_runner_manager.Setup(DisposeExpression);
                 return mock_runner_manager;

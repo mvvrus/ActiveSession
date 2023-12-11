@@ -47,7 +47,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test group: test RegisterRunner method
+        //Test group: test RegisterRunner method & GetRunnerInfo method
         [Fact]
         public void RegisterRunner()
         {
@@ -66,11 +66,20 @@ namespace ActiveSession.Tests
                 //Act
                 manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER,dummy_runner.Object, typeof(Result1));
                 //Assess
-                Assert.Equal(2, manager.RunnersCounter.CurrentCount);
+                Assert.Equal(2, manager.RunnersCounter.CurrentCount); //+1 for session; Fragile:depends on implementation
+                RunnerInfo? info = manager.GetRunnerInfo(stub_as.Object, TEST_RUNNER_NUMBER);
+                Assert.NotNull(info);
+                Assert.Equal(dummy_runner.Object, info!.Runner);
+                Assert.Equal(typeof(Result1), info!.ResultType);
+                Assert.Equal(TEST_RUNNER_NUMBER, info!.Number);
             }
+
+            //TODO Test case: attempt to register a runner after cleanup initiation (should throw InvalidOperationException)
+            //TODO Test case: attemp to call RegisterRunner for disposed instance
         }
 
-        //Test group: test UnregisterRunner method
+        //Test group: test UnregisterRunner method & GetRunnerInfo method
+        // TODO test different disposal scenarios
         [Fact]
         public void UnregisterRunner()
         {
@@ -82,17 +91,20 @@ namespace ActiveSession.Tests
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 //Test: register a runner for an unregistered session
                 //Act and assess: it throws
-                Assert.Throws<InvalidOperationException>(() => manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER));
+                Assert.ThrowsAsync<InvalidOperationException>(() => manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER)!)
+                    .GetAwaiter().GetResult();
 
                 //Test: register a runner for the registered session
                 //Arrange more - register session & runner
                 manager.RegisterSession(stub_as.Object);
                 manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER,dummy_runner.Object, typeof(Result1));
                 //Act
-                manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER);
+                manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER)?.GetAwaiter().GetResult();
                 //Assess
-                Assert.Equal(1, manager.RunnersCounter.CurrentCount);
+                Assert.Equal(1, manager.RunnersCounter.CurrentCount); //+1 for session; Fragile:depends on implementation
+                Assert.Null(manager.GetRunnerInfo(stub_as.Object,TEST_RUNNER_NUMBER));
             }
+            //TODO Test case: attemp to call UnregisterRunner for disposed instance
         }
 
         //Test group: test ReturnRunnerNumber method (no runner number reuse is implemented yet)
@@ -150,67 +162,6 @@ namespace ActiveSession.Tests
             }
         }
 
-        [Fact]
-        public void WaitForRunners()
-        {
-            Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
-            Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(
-                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
-                int runner_delay = 100;
-                Task<Boolean> wait_for_runners_task = new Task<Boolean>(() => manager.WaitForRunners(stub_as.Object, runner_delay));
-                using (ManualResetEventSlim runner_event = new ManualResetEventSlim(false)) {
-                    Task runner_task = new Task(() => { runner_event.Wait(); manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER); });
-                    manager.RegisterSession(stub_as.Object);
-                    manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER ,dummy_runner.Object, typeof(Result1));
-                    runner_task.Start();
-                    wait_for_runners_task.Start();
-                    TaskStatus wait_task_status;
-                    do {
-                        Thread.Sleep(0);
-                        wait_task_status=wait_for_runners_task.Status;
-                    } while (wait_task_status==TaskStatus.Created||wait_task_status==TaskStatus.Running);
-                    Assert.Equal(TaskStatus.WaitingToRun, wait_for_runners_task.Status);
-                    runner_event.Set();
-                    Assert.True(wait_for_runners_task.GetAwaiter().GetResult());
-                }
-            }
-        }
-
-        [Fact]
-        public void WaitForRunners_Hanged()
-        {
-            Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
-            Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
-            using (DefaultRunnerManager manager = new DefaultRunnerManager(
-                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
-                int runner_delay = 300;
-                Task<Boolean> wait_for_runners_task = new Task<Boolean>(() => manager.WaitForRunners(stub_as.Object,runner_delay));
-                using (CancellationTokenSource cts = new CancellationTokenSource(500)) {
-                    CancellationToken ct = cts.Token;
-                    Task runner_task = new Task(() => {
-                        while (!ct.IsCancellationRequested)
-                            Task.Delay(50).Wait();
-                        manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER);
-                    });
-                    manager.RegisterSession(stub_as.Object);
-                    manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER, dummy_runner.Object, typeof(Result1));
-                    runner_task.Start();
-                    wait_for_runners_task.Start();
-                    TaskStatus wait_task_status;
-                    do {
-                        Thread.Sleep(0);
-                        wait_task_status=wait_for_runners_task.Status;
-                    } while (wait_task_status==TaskStatus.Created||wait_task_status==TaskStatus.Running);
-                    Assert.False(wait_for_runners_task.GetAwaiter().GetResult());
-                    cts.Cancel();
-                    runner_task.Wait();
-                }
-            }
-        }
-
         //Test case: test Dispose method
         [Fact]
         public void Dispose_RunnerManager()
@@ -226,7 +177,11 @@ namespace ActiveSession.Tests
             manager.Dispose();
             //Assert that internal countdown even object is disposed
             Assert.Throws<ObjectDisposedException>(() => manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER, dummy_runner.Object, typeof(Result1)));
+            //TODO Test case: double Dispose()
         }
+
+        //TODO Test AbortAll
+        //TODO Test PerformRunnersCleanup
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         Mock<IActiveSession> MakeStubAs()

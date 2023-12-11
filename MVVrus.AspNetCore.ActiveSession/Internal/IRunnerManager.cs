@@ -6,8 +6,10 @@
         Int32 GetNewRunnerNumber(IActiveSession SessionKey, String? TraceIdentifier = null);
         void ReturnRunnerNumber(IActiveSession SessionKey, Int32 RunnerNumber);
         void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IActiveSessionRunner Runner, Type ResultType);
-        void UnregisterRunner(IActiveSession SessionKey, int RunnerNumber);
+        Task? UnregisterRunner(IActiveSession SessionKey, int RunnerNumber);
+        RunnerInfo? GetRunnerInfo(IActiveSession SessionKey, int RunnerNumber);
         Object? RunnerCreationLock { get; }
-        Boolean WaitForRunners(IActiveSession SessionKey, Int32 Timeout);
+        void AbortAll(IActiveSession SessionKey);
+        public Task PerformRunnersCleanupAsync(IActiveSession SessionKey);
     }
 }

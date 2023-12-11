@@ -52,7 +52,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// This operation may be asynchronous. 
         /// To await for completion of this operation use a task returned via CleanupCompletionTask property
         /// </remarks>
-        Task<Boolean> Terminate(Boolean Global = false);
+        Task Terminate(Boolean Global = false);
 
         /// <value>Indicator that the Active Session object is properly initialized and may be used.</value>
         Boolean IsAvailable { get; }
@@ -75,7 +75,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// otherwise the result is true
         /// If the asynchronous cleanup isn't used, it will be an aready completed task.
         /// </remarks>
-        Task<Boolean> CleanupCompletionTask { get; }
+        Task CleanupCompletionTask { get; }
 
     }
 }

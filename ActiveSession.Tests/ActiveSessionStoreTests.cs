@@ -131,14 +131,23 @@ namespace ActiveSession.Tests
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(3));
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                     Assert.True(Object.ReferenceEquals(session, session2));
-
                     //Test case: disposing ActiveSession while in a cache object w/o runners associated
+                    //Arrange more
+                    IServiceProvider session_sp = session.SessionServices;
+                    //Act
                     (session as IDisposable)?.Dispose();
-                    Assert.True(session.CleanupCompletionTask.GetAwaiter().GetResult());
+                    //Assess
                     Assert.False(ts.Cache.IsEntryStored);
                     Assert.Equal(1, ts.Cache.CalledCallbacksCount);
-
+                    Assert.True((session as Active_Session)!.Disposed);
+                    Task cleanup_task = session.CleanupCompletionTask;
+                    Assert.NotEqual(TaskStatus.Created, cleanup_task.Status);
+                    cleanup_task.GetAwaiter().GetResult();
+                    ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Once);
+                    ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Once);
+                    Assert.Throws<ObjectDisposedException>(()=>session_sp.GetService(typeof(ILoggerFactory)));
                 }
+
                 //Test case: options passed to ActiveSessionStore constructor affects cache entry
                 TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
                 TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
@@ -160,15 +169,26 @@ namespace ActiveSession.Tests
                     Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
                     Assert.Equal(AS_SIZE, store.GetCurrentStatistics()!.StoreSize);
 
-                    //Test case: removing ActiveSession from cache. Already arranged. Act
+                    //Test case: removing ActiveSession from cache. 
+                    //Arrange more
+                    IServiceProvider session_sp = session.SessionServices;
+                    //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
                     //Assess
                     Assert.Equal(0, store.GetCurrentStatistics()!.StoreSize);
                     Assert.False(ts.Cache.IsEntryStored);
                     Assert.Equal(1, ts.Cache.CalledCallbacksCount);
                     Assert.True((session as Active_Session)!.Disposed);
+                    Task cleanup_task = session.CleanupCompletionTask;
+                    Assert.NotEqual(TaskStatus.Created, cleanup_task.Status);
+                    cleanup_task.GetAwaiter().GetResult();
+                    //Verify the next two calls are made once, accounting for 1 call made by an earlier test
+                    ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Exactly(2)); 
+                    ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Exactly(2));
+                    Assert.Throws<ObjectDisposedException>(() => session_sp.GetService(typeof(ILoggerFactory)));
 
                     //TODO? Test case: disposing ActiveSession while in the cache w/runners associated
+                    //TODO Test case: logging timely runners cleanup after eviction
                 }
             }
         }
@@ -849,7 +869,7 @@ namespace ActiveSession.Tests
             {
                 _fakeSessionServiceProvider=new Mock<IServiceProvider>();
                 _fakeSessionServiceProvider.Setup(s => s.GetService(It.IsAny<Type>()))
-                    .Returns((Type x) => RootServiceProviderMock.Object.GetService(x));
+                    .Returns((Type x) => ScopeDisposed?throw new ObjectDisposedException("IServiceScope"):RootServiceProviderMock.Object.GetService(x));
                 _fakeServiceScope=new Mock<IServiceScope>();
                 _fakeServiceScope.SetupGet(s => s.ServiceProvider).Returns(ScopeServiceProvider);
                 _fakeServiceScope.Setup(_disposeExpression).Callback(() => { ScopeDisposed=true; });
@@ -1013,7 +1033,7 @@ namespace ActiveSession.Tests
                 ISessOptions=Options.Create(SessOptions);
                 MockRunnerManager=new Mock<IRunnerManager>();
                 MockRunnerManager.SetupGet(s => s.RunnerCreationLock).Returns(_lockObject);
-                MockRunnerManager.Setup(s => s.WaitForRunners(It.IsAny<IActiveSession>(), It.IsAny<Int32>())).Returns(true);
+                MockRunnerManager.Setup(s => s.PerformRunnersCleanupAsync(It.IsAny<IActiveSession>())).Returns(Task.CompletedTask);
                 StubRMFactory=new Mock<IRunnerManagerFactory>();
                 StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<ILogger>(),
                     It.IsAny<IServiceProvider>(), It.IsAny<Int32>(), It.IsAny<Int32>())).Returns(MockRunnerManager.Object);
@@ -1048,10 +1068,14 @@ namespace ActiveSession.Tests
 
         class CreateFetchTestSetup : MockedCaheTestSetup, IDisposable
         {
+            //TODO Monitor AbortAll call
             public readonly Mock<ISession> StubSession;
             public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
             public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
             public readonly Expression<Action<IRunnerManager>> RegisterSessionExpression = (s => s.RegisterSession(It.IsAny<IActiveSession>()));
+            public readonly Expression<Action<IRunnerManager>> AbortAllExpression = s => s.AbortAll(It.IsAny<IActiveSession>());
+            public readonly Expression<Func<IRunnerManager, Task>> PerformRunnersCleanupExpression =
+                s => s.PerformRunnersCleanupAsync(It.IsAny<IActiveSession>());
 
             readonly CancellationTokenSource _cts;
             readonly ServiceProviderMock _mockedSessionServiceProvider;
@@ -1064,6 +1088,8 @@ namespace ActiveSession.Tests
                 _mockedSessionServiceProvider=new ServiceProviderMock(MockRootServiceProvider);
                 _cts=new CancellationTokenSource();
                 MockRunnerManager.Setup(RegisterSessionExpression);
+                MockRunnerManager.Setup(AbortAllExpression);
+                MockRunnerManager.Setup(PerformRunnersCleanupExpression).Returns(Task.CompletedTask);
             }
 
             public void Dispose()
@@ -1074,6 +1100,7 @@ namespace ActiveSession.Tests
 
         class RunnerTestSetup : MockedCaheTestSetup, IDisposable
         {
+            //TODO Monitor Abort call
             public readonly Mock<ISession> MockSession;
             public readonly Mock<IActiveSession> StubActiveSession;
             readonly Object? _lockObject = null;
