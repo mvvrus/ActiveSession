@@ -9,7 +9,7 @@
         public ActiveSessionService(ActiveSessionServiceProviderRef SessionServicesRef)
         {
             IsFromSession=SessionServicesRef.IsFromSession;
-            Service =SessionServicesRef.SessionServices.GetService<TService>();
+            Service =SessionServicesRef.Services.GetService<TService>();
         }
     }
 }
