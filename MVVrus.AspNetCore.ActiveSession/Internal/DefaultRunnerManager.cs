@@ -44,12 +44,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _runningDisposeTasks=new HashSet<Task>();
         }
 
-        void CheckSession(IActiveSession SessionKey)
-        {
-            if (!ReferenceEquals(_sessionKey, SessionKey))
-                throw new InvalidOperationException("DefaultRunnermanager can serve runners from one session only/");
-        }
-
         public void RegisterSession(IActiveSession SessionKey)
         {
             if (_sessionKey==null) _sessionKey=SessionKey;
@@ -165,6 +159,58 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
+        public void AbortAll(IActiveSession SessionKey)
+        {
+            CheckSession(SessionKey);
+            #if TRACE
+            _logger?.LogTraceAbortAll(SessionKey.Id);
+            #endif
+            lock (RunnerCreationLock) {
+                #if TRACE
+                _logger?.LogTraceAbortAllLockAcqired(SessionKey.Id);
+                #endif
+                foreach (var runner_info in _runners.Values) {
+                    runner_info.Runner.Abort();
+                    #if TRACE
+                    _logger?.LogTraceAbortAllAbortRunner(SessionKey.Id, runner_info.Number);
+                    #endif
+                }
+            }
+            #if TRACE
+            _logger?.LogTraceAbortAllExit(SessionKey.Id);
+            #endif
+        }
+
+        public async Task PerformRunnersCleanupAsync(IActiveSession SessionKey)
+        {
+            CheckSession(SessionKey);
+            lock (RunnerCreationLock) {
+                if (_cleanup_mark)
+                    return;
+                _cleanup_mark=true;
+                #if TRACE
+                _logger?.LogTracePerformRunnersCleanup(SessionKey.Id);
+                #endif
+            }
+            #if TRACE
+            _logger?.LogTracePerformRunnersCleanupAwaiting(SessionKey.Id);
+            #endif
+            await CleanupRunners(SessionKey.Id);
+            #if TRACE
+            _logger?.LogTracePerformRunnersCleanupDisposing(SessionKey.Id);
+            #endif
+            Dispose();
+            #if TRACE
+            _logger?.LogTracePerformRunnersCleanupComplete(SessionKey.Id);
+            #endif
+        }
+
+        void CheckSession(IActiveSession SessionKey)
+        {
+            if (!ReferenceEquals(_sessionKey, SessionKey))
+                throw new InvalidOperationException("DefaultRunnermanager can serve runners from one session only/");
+        }
+
         Task? RunDisposeRunnerTask(IActiveSessionRunner Runner, String SessionId, Int32 RunnerNumber) 
             //This method is always performed with RunnerCreationLock acquired
         {
@@ -213,51 +259,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Antecedent.Dispose();
             #if TRACE
             _logger?.LogTraceFinishDisposalTaskExit(fi.SessionId, fi.RunnerNumber);
-            #endif
-        }
-
-        public void AbortAll(IActiveSession SessionKey)
-        {
-            CheckSession(SessionKey);
-            #if TRACE
-            _logger?.LogTraceAbortAll(SessionKey.Id);
-            #endif
-            lock (RunnerCreationLock) {
-                #if TRACE
-                _logger?.LogTraceAbortAllLockAcqired(SessionKey.Id);
-                #endif
-                foreach (var runner_info in _runners.Values) {
-                    runner_info.Runner.Abort();
-                    #if TRACE
-                    _logger?.LogTraceAbortAllAbortRunner(SessionKey.Id,runner_info.Number);
-                    #endif
-                }
-            }
-            #if TRACE
-            _logger?.LogTraceAbortAllExit(SessionKey.Id);
-            #endif
-        }
-
-        public async Task PerformRunnersCleanupAsync(IActiveSession SessionKey)
-        {
-            CheckSession(SessionKey);
-            lock (RunnerCreationLock) {
-                if (_cleanup_mark) return;
-                _cleanup_mark=true;
-                #if TRACE
-                _logger?.LogTracePerformRunnersCleanup(SessionKey.Id);
-                #endif
-            }
-            #if TRACE
-            _logger?.LogTracePerformRunnersCleanupAwaiting(SessionKey.Id);
-            #endif
-            await CleanupRunners(SessionKey.Id);
-            #if TRACE
-            _logger?.LogTracePerformRunnersCleanupDisposing(SessionKey.Id);
-            #endif
-            Dispose();
-            #if TRACE
-            _logger?.LogTracePerformRunnersCleanupComplete(SessionKey.Id);
             #endif
         }
 

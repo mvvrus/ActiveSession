@@ -1,4 +1,5 @@
 ﻿using MVVrus.AspNetCore.ActiveSession.Internal;
+using System.Linq.Expressions;
 
 namespace ActiveSession.Tests
 {
@@ -38,9 +39,11 @@ namespace ActiveSession.Tests
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 //Act and assess: does not throw
                 manager.RegisterSession(stub_as.Object);
+
                 //Test case: register the same session the 2nd time (already arranged)
                 //Act and assess: does not throw
                 manager.RegisterSession(stub_as.Object);
+
                 //Test case: try to register different session (already arranged)
                 //Act and assess: it throws InvalidOperationException
                 Assert.Throws<InvalidOperationException>(()=>manager.RegisterSession(new Mock<IActiveSession>().Object));
@@ -73,13 +76,9 @@ namespace ActiveSession.Tests
                 Assert.Equal(typeof(Result1), info!.ResultType);
                 Assert.Equal(TEST_RUNNER_NUMBER, info!.Number);
             }
-
-            //TODO Test case: attempt to register a runner after cleanup initiation (should throw InvalidOperationException)
-            //TODO Test case: attemp to call RegisterRunner for disposed instance
         }
 
         //Test group: test UnregisterRunner method & GetRunnerInfo method
-        // TODO test different disposal scenarios
         [Fact]
         public void UnregisterRunner()
         {
@@ -104,7 +103,6 @@ namespace ActiveSession.Tests
                 Assert.Equal(1, manager.RunnersCounter.CurrentCount); //+1 for session; Fragile:depends on implementation
                 Assert.Null(manager.GetRunnerInfo(stub_as.Object,TEST_RUNNER_NUMBER));
             }
-            //TODO Test case: attemp to call UnregisterRunner for disposed instance
         }
 
         //Test group: test ReturnRunnerNumber method (no runner number reuse is implemented yet)
@@ -176,14 +174,66 @@ namespace ActiveSession.Tests
             //Act
             manager.Dispose();
             //Assert that internal countdown even object is disposed
+
+            //Test case: attemp to call RegisterRunner for disposed instance
+            //Act & assess: throws
             Assert.Throws<ObjectDisposedException>(() => manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER, dummy_runner.Object, typeof(Result1)));
-            //TODO Test case: double Dispose()
+
+            //Test case: attemp to call UnregisterRunner for disposed instance
+            //Act & assess: throws
+            Assert.ThrowsAsync<ObjectDisposedException>(() => manager.UnregisterRunner(stub_as.Object, TEST_RUNNER_NUMBER)??Task.CompletedTask);
+
+            //Test case: double Dispose()
+            //Act & assess: does not throw
+            manager.Dispose();
         }
 
-        //TODO Test AbortAll
-        //TODO Test PerformRunnersCleanup
+        Expression<Action<IActiveSessionRunner>> AbortExpression = s => s.Abort();
+        Mock<IActiveSessionRunner> MockRunner ()
+        {
+            Mock<IActiveSessionRunner> result = new Mock<IActiveSessionRunner>();
+            result.Setup(AbortExpression);
+            return result;
+        }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //Test group: test AbortAll
+        [Fact]
+        public void AbortAll()
+        {
+            //Arrange
+            Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
+            Mock<IActiveSession> stub_as = MakeStubAs();
+            DefaultRunnerManager manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object, 0, 2);
+            manager.RegisterSession(stub_as.Object);
+            //Test case: AbortAll with no runners
+            //Act and assess: does not throw
+            manager.AbortAll(stub_as.Object);
+
+            //Test case: AbortAll with no runners
+            //Arrange
+            Mock<IActiveSessionRunner>[] runners = new Mock<IActiveSessionRunner>[3];
+            manager = new DefaultRunnerManager(
+                new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object, 0, 2);
+            manager.RegisterSession(stub_as.Object);
+            //Act
+            manager.AbortAll(stub_as.Object);
+            //Assess
+            for (int i = 0; i<runners.Length; i++) {
+                runners[i]=MockRunner();
+                manager.RegisterRunner(stub_as.Object, i, runners[i].Object, typeof(Object));
+            }
+            //Act
+            manager.AbortAll(stub_as.Object);
+            //Assess
+            for (int i = 0; i<runners.Length; i++) runners[i].Verify(AbortExpression, Times.Once);
+        }
+            
+
+        //TODO Test PerformRunnersCleanup
+        //TODO Test case: attempt to register a runner after cleanup initiation (should throw InvalidOperationException)
+
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         Mock<IActiveSession> MakeStubAs()
         {
             Mock<IActiveSession> stub_as = new Mock<IActiveSession>();
