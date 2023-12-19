@@ -23,10 +23,10 @@ namespace ProbeApp
             _logger?.LogDebug($"Parameters: {Params}");
         }
 
-        public override void Abort()
+        protected override Boolean DoAbort()
         {
-            lock (_lock) {
-                SetState(Aborted);
+            lock (_lock) { //TODO Is lock required?
+                return SetState(Aborted);
             }
         }
 

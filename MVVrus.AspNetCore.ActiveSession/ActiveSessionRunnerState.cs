@@ -12,10 +12,28 @@
         /// <value> Advanced to a new position or completed and has new data available</value>
         Progressed=2,
         /// <value> Completed and has no new data available</value>
-        Complete=3,
+        Complete=10,
         /// <value> An error occured while the object is running, no data available</value>
-        Failed=-1,
+        Failed=11,
         /// <value> An error occured while the object is running, no data available</value>
-        Aborted=-2,
+        Aborted=12,
+    }
+
+    /// <summary>
+    /// Class containing an extension method for <see cref="ActiveSessionRunnerState"/> enumerable
+    /// </summary>
+    public static class ActiveSessionRunnerStateExtensions
+    {
+        /// <summary>
+        /// Returns true if the state, specified by <paramref name="State"/> is final, 
+        /// i.e. that a runner execution beyond that state will never proceed.
+        /// </summary>
+        /// <param name="State">The runner state to analyze/</param>
+        /// <returns>true if the <paramref name="State"/> specified is a final one (Complete, Failed or Aborted), false otherwise</returns>
+        public static Boolean IsFinal(this ActiveSessionRunnerState State)
+        {
+            return State>=ActiveSessionRunnerState.Complete;
+        }
+
     }
 }

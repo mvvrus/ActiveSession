@@ -16,34 +16,29 @@ namespace MVVrus.AspNetCore.ActiveSession
         const String PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
         const Int32 SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
-        readonly CancellationTokenSource _completionTokenSource;
         readonly BlockingCollection<TResult> _queue;
-        readonly Object _disposeLock;
-        readonly Boolean _passAdapterBaseOnership;
+        readonly Boolean _passSourceOnership;
         readonly Int32 _defaultAdvance;
-        IEnumerable<TResult>? _source;
         readonly ILogger? _logger;
+        IEnumerable<TResult>? _source;
+        Task? _enumTask;
 
         //Pseudo-lock to block parallel execution of GetMoreAsync/GetAvailable methods,
-        //The most of the code using it just exits then the lock cannot be acquired,
-        //only a task running SignalCompletion method plans its continuation to retry acquiring the lock
+        //The code using it just exits then the pseudo-lock cannot be acquired,
         Int32 _busy;
 
-        //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
-        //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
         Exception? _failureException;
 
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory) 
+        public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory): 
+            base(Params.CompletionTokenSource, Params.PassCtsOwnership)
         {
             _source=Params.Source??throw new ArgumentNullException( nameof(Params), "AdapterBase property cannot be null");
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
 #if TRACE
 #endif
-            _disposeLock=new Object();
-            _completionTokenSource = new CancellationTokenSource();
             _queue = new BlockingCollection<TResult>(Params.Limit);
-            _passAdapterBaseOnership=Params.PassAdapterBaseOnership;
+            _passSourceOnership=Params.PassSourceOnership;
             _defaultAdvance=Params.Limit;
             //TODO LogDebug parameters passed
 
@@ -53,36 +48,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public override ActiveSessionRunnerState State { 
-            get {
+        public override ActiveSessionRunnerState State {
+            //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
+            //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
+            get
+            {
                 ActiveSessionRunnerState state = base.State;
                 if (state==Stalled && _queue.Count>0) state=Progressed;
 #if TRACE
 #endif
                 return state; 
             } 
-        }
-
-        /// <inheritdoc/>
-        public override void Abort()
-        {
-            if (_disposed) return;
-#if TRACE
-#endif
-            Boolean state_changed = CompareAndSetStateInterlocked(Aborted, Stalled)==Stalled
-                || CompareAndSetStateInterlocked(Aborted, NotStarted)==NotStarted;
-            if (state_changed) SetRunnerCompletion(Aborted);
-#if TRACE
-#endif
-        }
-
-        /// <inheritdoc/>
-        public override CancellationToken GetCompletionToken()
-        {
-            CheckDisposed();
-#if TRACE
-#endif
-            return _completionTokenSource.Token;
         }
 
         /// <inheritdoc/>
@@ -115,7 +91,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 if (_queue.IsAddingCompleted && _queue.Count==0) {
 #if TRACE
 #endif
-                    SetRunnerCompletion(Complete);
+                    SetState(Complete);
                 }
                 result=MakeResult(result_list);
             }
@@ -172,7 +148,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     else if (_queue.IsAddingCompleted) {
 #if TRACE
 #endif
-                        SetRunnerCompletion(Complete);
+                        SetState(_failureException==null?Complete:Failed);
                     }
                     else {
 #if TRACE
@@ -192,79 +168,32 @@ namespace MVVrus.AspNetCore.ActiveSession
             return result;
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
+        protected sealed override void Dispose(Boolean Disposing)
         {
-            if (_disposed) return;
-            ReleaseSource();
-            lock (_disposeLock) {
-                if (_disposed)
-                    return;
-#if TRACE
-#endif
-                _disposed=true;
-                _queue.Dispose();
-                _completionTokenSource.Dispose();
-            }
+            DisposeAsyncCore().AsTask().Wait();
+        }
+
+        protected async virtual ValueTask DisposeAsyncCore()
+        {
+            if(_enumTask!=null) await _enumTask!;
+            _queue.Dispose();
+            base.Dispose(true);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            return  SetDisposed() ? DisposeAsyncCore() : ValueTask.CompletedTask;
         }
 
         void ReleaseSource()
         {
 #if TRACE
 #endif
-            IDisposable? base_disposable = _passAdapterBaseOnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
+            IDisposable? base_disposable = _passSourceOnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
             base_disposable?.Dispose();
             //TODO
         }
 
-        void SetRunnerCompletion(ActiveSessionRunnerState CompletionState)
-        {
-#if TRACE
-#endif
-            Boolean state_set = CompareAndSetStateInterlocked(CompletionState, NotStarted)==NotStarted
-                || CompareAndSetStateInterlocked(CompletionState, Stalled)==Stalled;
-            if (state_set) {
-#if TRACE
-#endif
-                Task.Run(SignalCompletion);
-            }
-#if TRACE
-#endif
-        }
-
-        async void SignalCompletion()
-        {
-            if (_disposed) return;
-#if TRACE
-#endif
-            SpinWait spin_waiter = new SpinWait();
-            while (Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
-                if (_disposed) return;
-                if (!spin_waiter.NextSpinWillYield) spin_waiter.SpinOnce();
-                else {
-                    //Pseudo-lock has been not acuired yet, plan to repeat this task after a delay
-#if TRACE
-#endif
-                    await Task.Delay(SIGNAL_COMPLETION_DELAY_MSEC);
-#if TRACE
-#endif
-                }
-            }
-            //Come here if the pseudo-lock was acquired
-            try {
-                if (_disposed) return;
-#if TRACE
-#endif
-                //Perorm signalling via cancellation of  _completionTokenSource
-                _completionTokenSource.Cancel();
-            }
-#if TRACE
-#endif
-            finally {
-                //Release the pseudo-lock
-                Volatile.Write(ref _busy, 0);
-            }
-        }
 
         void ThrowInvalidParallelism()
         {
@@ -280,24 +209,23 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         void StartSourceEnumerationIfNotStarted()
         {
-            if (State!=NotStarted) return;
+            if (State!=NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE
 #endif
-            SetStateInterlocked(Stalled);
-            Task.Run(EnumerateSource);
+            if(CompareAndSetStateInterlocked(Stalled, NotStarted)==NotStarted) _enumTask=Task.Run(EnumerateSource);
 #if TRACE
 #endif
         }
 
         void EnumerateSource()
         {
-            CancellationToken completion_token = _completionTokenSource.Token;
+            CancellationToken completion_token = GetCompletionToken();
             if (_source==null) return;
             try {
                 foreach (TResult item in _source!) {
 #if TRACE
 #endif
-                    if (base.State!=Stalled) {
+                    if (base.State!=Stalled) {  //TODO check for State.IsFinal()
 #if TRACE
 #endif
                         break;
@@ -316,7 +244,6 @@ namespace MVVrus.AspNetCore.ActiveSession
             catch (Exception e) {
                 //LogError
                 _failureException=e;
-                SetRunnerCompletion(Failed);
             }
             finally {
 #if TRACE
@@ -332,7 +259,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         #region Await stuff
         readonly Action<Action> _runAwaitContinuationDelegate;
         Action? _continuation;
-
         readonly ManualResetEventSlim _complete_event = new ManualResetEventSlim(true);
 
         public EnumAdapterRunner<TResult> GetAwaiter() { return this; }
