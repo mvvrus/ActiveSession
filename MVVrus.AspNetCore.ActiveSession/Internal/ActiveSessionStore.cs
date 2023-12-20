@@ -217,6 +217,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceCreateRunner(trace_identifier);
             #endif
+            //TODO LogTrace getting session lock
             Int32 runner_number = -1;
             Boolean use_session_lock = true;
             Object? runner_lock= RunnerManager.RunnerCreationLock; 
@@ -457,13 +458,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 Interlocked.Decrement(ref _currentSessionCount);
                 Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
             }
-            //TODO LogTrace AbortAll
+            #if TRACE
+            _logger?.LogTraceAbortRunners(session_id);
+            #endif
             session_info.RunnerManager.AbortAll(active_session);
             _logger?.LogDebugBeforeSessionDisposing(session_id);
             active_session.Dispose();
-            #if TRACE
-            _logger?.LogTraceEvictRunners(session_id);
-            #endif
             //Start runners cleanup processing and a task in the ActiveSession waiting for its completion
             #if TRACE
             _logger?.LogTraceSessionCleanupRunnersInitiated(session_id);
@@ -550,13 +550,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (_trackStatistics) {
                 Interlocked.Decrement(ref _currentRunnerCount);
                 if(runner!=null) Interlocked.Add(ref _currentStoreSize, -GetRunnerSize(runner.GetType()));
-            }
-            IDisposable? disposable_runner = runner as IDisposable;
-            if (disposable_runner!=null) {
-                #if TRACE
-                _logger?.LogTraceDisposeRunner(runner_info.ActiveSession.Id, runner_info.Number);
-                #endif
-                disposable_runner!.Dispose();
             }
             #if TRACE
             _logger?.LogTraceRunnerEvictionCallbackExit(runner_info.ActiveSession.Id, runner_info.Number);
