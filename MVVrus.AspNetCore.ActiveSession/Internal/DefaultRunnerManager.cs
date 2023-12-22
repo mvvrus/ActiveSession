@@ -183,19 +183,58 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public async Task PerformRunnersCleanupAsync(IActiveSession SessionKey)
         {
+            CheckDisposed();
             CheckSession(SessionKey);
+            Boolean has_runners;
+            #if TRACE
+            _logger?.LogTracePerformRunnersCleanup(SessionKey.Id);
+            #endif
             lock (RunnerCreationLock) {
-                if (_cleanup_mark)
-                    return;
-                _cleanup_mark=true;
                 #if TRACE
-                _logger?.LogTracePerformRunnersCleanup(SessionKey.Id);
+                _logger?.LogTracePerformRunnersCleanupAcquired(SessionKey.Id);
                 #endif
+                if (_cleanup_mark) {
+                    #if TRACE
+                    _logger?.LogTracePerformRunnersCleanupDuplicate(SessionKey.Id);
+                    #endif
+                    return;
+                }
+                _cleanup_mark=true;
+                has_runners=_runners.Count>0; 
+                if(has_runners) AbortAll(SessionKey);
+                else {
+                    //LogTrace no runners
+                    #if TRACE
+                    _logger?.LogTracePerformRunnersCleanupNoRunners(SessionKey.Id);
+                    #endif
+                }
             }
             #if TRACE
-            _logger?.LogTracePerformRunnersCleanupAwaiting(SessionKey.Id);
+            _logger?.LogTracePerformRunnersCleanupReleased(SessionKey.Id);
             #endif
-            await CleanupRunners(SessionKey.Id);
+            _runnersCounter.Signal();
+            if(has_runners) {
+                Task unreg_task = new Task(WaitUnregistration, SessionKey.Id);
+                unreg_task.Start();
+                #if TRACE
+                _logger?.LogTracePerformRunnersCleanupAwaiting(SessionKey.Id);
+                #endif
+                await unreg_task;
+                Task[] dispose_tasks;
+                #if TRACE
+                _logger?.LogPerformRunnersCleanupAcquiringLock2(SessionKey.Id);
+                #endif
+                lock (RunnerCreationLock) {
+                    #if TRACE
+                    _logger?.LogTracePerformRunnersCleanupLockAcquired2(SessionKey.Id);
+                    #endif
+                    dispose_tasks=_runningDisposeTasks.ToArray();
+                }
+                #if TRACE
+                _logger?.LogTracePerformRunnersCleanupLockReleased2(SessionKey.Id);
+                #endif
+                await Task.WhenAll(dispose_tasks);
+            }
             #if TRACE
             _logger?.LogTracePerformRunnersCleanupDisposing(SessionKey.Id);
             #endif
@@ -208,7 +247,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         void CheckSession(IActiveSession SessionKey)
         {
             if (!ReferenceEquals(_sessionKey, SessionKey))
-                throw new InvalidOperationException("DefaultRunnermanager can serve runners from one session only/");
+                throw new InvalidOperationException("DefaultRunnerManager can serve runners from one session only/");
         }
 
         Task? RunDisposeRunnerTask(IActiveSessionRunner Runner, String SessionId, Int32 RunnerNumber) 
@@ -262,37 +301,24 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        Task CleanupRunners(Object? State)
+        void WaitUnregistration(Object? State)
         {
-            CheckDisposed();
             String session_id = (String)State!;
-            #if TRACE
-            _logger?.LogTraceCleanupRunners(session_id);
-            #endif
-            _runnersCounter.Signal();
             #if TRACE
             _logger?.LogTraceCleanupRunnersWaitForUnregistration(session_id);
             #endif
             _runnersCounter.Wait();
-            Task[] dispose_tasks;
             #if TRACE
-            _logger?.LogTraceCleanupRunnersAcquiringLock(session_id);
+            _logger?.LogTraceCleanupRunnersExit(session_id);
             #endif
-            lock (RunnerCreationLock) {
-                #if TRACE
-                _logger?.LogTraceCleanupRunnersLockAcquired(session_id);
-                #endif
-                dispose_tasks=_runningDisposeTasks.ToArray();
-            }
-            #if TRACE
-            _logger?.LogTraceCleanupRunnersReturnContinuation(session_id);
-            #endif
-            return Task.WhenAll(dispose_tasks);
         }
+
+        internal Boolean IsDisposed() => Volatile.Read(ref _disposed)!=0; //internal - for tests
 
         void CheckDisposed()
         {
-            if (Volatile.Read(ref _disposed)!=0)
+            if (IsDisposed())
+            if (IsDisposed())
                 throw new ObjectDisposedException(this.GetType().FullName);
         }
     }

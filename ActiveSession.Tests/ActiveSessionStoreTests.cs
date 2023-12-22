@@ -14,8 +14,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http;
 using Active_Session = MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
-
+using static MVVrus.AspNetCore.ActiveSession.Internal.LogIds;
 
 namespace ActiveSession.Tests
 {
@@ -573,11 +572,10 @@ namespace ActiveSession.Tests
                             }
                         );
 
-                const int UNASSIGNABLE_TYPE_WARNING_ID = 1160;
                 //Test case: search for an existing runner with incompatible type
                 //Arrange
                 MockedLogger logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
@@ -593,7 +591,7 @@ namespace ActiveSession.Tests
                             null);
                         //Assess
                         Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once()); 
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once()); 
                     }
                 }
                 logger_mock= ts.InitLogger();
@@ -622,7 +620,7 @@ namespace ActiveSession.Tests
                 //Test case: search for an existing runner, cached as task, incompatible type
                 //Arrange
                 logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
@@ -638,7 +636,7 @@ namespace ActiveSession.Tests
                             null);
                         //Assess
                         Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
                     }
                 }
                 logger_mock=ts.InitLogger();
@@ -726,11 +724,10 @@ namespace ActiveSession.Tests
                         }
                         );
 
-                const int UNASSIGNABLE_TYPE_WARNING_ID = 1160;
                 //Test case: search for an existing runner with incompatible type
                 //Arrange
                 MockedLogger logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
@@ -747,7 +744,7 @@ namespace ActiveSession.Tests
                             CancellationToken.None).GetAwaiter().GetResult();
                         //Assess
                         Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
                     }
                 }
                 logger_mock=ts.InitLogger();
@@ -777,7 +774,7 @@ namespace ActiveSession.Tests
                 //Test case: search for an existing runner, cached as task, incompatible type
                 //Arrange
                 logger_mock=ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID);
+                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
@@ -794,7 +791,7 @@ namespace ActiveSession.Tests
                             CancellationToken.None).GetAwaiter().GetResult();
                         //Assess
                         Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, UNASSIGNABLE_TYPE_WARNING_ID, Times.Once());
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
                     }
                 }
                 logger_mock=ts.InitLogger();

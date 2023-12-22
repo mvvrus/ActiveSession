@@ -441,32 +441,44 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MANAGERABORTALLRELEASED, Trace, "DefaultRunnerManager.AbortAll exited, runners lock released, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceAbortAllExit(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(T_MANAGERCLEANUPACQUIRED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync started, runners lock acquired, SessionId=\"{SessionId}\".")]
+        [LoggerMessage(T_MANAGERCLEANUPACQUIRING, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync started, runners lock acquired, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanup(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(T_MANAGERCLEANUPRELEASED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync, runners lock released, awaiting CleanupRunners , SessionId=\"{SessionId}\".")]
+        [LoggerMessage(T_MANAGERCLEANUPACQUIRED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync runners lock acquired, SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupAcquired(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPDUPLICATE, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync duplicate call detected, releasing runners lock and exiting, SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupDuplicate(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPNORUNNERS, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync no runners to clean up , SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupNoRunners(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPRELEASED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync runners lock released, SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupReleased(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPAWAIT, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync, runners lock released, awaiting task running WaitUnregistratin, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanupAwaiting(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLTASKWAIT, Trace, "DefaultRunnerManager.WaitUnregistration entered and waiting for all runners to unregister, SessionId=\"{SessionId}\".")]
+        public static partial void LogTraceCleanupRunnersWaitForUnregistration(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLTASKEXIT, Trace, "DefaultRunnerManager.WaitUnregistration entered, SessionId=\"{SessionId}\".")]
+        public static partial void LogTraceCleanupRunnersExit(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPACQUIRING2, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync acquiring 2nd runners lock, SessionId=\"{SessionId}\".")]
+        public static partial void LogPerformRunnersCleanupAcquiringLock2(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPACQUIRED2, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync 2nd runners lock acquired, SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupLockAcquired2(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_MANAGERCLEANUPRELEASED2, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync 2nd runners lock released, returning a task awaiting disposing all runners, SessionId=\"{SessionId}\".")]
+        public static partial void LogTracePerformRunnersCleanupLockReleased2(this ILogger Logger, String SessionId);
 
         [LoggerMessage(T_MANAGERCLEANUPDISPOSING, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync disposing this DefaultRunnerManger instance, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanupDisposing(this ILogger Logger, String SessionId);
 
         [LoggerMessage(T_MANAGERCLEANUPENDED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync finished, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanupComplete(this ILogger Logger, String SessionId);
-
-        [LoggerMessage(T_MANAGERCLTASK, Trace, "DefaultRunnerManager.CleanupRunners entered, SessionId=\"{SessionId}\".")]
-        public static partial void LogTraceCleanupRunners(this ILogger Logger, String SessionId);
-
-        [LoggerMessage(T_MANAGERCLTASKWAIT, Trace, "DefaultRunnerManager.CleanupRunners waiting for all runners to unregister, SessionId=\"{SessionId}\".")]
-        public static partial void LogTraceCleanupRunnersWaitForUnregistration(this ILogger Logger, String SessionId);
-
-        [LoggerMessage(T_MANAGERCLTASKACQUIRING, Trace, "DefaultRunnerManager.CleanupRunners acquiring runners lock, SessionId=\"{SessionId}\".")]
-        public static partial void LogTraceCleanupRunnersAcquiringLock(this ILogger Logger, String SessionId);
-
-        [LoggerMessage(T_MANAGERCLTASKACQUIRED, Trace, "DefaultRunnerManager.CleanupRunners runners lock acquired, SessionId=\"{SessionId}\".")]
-        public static partial void LogTraceCleanupRunnersLockAcquired(this ILogger Logger, String SessionId);
-
-        [LoggerMessage(T_MANAGERCLTASKRELEASED, Trace, "DefaultRunnerManager.CleanupRunners runners lock released, returning a task awaiting disposing all runners, SessionId=\"{SessionId}\".")]
-        public static partial void LogTraceCleanupRunnersReturnContinuation(this ILogger Logger, String SessionId);
 
 
 #endif

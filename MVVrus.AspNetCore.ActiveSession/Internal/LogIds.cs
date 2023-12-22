@@ -149,14 +149,18 @@
         public const Int32 T_MANAGERABORTALLACQUIRED = 4561;
         public const Int32 T_MANAGERABORTALLABORTING = 4562;
         public const Int32 T_MANAGERABORTALLRELEASED = 4563;
-        public const Int32 T_MANAGERCLEANUPACQUIRED = 4570;
-        public const Int32 T_MANAGERCLEANUPRELEASED = 4571;
-        public const Int32 T_MANAGERCLEANUPDISPOSING = 4572;
-        public const Int32 T_MANAGERCLEANUPENDED = 4573;
-        public const Int32 T_MANAGERCLTASK = 4574;
-        public const Int32 T_MANAGERCLTASKWAIT = 4575;
-        public const Int32 T_MANAGERCLTASKACQUIRING = 4576;
-        public const Int32 T_MANAGERCLTASKACQUIRED = 4577;
-        public const Int32 T_MANAGERCLTASKRELEASED = 4578;
+        public const Int32 T_MANAGERCLEANUPACQUIRING = 4570;
+        public const Int32 T_MANAGERCLEANUPACQUIRED = 4571;
+        public const Int32 T_MANAGERCLEANUPDUPLICATE = 4572;
+        public const Int32 T_MANAGERCLEANUPNORUNNERS = 4573;
+        public const Int32 T_MANAGERCLEANUPRELEASED = 4574;
+        public const Int32 T_MANAGERCLEANUPAWAIT = 4575;
+        public const Int32 T_MANAGERCLTASKWAIT = 4576;
+        public const Int32 T_MANAGERCLTASKEXIT = 4577;
+        public const Int32 T_MANAGERCLEANUPACQUIRING2 = 4578;
+        public const Int32 T_MANAGERCLEANUPACQUIRED2 = 4579;
+        public const Int32 T_MANAGERCLEANUPRELEASED2 = 4580;
+        public const Int32 T_MANAGERCLEANUPDISPOSING = 4581;
+        public const Int32 T_MANAGERCLEANUPENDED = 4582;
     }
 }
