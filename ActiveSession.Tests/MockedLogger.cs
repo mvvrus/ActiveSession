@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,14 +25,33 @@ namespace ActiveSession.Tests
         Boolean[] _enabledLevels = new Boolean[7];
         public ILogger Logger { get { return _loggerMock.Object;} }
 
-        public void MonitorLogEntry(LogLevel LogLevel, EventId EventId)
+        public void MonitorLogEntry(LogLevel LogLevel, EventId EventId,
+            Action<LogLevel, EventId, LogValues> Callback)
+        {
+            MonitorLogEntry(LogLevel, EventId, (LogLevel lvl, EventId id, LogValues vals, Exception? _, Delegate _)
+                    => Callback(lvl, id, vals));
+        }
+
+        public void MonitorLogEntry(LogLevel LogLevel, EventId EventId,
+            Action<LogLevel, EventId, LogValues, Exception?> Callback)
+        {
+            MonitorLogEntry(LogLevel, EventId, (LogLevel lvl, EventId id, LogValues vals, Exception? e, Delegate _)
+                    => Callback(lvl, id, vals, e));
+        }
+
+        public void MonitorLogEntry(LogLevel LogLevel, EventId EventId, 
+            Action<LogLevel, EventId, LogValues, Exception?, Delegate>? Callback=null)
         {
             _enabledLevels[(int)LogLevel]=true;
-            _loggerMock.Setup(x=>x.Log<It.IsSubtype<LogValues>>(LogLevel, EventId
+            var logger_setup = _loggerMock.Setup(x => x.Log<It.IsSubtype<LogValues>>(LogLevel, EventId
                 , It.IsAny<It.IsSubtype<LogValues>>()
                 , It.IsAny<Exception?>()
-                , It.IsAny<Func<It.IsSubtype<LogValues>, Exception?,String>>() )
+                , It.IsAny<Func<It.IsSubtype<LogValues>, Exception?, String>>())
             );
+            if (Callback!=null)
+                logger_setup.Callback(
+                    (LogLevel lvl, EventId id, object vals,Exception? e, Delegate fmt)
+                    =>Callback(lvl,id, (LogValues)vals,e, fmt));
         }
 
 
