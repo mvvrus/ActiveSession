@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Active_Session = MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
 using Microsoft.Extensions.DependencyInjection;
 using static MVVrus.AspNetCore.ActiveSession.Internal.LogIds;
+using LogValues = System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, object?>>;
 
 namespace ActiveSession.Tests
 {
@@ -92,12 +93,12 @@ namespace ActiveSession.Tests
             IActiveSession? session;
             IRunnerManager? manager;
 
+            //Arrange
             using (ts=new CreateFetchTestSetup()) {
                 using (store=ts.CreateStore()) {
-
                     //Test case: create new ActiveSession
+                    //Act
                     session=store.FetchOrCreateSession(ts.StubSession.Object, null);
-
                     //Assess
                     Assert.NotNull(session);
                     //Assess IActiveSession
@@ -144,7 +145,7 @@ namespace ActiveSession.Tests
                     cleanup_task.GetAwaiter().GetResult();
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Once);
                     ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Once);
-                    Assert.Throws<ObjectDisposedException>(()=>session_sp.GetService(typeof(ILoggerFactory)));
+                    Assert.Throws<ObjectDisposedException>(() => session_sp.GetService(typeof(ILoggerFactory)));
                 }
 
                 //Test case: options passed to ActiveSessionStore constructor affects cache entry
@@ -182,13 +183,47 @@ namespace ActiveSession.Tests
                     Assert.NotEqual(TaskStatus.Created, cleanup_task.Status);
                     cleanup_task.GetAwaiter().GetResult();
                     //Verify the next two calls are made once, accounting for 1 call made by an earlier test
-                    ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Exactly(2)); 
+                    ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Exactly(2));
                     ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Exactly(2));
                     Assert.Throws<ObjectDisposedException>(() => session_sp.GetService(typeof(ILoggerFactory)));
-
-                    //TODO? Test case: disposing ActiveSession while in the cache w/runners associated
-                    //TODO Test case: logging timely runners cleanup after eviction
                 }
+
+                const Int32 CLEANUP_TIMEOUT = 2000;
+                //Test case: logging timely runners cleanup after eviction - in time
+                //Arrange
+                ts.ActSessOptions.CleanupLoggingTimeoutMs=CLEANUP_TIMEOUT;
+                Boolean? in_time;
+                Action<LogLevel, EventId, LogValues> log_callback = (_, _, vals) => in_time=(Boolean?)(vals[1].Value);
+                MockedLogger mock_logger;
+                mock_logger=ts.InitLogger();
+                in_time=null;
+                mock_logger.MonitorLogEntry(LogLevel.Trace, T_STORERUNNERCLEANUPRESULT, log_callback);
+                ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT/2); });
+                using (store=ts.CreateStore()) {
+                    session=store.FetchOrCreateSession(ts.StubSession.Object, null);
+                    //Act
+                    ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
+                    session.CleanupCompletionTask.GetAwaiter().GetResult();
+                    store._cleanupLoggingTask?.GetAwaiter().GetResult();
+                    //Assess
+                    Assert.Equal(true, in_time);
+                }
+
+                //Test case: logging timely runners cleanup after eviction - timeout
+                mock_logger=ts.InitLogger();
+                in_time=null;
+                mock_logger.MonitorLogEntry(LogLevel.Trace, T_STORERUNNERCLEANUPRESULT, log_callback);
+                ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
+                using (store=ts.CreateStore()) {
+                    session=store.FetchOrCreateSession(ts.StubSession.Object, null);
+                    //Act
+                    ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
+                    session.CleanupCompletionTask.GetAwaiter().GetResult();
+                    store._cleanupLoggingTask?.GetAwaiter().GetResult();
+                    //Assess
+                    Assert.Equal(false, in_time);
+                }
+
             }
         }
 
@@ -252,13 +287,14 @@ namespace ActiveSession.Tests
             KeyedActiveSessionRunner<Result1> runner_and_key;
             Request1 request = new Request1() { Arg=TEST_ARG1 };
             MockedRunner<Request1, Result1>? dummy_runner1 = null;
-            CancellationTokenSource cts=null!;  //Inialize to avoid false error concerning use of an uninitialized variable
+            CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
 
             //Test case: create new runner with ActiveSession level lock and default options
             //Arrange
             using (ts=new RunnerTestSetup()) {
                 ts.AddRunnerFactory<Request1, Result1>(
-                    arg => {
+                    arg =>
+                    {
                         dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
                         return dummy_runner1.Runner;
                     }
@@ -310,6 +346,8 @@ namespace ActiveSession.Tests
                         ts.MockRunnerManager.Verify(ts.RegisterRunnerExpression, Times.Once);
                         ts.MockRunnerManager.Verify(ts.ReturnRunnerNumberExpression, Times.Once);
                         ts.MockRunnerManager.Verify(ts.UnregisterRunnerExpression, Times.Once);
+                        //Check the runner was aborted
+                        dummy_runner1!.VerifyAbort();
                         //Check that ISesson variables are left intact
                         Assert.Equal(DEFAULT_HOST_NAME, ts.MockSession.Object.GetString(runner_key));
                         Assert.Equal(typeof(Result1).FullName, ts.MockSession.Object.GetString(runner_key+"_Type"));
@@ -337,13 +375,14 @@ namespace ActiveSession.Tests
                 //Aready arranged. Act and assess.
                 using (cts=new CancellationTokenSource()) {
                     Assert.Throws<ObjectDisposedException>(
-                    () => {
-                            runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        }
+                    () =>
+                    {
+                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                        ts.StubActiveSession.Object,
+                        ts.MockRunnerManager.Object,
+                        request,
+                        null);
+                    }
                     );
                 }
 
@@ -370,15 +409,16 @@ namespace ActiveSession.Tests
                 ts.CreateStage4Callback=() => { throw new TestException4(); };
                 using (cts=new CancellationTokenSource()) {
                     ts.AddRunnerFactory<Request1, Result1>(
-                        arg => {
+                        arg =>
+                        {
                             stage2_callback?.Invoke();
-                            return (dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg)).Runner; 
+                            return (dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg)).Runner;
                         }
                     );
                     using (store=ts.CreateStore()) {
                         //Act & assess stage 1
                         Assert.Throws<TestException1>(
-                            ()=>store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
+                            () => store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
                                 ts.MockRunnerManager.Object,
                                 request,
@@ -453,7 +493,8 @@ namespace ActiveSession.Tests
                 ts.ActSessOptions.CacheRunnerAsTask=true;
                 ts.ActSessOptions.DefaultRunnerSize=ASR_SIZE;
                 ts.AddRunnerFactory<Request1, Result1>(
-                    arg => {
+                    arg =>
+                    {
                         dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
                         return dummy_runner1.Runner;
                     }
@@ -472,7 +513,7 @@ namespace ActiveSession.Tests
                         Assert.Equal(dummy_runner1?.Runner, runner_and_key.Runner);
                         Assert.Equal(RunnerTestSetup.RUNNER_1, runner_and_key.RunnerNumber);
                         Assert.Equal(TEST_ARG1, dummy_runner1?.Arg.Arg);
-                        //Check cache entry (TODO)
+                        //Check cache entry
                         ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                         Assert.True(ts.Cache.IsEntryStored);
                         String runner_key = PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID
@@ -491,6 +532,8 @@ namespace ActiveSession.Tests
                         Assert.Equal(0, store.GetCurrentStatistics()!.StoreSize);
                         Assert.False(ts.Cache.IsEntryStored);
                         Assert.Equal(1, ts.Cache.CalledCallbacksCount);
+                        //Check the runner was aborted
+                        dummy_runner1!.VerifyAbort();
                     }
                 }
             }
@@ -512,7 +555,8 @@ namespace ActiveSession.Tests
             //Arrange
             using (ts=new RunnerTestSetup()) {
                 ts.AddRunnerFactory<Request1, Result1>(
-                    arg => {
+                    arg =>
+                    {
                         dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
                         return dummy_runner1.Runner;
                     }
@@ -563,13 +607,14 @@ namespace ActiveSession.Tests
                 //Test case: try to get a runner from the disposed store (Already arranged)
                 //Act & assess
                 Assert.Throws<ObjectDisposedException>(
-                        ()=> {
+                        () =>
+                        {
                             store.GetRunner<Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
                                 ts.MockRunnerManager.Object,
                                 runner_and_key.RunnerNumber,
                                 null);
-                            }
+                        }
                         );
 
                 //Test case: search for an existing runner with incompatible type
@@ -584,17 +629,17 @@ namespace ActiveSession.Tests
                             request,
                             null);
                         //Act
-                        IActiveSessionRunner<String>? runner2 =store.GetRunner<String>(ts.MockSession.Object,
+                        IActiveSessionRunner<String>? runner2 = store.GetRunner<String>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null);
                         //Assess
                         Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once()); 
+                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
                     }
                 }
-                logger_mock= ts.InitLogger();
+                logger_mock=ts.InitLogger();
 
                 //Test case: search for an existing runner, cached as task
                 //Arrange
@@ -607,7 +652,7 @@ namespace ActiveSession.Tests
                             request,
                             null);
                         //Act
-                        runner = store.GetRunner<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
@@ -619,7 +664,7 @@ namespace ActiveSession.Tests
 
                 //Test case: search for an existing runner, cached as task, incompatible type
                 //Arrange
-                logger_mock = ts.InitLogger();
+                logger_mock=ts.InitLogger();
                 logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
@@ -660,7 +705,8 @@ namespace ActiveSession.Tests
             //Arrange
             using (ts=new RunnerTestSetup()) {
                 ts.AddRunnerFactory<Request1, Result1>(
-                    arg => {
+                    arg =>
+                    {
                         dummy_runner1=new MockedRunner<Request1, Result1>(cts, arg);
                         return dummy_runner1.Runner;
                     }
@@ -714,7 +760,8 @@ namespace ActiveSession.Tests
                 //Test case: try to get a runner from the disposed store (Already arranged)
                 //Act & assess
                 Assert.Throws<ObjectDisposedException>(
-                        () => {
+                        () =>
+                        {
                             store.GetRunnerAsync<Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
                                 ts.MockRunnerManager.Object,
@@ -799,13 +846,47 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test case: call Terminate method
+        [Fact]
+        public void TerminateSession()
+        {
+            //Arrange
+            using (CreateFetchTestSetup ts = new CreateFetchTestSetup()) {
+                using (ActiveSessionStore store = ts.CreateStore()) {
+                    IActiveSession session = store.FetchOrCreateSession(ts.StubSession.Object, null);
+                    Task cleanup_task = session.CleanupCompletionTask;
+                    //Act
+                    Task terminate_task=store.TerminateSession(session, ts.MockRunnerManager.Object, false);
+                    //Assess
+                    Assert.True(ReferenceEquals(cleanup_task, terminate_task));
+                    terminate_task.GetAwaiter().GetResult();
+                    ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.AtLeastOnce);
+                    Assert.False(ts.Cache.IsEntryStored);
+                    Assert.Equal(1, ts.Cache.CalledCallbacksCount);
+                    Assert.True((session as Active_Session)!.Disposed);
+                }
+            }
+        }
+
+        //Test case: call CreateFeatureObject method
+        [Fact]
+        public void CreateFeatureObject()
+        {
+            //Arrange
+            Mock<ISession> dummy_session = new Mock<ISession>();
+            MockedCache cache_mock = new MockedCache();
+            ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
+            using (ActiveSessionStore store=ts.CreateStore()) {
+                //Act
+                IActiveSessionFeature feature = store.CreateFeatureObject(dummy_session.Object,null);
+                //Assess
+                Assert.IsType<ActiveSessionFeature>(feature);
+            }
+        }
+
         //TODO Test case: Create runner race conditions - ActiveSession level lock
         //TODO Test case: Create runner race conditions - store level lock
 
-        /*More methods to test
-        public Task<Boolean> TerminateSession(IActiveSession Session, Boolean Global);
-        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
-        */
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////
@@ -833,13 +914,21 @@ namespace ActiveSession.Tests
 
             public IActiveSessionRunner<TResult> Runner { get =>_fakeRunner.Object; }
             public readonly TRequest Arg;
+            Expression<Action<IActiveSessionRunner<TResult>>> abort_expression= s => s.Abort();
+
 
             public MockedRunner(CancellationTokenSource Cts, TRequest Arg)
             {
                 _cts=Cts;
                 _fakeRunner=new Mock<IActiveSessionRunner<TResult>>();
                 _fakeRunner.Setup(s => s.GetCompletionToken()).Returns(_cts.Token);
+                _fakeRunner.Setup(abort_expression);
                 this.Arg=Arg;
+            }
+
+            public void VerifyAbort()
+            {
+                _fakeRunner.Verify(abort_expression, Times.AtLeastOnce);
             }
         }
 
@@ -1036,6 +1125,13 @@ namespace ActiveSession.Tests
                     It.IsAny<IServiceProvider>(), It.IsAny<Int32>(), It.IsAny<Int32>())).Returns(MockRunnerManager.Object);
             }
 
+            public MockedLogger InitLogger()
+            {
+                _loggerFactory.ResetAllCategories();
+                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
+                return _logger;
+            }
+
             public ActiveSessionStore CreateStore()
             {
                 IMemoryCache? cache = MockCache?.Object;
@@ -1065,7 +1161,6 @@ namespace ActiveSession.Tests
 
         class CreateFetchTestSetup : MockedCaheTestSetup, IDisposable
         {
-            //TODO Monitor AbortAll call
             public readonly Mock<ISession> StubSession;
             public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
             public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
@@ -1076,6 +1171,7 @@ namespace ActiveSession.Tests
 
             readonly CancellationTokenSource _cts;
             readonly ServiceProviderMock _mockedSessionServiceProvider;
+            Action? _callback;
 
 
             public CreateFetchTestSetup() : base(new MockedCache())
@@ -1086,18 +1182,22 @@ namespace ActiveSession.Tests
                 _cts=new CancellationTokenSource();
                 MockRunnerManager.Setup(RegisterSessionExpression);
                 MockRunnerManager.Setup(AbortAllExpression);
-                MockRunnerManager.Setup(PerformRunnersCleanupExpression).Returns(Task.CompletedTask);
             }
 
             public void Dispose()
             {
                 _cts.Dispose();
             }
+
+            public void SetCleanupCallback(Action? Callback)
+            {
+                _callback=Callback;
+                MockRunnerManager.Setup(PerformRunnersCleanupExpression).Returns(_callback==null ? Task.CompletedTask : Task.Run(_callback));
+            }
         }
 
         class RunnerTestSetup : MockedCaheTestSetup, IDisposable
         {
-            //TODO Monitor Abort call
             public readonly Mock<ISession> MockSession;
             public readonly Mock<IActiveSession> StubActiveSession;
             readonly Object? _lockObject = null;
@@ -1116,13 +1216,6 @@ namespace ActiveSession.Tests
             public Action? CreateStage1Callback { get; set; }
             public Action? CreateStage3Callback { get; set; }
             public Action? CreateStage4Callback { get; set; }
-
-            public MockedLogger InitLogger()
-            {
-                _loggerFactory.ResetAllCategories();
-                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
-                return _logger;
-            }
 
             public RunnerTestSetup(Boolean PerSessionLock=true) : base(new MockedCache()) 
             {
@@ -1150,7 +1243,6 @@ namespace ActiveSession.Tests
                         });
 
                 ;
-                //TODO Setup methods for ISession calls verification 
                 StubActiveSession=new Mock<IActiveSession>();
                 _cts=new CancellationTokenSource();
                 StubActiveSession.SetupGet(s => s.CompletionToken).Returns(_cts.Token);

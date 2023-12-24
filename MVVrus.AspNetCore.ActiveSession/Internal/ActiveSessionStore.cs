@@ -10,7 +10,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     internal class ActiveSessionStore : IActiveSessionStore, IDisposable
     {
         const string TYPE_KEY_PART = "_Type";
-        const Int32 RUNNERS_TIMEOUT_MSEC = 10000;
 
         #region InstannceFields
         readonly IMemoryCache _memoryCache;
@@ -33,10 +32,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Boolean _trackStatistics = false;
         Int32 _activeSessionSize = DEFAULT_ACTIVESESSIONSIZE;
         Int32 _runnerSize = DEFAULT_RUNNERSIZE;
+        readonly int? _cleanupLoggingTimeoutMs;
+        internal Task? _cleanupLoggingTask;
         #endregion
 
         #region StaticStuff
         static readonly Dictionary<String,Type> s_ResultTypesDictionary = new Dictionary<String,Type>();
+
         internal static void RegisterTResult(Type TResult)
         {
             s_ResultTypesDictionary.TryAdd(TResult.FullName!, TResult);
@@ -104,6 +106,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _trackStatistics=options.TrackStatistics;
             _activeSessionSize=options.ActiveSessionSize;
             _runnerSize=options.DefaultRunnerSize;
+            _cleanupLoggingTimeoutMs=options.CleanupLoggingTimeoutMs;
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructorExit();
             #endif
@@ -473,8 +476,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             active_session.CleanupCompletionTask.Start();
             //Start logger task waiting for a specified time while the runners complete
             TimeoutLoggerInfo tl_info = new TimeoutLoggerInfo(active_session.Id, runners_cleanup_task);
-            Task.WhenAny(active_session.CleanupCompletionTask, Task.Delay(RUNNERS_TIMEOUT_MSEC))
-                .ContinueWith(TimeoutLoggerBody, tl_info);
+            if(_cleanupLoggingTimeoutMs!=null)
+                _cleanupLoggingTask=Task.WhenAny(active_session.CleanupCompletionTask, Task.Delay(_cleanupLoggingTimeoutMs.Value))
+                    .ContinueWith(TimeoutLoggerBody, tl_info);
             #if TRACE
             _logger?.LogTraceSessionScopeToBeDisposed(session_id);
             #endif
@@ -494,7 +498,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionCompleteDispose(state.ActiveSessionId); 
             #endif
-            Boolean wait_succeded = FirstCompletedInfo.Result==state.CleanupTask;
+            Boolean wait_succeded = state.CleanupTask.IsCompletedSuccessfully;
             #if TRACE
             _logger?.LogTraceActiveSessionEndWaitingForRunnersCompletion(state.ActiveSessionId, wait_succeded);
             #endif

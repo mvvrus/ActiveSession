@@ -30,14 +30,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>The flag to use own (not shared) MemoryCache instance as an ActiveSession objects storage</value>
         public Boolean UseOwnCache { get; set;}
 
-        /// <value>Options used to set up own MemoryCache instance (ignored for shared cache)</value>
-        public MemoryCacheOptions? OwnCacheOptions { get; set; }
-
         /// <value>Throw exception if the runner is running by the remote application instance</value>
         public Boolean ThrowOnRemoteRunner { get; set; } = true;
 
         /// <value>Store runners in the cache as completed task obects to speed up async calls</value>
-        public Boolean CacheRunnerAsTask { get; set; } 
+        public Boolean CacheRunnerAsTask { get; set; }
+
+        /// <value>Options used to set up own MemoryCache instance (ignored for shared cache)</value>
+        public MemoryCacheOptions? OwnCacheOptions { get; set; }
 
         ///<value>Replace value of RequestServices in HttpContext by the value of the ActiveSession.SessionServices</value>
         public Boolean UseSessionServicesAsRequestServices { get; set; }
@@ -50,6 +50,9 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <value> Default size of an IActiveSessionRunner-implementing  object</value>
         public Int32 DefaultRunnerSize { get; set; } = DEFAULT_RUNNERSIZE;
+
+        /// <value> Timeout for logging runner cleanup outcome</value>
+        public Int32? CleanupLoggingTimeoutMs { get; internal set; }
     }
 }
 
@@ -60,7 +63,13 @@ namespace MVVrus.AspNetCore.ActiveSession
  *   HostId (string) - this host identifier
  *   Prefix (string) - prefix for all keys of key-value pairs in the Session store for the ActiveSession variables
  *   UseOwnCache(Boolean) - flag to use own (not shared) MemoryCache instance as a storage
+ *   MaxLifetime(TimeSpan) - maximum lifetime for ActiveSession objects
  *   ThrowOnRemoteRunner(Boolean) - Throw exception if the runner is found on thr remote server
  *   CacheRunnerAsTask - Store runners in the cache as completed tasks to speed up async calls
  *   OwnCaheOptions(nested of type MemoryCacheOptions) - options used to set up own MemoryCache instance (ignored for shared cache)
+ *   UseSessionServicesAsRequestServices(Boolean) - [experimental]set HttpContext.RequestServices property to contain ActiveSession.SessionServices
+ *   TrackStatistics(Boolean) - perfom tracking of cache using statistics by an IActiveSessionStore-implementing class
+ *   ActiveSessionSize - size of an IActiveSession-implementing object in a cache(arbitrary units, defaults to 1)
+ *   DefaultRunnerSize - default size of an IActiveSessionRunner-implementing object in a cache(arbitrary units, defaults to 1)
+ *   CleanupLoggingTimeoutMs - timeout to log an outcome of runers cleanup(msec, defaults to null: no outcome logging)
  */ 
