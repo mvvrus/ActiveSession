@@ -19,10 +19,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public CancellationToken GetCompletionToken()
-        {
-            throw new NotImplementedException();
-        }
+        public CancellationToken CompletionToken => throw new NotImplementedException();
 
         public ValueTask<ActiveSessionRunnerResult<TResult>> GetMore(int StartPosition, CancellationToken token = default)
         {

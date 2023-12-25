@@ -272,10 +272,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             try {
 
                                 IChangeToken expiration_token = new CancellationChangeToken(ActiveSession.CompletionToken);
-                                if (runner.GetCompletionToken().CanBeCanceled)
+                                if (runner.CompletionToken.CanBeCanceled)
                                     expiration_token=new CompositeChangeToken(new IChangeToken[] { 
                                         expiration_token, 
-                                        new CancellationChangeToken(runner.GetCompletionToken()) 
+                                        new CancellationChangeToken(runner.CompletionToken) 
                                     });
                                 new_entry.ExpirationTokens.Add(expiration_token);
                                 //An assignment to Value property should be the last one before new_entry.Dispose()

@@ -15,10 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return default;
         }
 
-        public CancellationToken GetCompletionToken()
-        {
-            return CancellationToken.None;
-        }
+        public CancellationToken CompletionToken => CancellationToken.None;
 
         public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
         {

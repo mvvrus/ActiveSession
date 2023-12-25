@@ -26,6 +26,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             _passCtsOwnership=CompletionTokenSource==null? PassCtsOwnership: true;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
+            CompletionToken = _completionTokenSource.Token;
         }
 
         /// <inheritdoc/>
@@ -38,8 +39,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public void Abort() { DoAbort(); }
 
         /// <inheritdoc/>
-        public virtual CancellationToken GetCompletionToken()  { return _completionTokenSource.Token; }
-
+        public virtual CancellationToken CompletionToken { get; init; } 
         /// <summary>
         /// TODO
         /// </summary>

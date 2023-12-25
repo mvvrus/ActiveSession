@@ -219,7 +219,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         void EnumerateSource()
         {
-            CancellationToken completion_token = GetCompletionToken();
+            CancellationToken completion_token = CompletionToken;
             if (_source==null) return;
             try {
                 foreach (TResult item in _source!) {

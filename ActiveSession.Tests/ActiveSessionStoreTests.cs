@@ -921,7 +921,7 @@ namespace ActiveSession.Tests
             {
                 _cts=Cts;
                 _fakeRunner=new Mock<IActiveSessionRunner<TResult>>();
-                _fakeRunner.Setup(s => s.GetCompletionToken()).Returns(_cts.Token);
+                _fakeRunner.Setup(s => s.CompletionToken).Returns(_cts.Token);
                 _fakeRunner.Setup(abort_expression);
                 this.Arg=Arg;
             }

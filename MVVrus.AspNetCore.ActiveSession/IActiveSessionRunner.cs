@@ -34,7 +34,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// Current position of the runner object
         /// </value>
-        Int32 Position { get; }
+        public Int32 Position { get; }
 
         /// <value>
         /// Method that terminates the runner execution
@@ -42,9 +42,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         public void Abort();
 
         /// <value>
-        /// Method that acquires CancellationToken signalling about the r
+        /// CancellationToken to be cancelled then runner is completed:
+        /// fetched all data and passed it to a caller, aborted or failed with an exception
         /// </value>
-        CancellationToken GetCompletionToken();
+        CancellationToken CompletionToken { get; }
     }
 
     /// <summary>

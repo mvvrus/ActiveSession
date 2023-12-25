@@ -442,7 +442,7 @@ namespace ActiveSession.Tests
         {
             int number = Manager.GetNewRunnerNumber(SessionKey);
             Manager.RegisterRunner(SessionKey, number, Runner, typeof(Object));
-            Runner.GetCompletionToken().Register(() => Task.Run(() => UnregisterTestRunner(new UnregisterState(Manager,SessionKey,number,UnregCallback))));
+            Runner.            CompletionToken.Register(() => Task.Run(() => UnregisterTestRunner(new UnregisterState(Manager,SessionKey,number,UnregCallback))));
             //Runner.GetCompletionToken().Register(UnregisterTestRunner,new UnregisterState(Manager, SessionKey, number, UnregCallback));
             return number;
         }
@@ -476,10 +476,7 @@ namespace ActiveSession.Tests
                 _completionTokenSource.Cancel();
             }
 
-            public CancellationToken GetCompletionToken()
-            {
-                return _completionTokenSource.Token;
-            }
+            public CancellationToken CompletionToken => _completionTokenSource.Token;
         }
 
         class RunnerDisposable: RunnerBase, IDisposable
