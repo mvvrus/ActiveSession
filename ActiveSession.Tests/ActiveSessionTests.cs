@@ -227,7 +227,7 @@ namespace ActiveSession.Tests
                     test_setup.Logger,
                     test_setup.CleanupCompletionTask);
 
-                task=active_session.Terminate();
+                task=active_session.Terminate(test_setup.DummyContext.Object);
 
                 Assert.False(task.IsCompleted);
                 test_setup.Complete();
@@ -236,7 +236,7 @@ namespace ActiveSession.Tests
 
             //Test case: Terminate - call on disposed ActiveSession
             using (ConstructorTestSetup ts=new ConstructorTestSetup()) {
-                ts.FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Boolean>()))
+                ts.FakeStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
                     .Returns(Task.FromResult(true));
                 active_session=new Active_Session(ts.DummyRunnerManager.Object,
                     ts.MockServiceScope.Object,
@@ -245,7 +245,7 @@ namespace ActiveSession.Tests
                     null);
                 active_session.SetDisposedForTests();
 
-                task=active_session.Terminate();
+                task=active_session.Terminate(test_setup.DummyContext.Object);
 
                 Assert.True(task.IsCompletedSuccessfully);
             }
@@ -329,11 +329,12 @@ namespace ActiveSession.Tests
         {
             readonly TaskCompletionSource _tcs;
             public Task CleanupCompletionTask { get {return _tcs.Task; } }
+            public readonly Mock<HttpContext> DummyContext = new Mock<HttpContext>();
 
             public TerminateTestSetup(): base()
             {
                 _tcs=new TaskCompletionSource();
-                FakeStore.Setup(s => s.TerminateSession(It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Boolean>()))
+                FakeStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
                     .Returns(CleanupCompletionTask);
             }
 

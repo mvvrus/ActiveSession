@@ -99,7 +99,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             #if TRACE
                             _logger?.LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(_traceIdentifier);
                             #endif
-                            _activeSession=_store.FetchOrCreateSession(_session, _traceIdentifier);
+                            _activeSession=_store.FetchOrCreateSession(_session, _traceIdentifier)??DummySession;
                         }
                     }
                 }
@@ -135,7 +135,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceActiveSessionFeatureLoadGetActiveSession(_traceIdentifier);
                     #endif
-                    _activeSession= _store.FetchOrCreateSession(_session, _traceIdentifier);
+                    _activeSession= _store.FetchOrCreateSession(_session, _traceIdentifier)??DummySession;
                 }
             }
             catch(Exception exception)

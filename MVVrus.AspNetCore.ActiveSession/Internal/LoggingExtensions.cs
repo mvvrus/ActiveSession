@@ -64,17 +64,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORECONSTRUCTORCACHECREATED, Debug, "ActiveSessionStore constructor created its own cache.")]
         public static partial void LogDebugActiveSessionStoreConstructorOwnCaheCreated(this ILogger Logger);
 
-        [LoggerMessage(D_STORESESSIONKEY, Debug, "ActiveSession key to use: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugActiveSessionKeyToUse(this ILogger Logger, String Key, String TraceIdentifier);
+        [LoggerMessage(D_STORESESSIONKEY, Debug, "ActiveSession ID to use: \"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugActiveSessionKeyToUse(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORESESSIONFOUND, Debug, "Found existing ActiveSession for the key: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugFoundExistingActiveSession(this ILogger Logger, String Key, String TraceIdentifier);
+        [LoggerMessage(D_STORESESSIONFOUNDTERMINATED, Debug, "Found existing ActiveSession that is terminated, return null instead SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugFoundTerminatedActiveSession(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORESESSIONTOCREATE, Debug, "Creating new ActiveSession for the key: \"{Key}\", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugCreateNewActiveSession(this ILogger Logger, String Key, String TraceIdentifier);
+        [LoggerMessage(D_STORESESSIONFOUND, Debug, "Found existing ActiveSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugFoundExistingActiveSession(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORESESSIONCREATEDDISPOSE, Debug, "Before Disposing the ActiveSession, SessionKey={SessionKey}")]
-        public static partial void LogDebugBeforeSessionDisposing(this ILogger Logger, String SessionKey);
+        [LoggerMessage(D_STORESESSIONTOCREATE, Debug, "Creating new ActiveSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateNewActiveSession(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(D_STORESESSIONCREATEDDISPOSE, Debug, "Before Disposing the ActiveSession, SessionId={SessionId}")]
+        public static partial void LogDebugBeforeSessionDisposing(this ILogger Logger, String SessionId);
 
         [LoggerMessage(D_STORESESSIONEXIT, Debug, "Exit ActiveSessionStore.FetchOrCreateSession due to the exception, the cache entry has been removed, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugFetchOrCreateExceptionalExit(this ILogger Logger, Exception AnException, String TraceIdentifier);
@@ -153,6 +156,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORESESSION, Trace, "Eneter ActiveSessionStore.FetchOrCreateSession, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceFetchOrCreate(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(T_STORESESSIONTERMINATED, Trace, "ActiveSessionStore.FetchOrCreateSession: the ActiveSession found is marked as terminated, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceFetchOrCreateTerminatedFound(this ILogger Logger, String SessionId, String TraceIdentifier);
+
         [LoggerMessage(T_STORESESSIONACQUIRING, Trace, "ActiveSessionStore.FetchOrCreateSession: acquiring session creation lock, TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceAcquiringSessionCreationLock(this ILogger Logger, String TraceIdentifier);
 
@@ -180,8 +186,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORESESSIONCALLBACKEXIT, Trace, "Exit ActiveSession EvictionCallback, SessionKey={SessionKey}")]
         public static partial void LogTraceSessionEvictionCallbackExit(this ILogger Logger, String SessionKey);
 
-        [LoggerMessage(T_STORENEWRUNNER, Trace, "Enter ActiveSessionStore.CreateRunner, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceCreateRunner(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(T_STORENEWRUNNER, Trace, "Enter ActiveSessionStore.CreateRunner, try to use session-level runner creation lock, SessionKey=\"{SessionKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCreateRunner(this ILogger Logger, String SessionKey, String TraceIdentifier);
 
         [LoggerMessage(T_STORENEWRUNNERTOCREATE, Trace, "New runner to be created, SessionKey=\"{SessionKey}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceNewRunnerInfoRunner(this ILogger Logger, String SessionKey, Int32 RunnerNumber, String TraceIdentifier);
@@ -189,7 +195,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORENEWRUNNERWAIVENUMBER, Trace, "Waive to use the runner number previousely acquired because of an exception, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceWaiveRunnerNumber(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(T_STORENEWRUNNERLOCKFALLBACK, Trace, "Acquiring the runner creation lock for session \"{SessionKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(T_STORENEWRUNNERLOCKFALLBACK, Trace, "Fallback to store-level lock as runner creation lock, \"{SessionKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceFallbackToStoreGlobalLock(this ILogger Logger, String SessionKey, String TraceIdentifier);
 
         [LoggerMessage(T_STORENEWRUNNERACQUIRING, Trace, "Acquiring the runner creation lock for session \"{SessionKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
@@ -273,6 +279,21 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORERUNNERCACHEEXIT, Trace, "Exit ActiveSessionStore.ExtractRunnerFromCache, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceExtractRunnerFromCacheExit(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(T_STORETERMINATE, Trace, "Eneter ActiveSessionStore.FetchOrCreateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionTerminate(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STORETERMINATEALREADY, Trace, "ActiveSessionStore.TerminateSession  already terminated, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionAlreadyTerminated(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STORETERMINATEEXIT, Trace, "Exit ActiveSessionStore.TerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREDOTERMINATE, Trace, "Eneter ActiveSessionStore.DoTerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminate(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREDOTERMINATEEXIT, Trace, "Exit ActiveSessionStore.DoTerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
+
         [LoggerMessage(T_SESSIONCONS, Trace, "Enter ActiveSession Constructor, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionConstructor(this ILogger Logger, String SessionId, String TraceIdentifier);
 
@@ -296,6 +317,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(T_SESSIONGETRUNNERASYNCEXIT, Trace, "Exit ActiveSession.GetRunnerAsync, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionGetRunnerAsyncExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONTERMINATE, Trace, "ActiveSession.Terminate called, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceActiveSessionTerminateCalled(this ILogger Logger, String SessionId, String TraceIdentifier);
 
         [LoggerMessage(T_SESSIONDISPOSE, Trace, "Disposing ActiveSession, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceActiveSessionDispose(this ILogger Logger, String SessionId);

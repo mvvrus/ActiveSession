@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -124,7 +125,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             GC.SuppressFinalize(this);
         }
 
-        public IActiveSession FetchOrCreateSession(ISession Session, String? TraceIdentifier)
+        public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier)
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
@@ -132,13 +133,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceFetchOrCreate(trace_identifier);
             #endif
 
-            ActiveSession result;
+            ActiveSession? result=null;
+            Boolean terminated=false;
             String session_id = Session.Id;
             String key = SessionKey(session_id);
-            _logger?.LogDebugActiveSessionKeyToUse(key, trace_identifier);
-            if(!Session.Keys.Contains(key)) Session.SetString(key, session_id);
-            if (_memoryCache.TryGetValue(key, out result))
-                _logger?.LogDebugFoundExistingActiveSession(key, trace_identifier);
+            _logger?.LogDebugActiveSessionKeyToUse(session_id, trace_identifier);
+            if (!Session.Keys.Contains(key)) Session.SetString(key, SESSION_ACTIVE);
+            else terminated=Session.GetString(key)==SESSION_TERMINATED;
+            if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
             else {
                 #if TRACE
                 _logger?.LogTraceAcquiringSessionCreationLock(trace_identifier);
@@ -148,10 +150,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(trace_identifier);
                     #endif
-                    if (_memoryCache.TryGetValue(key, out result))
-                        _logger?.LogDebugFoundExistingActiveSession(key, trace_identifier);
-                    else {
-                        _logger?.LogDebugCreateNewActiveSession(key, trace_identifier);
+                    terminated=Session.GetString(key)==SESSION_TERMINATED;
+                    if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
+                    else if(!terminated) {
+                        _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
                                 new_entry.SlidingExpiration=_idleTimeout;
@@ -201,10 +203,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     Monitor.Exit(_creation_lock);
                 }
             }
+
             #if TRACE
             _logger?.LogTraceFetchOrCreateExit(trace_identifier);
             #endif
             return result;
+
+            void FoundInCahe()
+            {
+                if (terminated) {
+                    #if TRACE
+                    _logger?.LogTraceFetchOrCreateTerminatedFound(session_id, trace_identifier);
+                    #endif
+                    DoTerminateSession(result!, result!.RunnerManager, trace_identifier);
+                    result=null;
+                    _logger?.LogDebugFoundTerminatedActiveSession(session_id, trace_identifier);
+                }
+                else
+                    _logger?.LogDebugFoundExistingActiveSession(session_id, trace_identifier);
+
+            }
+
         }
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
@@ -218,9 +237,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String session_id = ActiveSession.Id;
             IActiveSessionRunner<TResult>? runner;
             #if TRACE
-            _logger?.LogTraceCreateRunner(trace_identifier);
+            _logger?.LogTraceCreateRunner(session_id, trace_identifier);
             #endif
-            //TODO LogTrace getting session lock
             Int32 runner_number = -1;
             Boolean use_session_lock = true;
             Object? runner_lock= RunnerManager.RunnerCreationLock; 
@@ -341,7 +359,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String runner_session_key = SessionKey(session_id);
             IActiveSessionRunner<TResult>? result = null;
             #if TRACE
-            //Log entrance
             _logger?.LogTraceGetRunner(session_id, RunnerNumber, trace_identifier);
             #endif
             String? host_id;
@@ -411,13 +428,38 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public Task TerminateSession(IActiveSession Session, IRunnerManager RunnerManager, Boolean Global)
+        public Task TerminateSession(ISession Session, IActiveSession ActiveSession, IRunnerManager RunnerManager, String? TraceIdentifier)
         {
-            //TODO-Future Implement Global parameter processing
-            //TODO LogTrace AbortAll
-            RunnerManager.AbortAll(Session);
-            (Session as IDisposable)?.Dispose();
-            return Session.CleanupCompletionTask;
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            #if TRACE
+            _logger?.LogTraceSessionTerminate(ActiveSession.Id, trace_identifier);
+            #endif
+            //TODO Implement LogTrace
+            if(SESSION_TERMINATED!=Session.GetString(SessionKey(ActiveSession.Id))) {
+                Session.SetString(SessionKey(ActiveSession.Id), SESSION_TERMINATED);
+                DoTerminateSession(ActiveSession, RunnerManager,trace_identifier);
+            }
+            else
+                #if TRACE
+                _logger?.LogTraceSessionAlreadyTerminated(ActiveSession.Id, trace_identifier)
+                #endif
+                ;
+            #if TRACE
+            _logger?.LogTraceSessionTerminateExit(ActiveSession.Id, trace_identifier);
+            #endif
+            return ActiveSession.CleanupCompletionTask;
+        }
+
+        void DoTerminateSession(IActiveSession ActiveSession, IRunnerManager RunnerManager, String TraceIdentifier)
+        {
+            #if TRACE
+            _logger?.LogTraceSessionDoTerminate(ActiveSession.Id, TraceIdentifier);
+            #endif
+            RunnerManager.AbortAll(ActiveSession);
+            (ActiveSession as IDisposable)?.Dispose();
+            #if TRACE
+            _logger?.LogTraceSessionDoTerminateExit(ActiveSession.Id, TraceIdentifier);
+            #endif
         }
 
         public ActiveSessionStoreStats? GetCurrentStatistics()

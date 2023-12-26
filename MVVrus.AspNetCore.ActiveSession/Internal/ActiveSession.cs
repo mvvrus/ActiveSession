@@ -93,11 +93,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public Task Terminate(Boolean Global = false)
+        public Task Terminate(HttpContext Context)
         {
-            return _store.TerminateSession(this, RunnerManager, Global);
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            #if TRACE
+            _logger?.LogTraceActiveSessionTerminateCalled(_sessionId, trace_identifier);
+            #endif
+            return _store.TerminateSession(Context.Session, this, RunnerManager, trace_identifier);
         }
-
 
         public bool IsAvailable { get { return true; } }
 

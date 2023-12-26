@@ -203,7 +203,7 @@ namespace ActiveSession.Tests
                     session=store.FetchOrCreateSession(ts.StubSession.Object, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
-                    session.CleanupCompletionTask.GetAwaiter().GetResult();
+                    session!.CleanupCompletionTask.GetAwaiter().GetResult();
                     store._cleanupLoggingTask?.GetAwaiter().GetResult();
                     //Assess
                     Assert.Equal(true, in_time);
@@ -218,7 +218,7 @@ namespace ActiveSession.Tests
                     session=store.FetchOrCreateSession(ts.StubSession.Object, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID);
-                    session.CleanupCompletionTask.GetAwaiter().GetResult();
+                    session!.CleanupCompletionTask.GetAwaiter().GetResult();
                     store._cleanupLoggingTask?.GetAwaiter().GetResult();
                     //Assess
                     Assert.Equal(false, in_time);
@@ -249,10 +249,10 @@ namespace ActiveSession.Tests
                     ts.Cache.CreateEntryTrap=pause;
                     using (store=ts.CreateStore()) {
                         //Act
-                        task1=Task.Run(() => { event1.Set(); return store.FetchOrCreateSession(ts.StubSession.Object, null); });
+                        task1=Task.Run(() => { event1.Set(); return store.FetchOrCreateSession(ts.StubSession.Object, null)!; });
                         if (!event1.WaitOne(2000))
                             throw new Exception("Deadlock detected");
-                        task2=Task.Run(() => { event2.Set(); return store.FetchOrCreateSession(ts.StubSession.Object, null); });
+                        task2=Task.Run(() => { event2.Set(); return store.FetchOrCreateSession(ts.StubSession.Object, null)!; });
                         if (!event2.WaitOne(2000))
                             throw new Exception("Deadlock detected");
                         Assert.Equal(TaskStatus.Running, task1.Status);
@@ -853,12 +853,13 @@ namespace ActiveSession.Tests
             //Arrange
             using (CreateFetchTestSetup ts = new CreateFetchTestSetup()) {
                 using (ActiveSessionStore store = ts.CreateStore()) {
-                    IActiveSession session = store.FetchOrCreateSession(ts.StubSession.Object, null);
+                    IActiveSession session = store.FetchOrCreateSession(ts.StubSession.Object, null)!;
                     Task cleanup_task = session.CleanupCompletionTask;
                     //Act
-                    Task terminate_task=store.TerminateSession(session, ts.MockRunnerManager.Object, false);
+                    Task terminate_task=store.TerminateSession(ts.StubSession.Object,session, ts.MockRunnerManager.Object, null);
                     //Assess
                     Assert.True(ReferenceEquals(cleanup_task, terminate_task));
+                    //TODO Assert termination variable set
                     terminate_task.GetAwaiter().GetResult();
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.AtLeastOnce);
                     Assert.False(ts.Cache.IsEntryStored);
@@ -867,7 +868,8 @@ namespace ActiveSession.Tests
                 }
             }
         }
-
+        //TODO Create ActiveSession after termination var in ISession ser
+        //TODO Fetch ActiveSession from cache after termination var in ISession ser
         //Test case: call CreateFeatureObject method
         [Fact]
         public void CreateFeatureObject()

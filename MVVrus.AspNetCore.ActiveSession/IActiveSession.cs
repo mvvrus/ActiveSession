@@ -46,13 +46,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Terminate the active session aborting all runners. 
         /// </summary>
-        /// <param name="Global">If true terminate all ActiveSessions with the same id on all nodes (currently ignored)</param>
         /// <returns>The task that completes a cleanup (usally the same as CleanupCompletionTask property contains)</returns>
         /// <remarks>
-        /// This operation may be asynchronous. 
+        /// Session termination is synchronous but successive cleanup of runners may be asynchronous. 
         /// To await for completion of this operation use a task returned via CleanupCompletionTask property
         /// </remarks>
-        Task Terminate(Boolean Global = false);
+        Task Terminate(HttpContext Context);
 
         /// <value>Indicator that the Active Session object is properly initialized and may be used.</value>
         Boolean IsAvailable { get; }

@@ -2,7 +2,7 @@
 {
     internal interface IActiveSessionStore
     {
-        public IActiveSession FetchOrCreateSession(ISession Session, String? TraceIdentifier);
+        public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier);
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, 
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
@@ -17,7 +17,7 @@
             IRunnerManager RunnerManager, 
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         );
-        public Task TerminateSession(IActiveSession Session, IRunnerManager RunnerManager, Boolean Global);
+        public Task TerminateSession(ISession Sesion, IActiveSession Session, IRunnerManager RunnerManager, String? TraceIdentifier);
         public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier);
         public ActiveSessionStoreStats? GetCurrentStatistics();
     }

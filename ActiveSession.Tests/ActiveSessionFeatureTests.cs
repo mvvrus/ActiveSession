@@ -367,7 +367,7 @@ namespace ActiveSession.Tests
         class LoadTestSetup : ConstructorTestSetup
         {
             public readonly Mock<IActiveSession> StubActiveSession;
-            public readonly Expression<Func<IActiveSessionStore, IActiveSession>> ActiveSessionLoadExpression;
+            public readonly Expression<Func<IActiveSessionStore, IActiveSession?>> ActiveSessionLoadExpression;
 
             public LoadTestSetup(Boolean Throws) : this(SessionState.normal, Throws) { }
             public LoadTestSetup() : this(SessionState.normal, false) { }

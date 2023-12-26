@@ -38,7 +38,7 @@
             );
         }
 
-        public Task Terminate(Boolean Global = false)
+        public Task Terminate(HttpContext Context)
         {
             throw new NotImplementedException();
         }
