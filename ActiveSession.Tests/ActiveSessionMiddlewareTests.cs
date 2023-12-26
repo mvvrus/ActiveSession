@@ -20,7 +20,7 @@ namespace ActiveSession.Tests
         public void ConstructActiveSessionMiddleware()
         {
             //Arrange
-            MiddlewareCreateTestSetup test_setup = new MiddlewareCreateTestSetup(true);
+            MiddlewareCreateTestSetup test_setup = new MiddlewareCreateTestSetup(new ActiveSessionOptions());
             //Act
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -31,7 +31,6 @@ namespace ActiveSession.Tests
             //Assess
             Assert.Equal(test_setup.MockNextDelegate.Object, middleware.Next);
             Assert.Equal(test_setup.StubStore.Object, middleware.Store);
-            Assert.Equal(test_setup.StubOptions.Object.Value.UseSessionServicesAsRequestServices, middleware.UseSessionServicesAsRequestServices);
         }
 
         //Test case: Invoke ActiveSessionMiddleware normally
@@ -40,7 +39,8 @@ namespace ActiveSession.Tests
         {
             //Arrange
             NextDelegateHost spy_host = new NextDelegateHost();
-            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(false, spy_host.SpyDelegate);
+            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
+                new ActiveSessionOptions(), spy_host.SpyDelegate);
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -51,7 +51,7 @@ namespace ActiveSession.Tests
             //Act
             middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
             //Assess
-            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Never);
+            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Once);
             test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
             Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
             Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
@@ -67,7 +67,8 @@ namespace ActiveSession.Tests
         {
             //Arrange
             NextDelegateHost spy_host = new NextDelegateHost();
-            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(true, spy_host.SpyDelegate);
+            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
+                new ActiveSessionOptions { UseSessionServicesAsRequestServices=true, PreloadActiveSession=false}, spy_host.SpyDelegate);
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -88,13 +89,41 @@ namespace ActiveSession.Tests
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
+        //Test ActiveSession no pre-loading
+        [Fact]
+        public void InvokeActiveSessionMiddleware_NoPreload()
+        {
+            //Arrange
+            NextDelegateHost spy_host = new NextDelegateHost();
+            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
+                new ActiveSessionOptions { PreloadActiveSession=false }, spy_host.SpyDelegate);
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
+            ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
+                test_setup.MockNextDelegate.Object,
+                test_setup.StubStore.Object,
+                test_setup.LoggerFactory,
+                test_setup.StubOptions.Object
+            );
+            //Act
+            middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
+            //Assess
+            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Never);
+            test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
+            Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
+            Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
+            test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
+            Assert.Null(test_context.ShadowActiveSessionFeature);
+            test_setup.MockFeatureControl.Verify(test_setup.ClearCallExpression, Times.Once);
+            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
+        }
+
         //Test case: Invoke CactiveSessionMiddleware causing exception
         [Fact]
         public void InvokeActiveSessionMiddleware_WithException()
         {
             //Arrange
             NextDelegateHost spy_host = new NextDelegateHost(new TestException());
-            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(false, spy_host.SpyDelegate);
+            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(new ActiveSessionOptions(), spy_host.SpyDelegate);
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -112,7 +141,7 @@ namespace ActiveSession.Tests
             }
             //Assess
             Assert.True(test_throws,"Test exception was not thrown");
-            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Never);
+            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Once);
             test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
             Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
             Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
@@ -122,7 +151,7 @@ namespace ActiveSession.Tests
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
-        class TestException:Exception
+        class TestException :Exception
         {
             public TestException() : base() { }
         }
@@ -136,12 +165,11 @@ namespace ActiveSession.Tests
             readonly MockedLoggerFactory _loggerFactory;
             ActiveSessionOptions _options;
 
-            public MiddlewareCreateTestSetup(Boolean UseSessionServicesAsRequestServices)
+            public MiddlewareCreateTestSetup(ActiveSessionOptions Options)
             {
                 MockNextDelegate=new Mock<RequestDelegate>();
                 StubStore=new Mock<IActiveSessionStore>();
-                _options=new ActiveSessionOptions();
-                _options.UseSessionServicesAsRequestServices=UseSessionServicesAsRequestServices;
+                _options=Options;
                 StubOptions=new Mock<IOptions<ActiveSessionOptions>>();
                 StubOptions.SetupGet(x => x.Value).Returns(_options);
                 _loggerFactory=new MockedLoggerFactory();
@@ -169,8 +197,8 @@ namespace ActiveSession.Tests
             RequestDelegate? _spyDelegate;
 
 
-            public MiddlewareInvokeTestSetup(Boolean UseSessionServicesAsRequestServices, RequestDelegate? SpyDelegate=null)
-                : base(UseSessionServicesAsRequestServices)
+            public MiddlewareInvokeTestSetup(ActiveSessionOptions Options, RequestDelegate? SpyDelegate=null)
+                : base(Options)
             {
                 _spyDelegate=SpyDelegate;
                 _stubSessionServices=new Mock<IServiceProvider>();

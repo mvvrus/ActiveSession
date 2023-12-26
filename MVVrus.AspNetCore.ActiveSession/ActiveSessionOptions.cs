@@ -52,7 +52,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         public Int32 DefaultRunnerSize { get; set; } = DEFAULT_RUNNERSIZE;
 
         /// <value> Timeout for logging runner cleanup outcome</value>
-        public Int32? CleanupLoggingTimeoutMs { get; internal set; }
+        public Int32? CleanupLoggingTimeoutMs { get; set; }
+
+        /// <value> 
+        /// Asynchronously preload IActiveSessionFeature.ActiveSession before processing the rest of the pipeline
+        /// </value>
+        public Boolean PreloadActiveSession { get; set; } = true;
     }
 }
 

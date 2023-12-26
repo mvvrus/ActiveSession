@@ -10,11 +10,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IActiveSessionStore _store;
         readonly ILogger? _logger;
         readonly Boolean _useSessionServicesAsRequestServices;
+        readonly Boolean _preloadActiveSession;
 
         //Properties for testing
         internal RequestDelegate Next { get { return _next; } }
         internal IActiveSessionStore Store { get { return _store; } }
-        internal Boolean UseSessionServicesAsRequestServices { get { return _useSessionServicesAsRequestServices; } }
 
         public ActiveSessionMiddleware(RequestDelegate Next,
             IActiveSessionStore Store,
@@ -31,6 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _store=Store??throw new ArgumentNullException(nameof(Store));
                 _logger?.LogInformationActiveSessionMiddlewareAdded();
                 _useSessionServicesAsRequestServices=Options.Value.UseSessionServicesAsRequestServices;
+                _preloadActiveSession=Options.Value.PreloadActiveSession;
             }
             catch (Exception exception) {
                 _logger?.LogErrorMiddlewareCannotBeCreated(exception);
@@ -55,12 +56,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Context.Features.Set(feature);
             _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
             try {
-                if(_useSessionServicesAsRequestServices) {
+                if (_preloadActiveSession ||_useSessionServicesAsRequestServices) {
                     #if TRACE
                     _logger?.LogTraceWaitingForActiveSessionLoading(Context.TraceIdentifier);
                     #endif
                     await feature.LoadAsync();
-                    if(feature.IsLoaded && Context.Session.IsAvailable && feature.ActiveSession.IsAvailable) {
+                }
+                if (_useSessionServicesAsRequestServices) {
+                    if(feature.IsLoaded && feature.ActiveSession.IsAvailable) {
                         Context.RequestServices=feature.ActiveSession.SessionServices;
                         _logger?.LogDebugRequestServicesChangedToSessionServices(Context.TraceIdentifier);
                     }
