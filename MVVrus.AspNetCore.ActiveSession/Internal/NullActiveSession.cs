@@ -2,17 +2,18 @@
 {
     internal class NullActiveSession : IActiveSession
     {
+        const String MESSAGE = "Invalid operation: an ActiveSession is not available";
         public bool IsAvailable => false;
 
         public bool IsFresh => true;
 
-        public IServiceProvider SessionServices => throw new NotImplementedException();
+        public IServiceProvider SessionServices => throw new InvalidOperationException(MESSAGE);
 
         public String Id => "<null session Id>";
 
         public CancellationToken CompletionToken => CancellationToken.None;
 
-        public Task CleanupCompletionTask => throw new NotImplementedException();
+        public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
@@ -21,26 +22,22 @@
 
         public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException(MESSAGE);
         }
 
         public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
         {
-            return new NullActiveSessionRunner<TResult>();
+            throw new InvalidOperationException(MESSAGE);
         }
 
         public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
         {
-            return new ValueTask<IActiveSessionRunner<TResult>?>(
-                Task<IActiveSessionRunner<TResult>?>.FromResult(
-                    (IActiveSessionRunner<TResult>?) new NullActiveSessionRunner<TResult>()
-                )
-            );
+            throw new InvalidOperationException(MESSAGE);
         }
 
         public Task Terminate(HttpContext Context)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException(MESSAGE);
         }
     }
 }
