@@ -138,8 +138,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Boolean terminated=false;
             String key = SessionKey(session_id);
             _logger?.LogDebugActiveSessionKeyToUse(session_id, trace_identifier);
-            if (!Session.Keys.Contains(key)) Session.SetString(key, SESSION_ACTIVE);
-            else terminated=Session.GetString(key)==SESSION_TERMINATED;
+            String? sess_value = Session.GetString(key);
+            if (sess_value==null) Session.SetString(key, SESSION_ACTIVE);
+            else terminated=sess_value==SESSION_TERMINATED;
             if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
             else {
                 #if TRACE
