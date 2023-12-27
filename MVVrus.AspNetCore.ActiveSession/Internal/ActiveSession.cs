@@ -38,7 +38,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _store=Store??throw new ArgumentNullException(nameof(Store));
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
-            this.CleanupCompletionTask=CleanupCompletionTask??Task.FromResult(true);
+            this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
