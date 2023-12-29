@@ -19,7 +19,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly string _prefix;
         readonly string _hostId;
         readonly bool _useOwnCache;
-        readonly TimeSpan _idleTimeout;
+        readonly TimeSpan _sessionIdleTimeout;
+        readonly TimeSpan _runnerIdleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
         readonly Boolean _cacheAsTask;
@@ -78,7 +79,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogDebugActiveSessionStoreConstructorOwnCacheOptions(new LoggingExtensions.MemoryCacheOptionsForLogging(own_cache_options));
 
                 try {
-                    _memoryCache = new MemoryCache(own_cache_options);
+                    _memoryCache = LoggerFactory!=null? new MemoryCache(own_cache_options,LoggerFactory!) : new MemoryCache(own_cache_options);
                     _logger?.LogDebugActiveSessionStoreConstructorOwnCaheCreated();
                 }
                 catch(Exception exception)
@@ -100,7 +101,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             _hostId = options.HostId!;
             _prefix = options.Prefix;
-            _idleTimeout = SessionOptions.Value.IdleTimeout;
+            _sessionIdleTimeout = SessionOptions.Value.IdleTimeout;
+            _runnerIdleTimeout=options.RunnerIdleTimeout;
             _maxLifetime = options.MaxLifetime;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
             _cacheAsTask=options.CacheRunnerAsTask;
@@ -157,7 +159,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
-                                new_entry.SlidingExpiration=_idleTimeout;
+                                new_entry.SlidingExpiration=_sessionIdleTimeout;
                                 new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                                 Int32 size = GetSessionSize();
                                 new_entry.Size=size;
@@ -264,7 +266,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 try {
                     using (ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key)) {
-                        new_entry.SlidingExpiration=_idleTimeout;
+                        new_entry.SlidingExpiration=_runnerIdleTimeout;
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                         IActiveSessionRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
                         runner=factory.Create(Request, ActiveSession.SessionServices);

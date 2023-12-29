@@ -150,11 +150,13 @@ namespace ActiveSession.Tests
 
                 //Test case: options passed to ActiveSessionStore constructor affects cache entry
                 TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
+                TimeSpan RUNNER_EXPIRATION = TimeSpan.FromSeconds(30);
                 TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
                 String PREFIX = "TestPrefix";
                 Int32 AS_SIZE = 2;
                 //Arrange
                 ts.SessOptions.IdleTimeout=EXPIRATION;
+                ts.ActSessOptions.RunnerIdleTimeout=RUNNER_EXPIRATION;
                 ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
                 ts.ActSessOptions.Prefix=PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
@@ -322,7 +324,7 @@ namespace ActiveSession.Tests
                         Assert.True(ts.Cache.IsEntryStored);
                         Assert.Equal(runner_key, ts.Cache.Key);
                         Assert.True(ReferenceEquals(runner_and_key.Runner, ts.Cache.Value));
-                        Assert.Equal(s_defaultIdleTimeout, ts.Cache.SlidingExpiration);
+                        Assert.Equal(DEFAULT_RUNNER_IDLE_TIMEOUT, ts.Cache.SlidingExpiration);
                         Assert.Equal(DEFAULT_MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
                         Assert.Null(ts.Cache.AbsoluteExpiration);
                         Assert.Equal(CacheItemPriority.Normal, ts.Cache.Priority);
@@ -481,12 +483,14 @@ namespace ActiveSession.Tests
 
             //Test case: create new runner with store level lock and custom options
             TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
+            TimeSpan RUNNER_EXPIRATION = TimeSpan.FromSeconds(30);
             TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
             String PREFIX = "TestPrefix";
             Int32 ASR_SIZE = 10;
             //Arrange
             using (ts=new RunnerTestSetup()) {
                 ts.SessOptions.IdleTimeout=EXPIRATION;
+                ts.ActSessOptions.RunnerIdleTimeout=RUNNER_EXPIRATION;
                 ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
                 ts.ActSessOptions.Prefix=PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
@@ -521,7 +525,7 @@ namespace ActiveSession.Tests
                         Assert.IsType<Task<IActiveSessionRunner<Result1>>>(ts.Cache.Value);
                         Assert.True(ReferenceEquals(runner_and_key.Runner, ((Task<IActiveSessionRunner<Result1>>)(ts.Cache.Value)).Result));
                         Assert.Equal(runner_key, ts.Cache.Key);
-                        Assert.Equal(EXPIRATION, ts.Cache.SlidingExpiration);
+                        Assert.Equal(RUNNER_EXPIRATION, ts.Cache.SlidingExpiration);
                         Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
                         Assert.Equal(ASR_SIZE, store.GetCurrentStatistics()!.StoreSize);
 

@@ -24,6 +24,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>Prefix for all keys of ActiveSession variables in the ISession store</value>
         public String Prefix { get; set; } = DEFAULT_SESSION_KEY_PREFIX;
 
+        /// <value>Maximum idle time for runner objects  </value>
+        public TimeSpan RunnerIdleTimeout { get; set; } = DEFAULT_RUNNER_IDLE_TIMEOUT;
+
         /// <value>Maximum lifetime for ActiveSession objects (measured from a session creation time) </value>
         public TimeSpan MaxLifetime { get; set; } = DEFAULT_MAX_LIFETIME;
 
