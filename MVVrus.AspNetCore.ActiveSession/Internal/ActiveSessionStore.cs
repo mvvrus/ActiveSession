@@ -527,8 +527,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceSessionScopeToBeDisposed(session_id);
             #endif
             session_info?.SessionScope.Dispose();
-            Object dummy;
-            _memoryCache.TryGetValue(Key, out dummy); //To start cache entry expiration checks
+            InitCacheExpiration();
             #if TRACE
             _logger?.LogTraceSessionEvictionCallbackExit(session_id);
             #endif
@@ -592,9 +591,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //Do not call UnregisterRunnerInSession here because the session is inaccessible here and may even be destroyed
             //One remove session variables of an unexisting runner while searching for it and cannot find it in the cache
             IActiveSessionRunner runner = runner_info.Runner;
+            runner.Abort();
             runner_info.RunnerManager.UnregisterRunner(runner_info.ActiveSession, runner_info.Number);
             runner_info.RunnerManager.ReturnRunnerNumber(runner_info.ActiveSession, runner_info.Number);
-            runner.Abort();
             if (_trackStatistics) {
                 Interlocked.Decrement(ref _currentRunnerCount);
                 if(runner!=null) Interlocked.Add(ref _currentStoreSize, -GetRunnerSize(runner.GetType()));
@@ -734,6 +733,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return _runnerSize; //TODO: it's a stub
         }
 
+        internal void InitCacheExpiration()
+        {
+            Object dummy;
+            _memoryCache.TryGetValue("", out dummy);
+        }
         #endregion
 
         #region AuxilaryTypes

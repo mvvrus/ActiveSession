@@ -16,6 +16,8 @@ using Active_Session = MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
 using Microsoft.Extensions.DependencyInjection;
 using static MVVrus.AspNetCore.ActiveSession.Internal.LogIds;
 using LogValues = System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, object?>>;
+using Microsoft.Extensions.Internal;
+using System.Diagnostics;
 
 namespace ActiveSession.Tests
 {
@@ -933,6 +935,120 @@ namespace ActiveSession.Tests
             }
         }
 
+        //TODO Test group: test expireation from real cache
+        [Fact]
+        public void OwnCacheExpirations()
+        {
+            Task session_cleanup_task;
+            IActiveSession session;
+            const string ID1 = "Id1";
+            ActiveSessionStoreStats stat;
+            //Arrange common stuff
+            OwnCacheTestSetup ts = new OwnCacheTestSetup();
+            //Test case: lonely ActiveSession expired
+            //Arrange
+            using (ActiveSessionStore store = ts.CreateStore()) {
+                session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session_cleanup_task=session.CleanupCompletionTask;
+                Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
+                //Act 
+                ts.Clock.Advance(OwnCacheTestSetup.SESSION_IDLE);
+                //Assess
+                store.InitCacheExpiration();
+                Assert.Equal(0, Task.WaitAny(session_cleanup_task, Task.Delay(10000)));
+                Assert.Equal(0, store.GetCurrentStatistics()!.SessionCount);
+                Assert.True((session as Active_Session)!.Disposed);
+                ts.Clock.Reset();
+            }
+
+            //Test case: a runner expired before its active session
+            //Arrange
+            using (ActiveSessionStore store = ts.CreateStore()) {
+                session = store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session_cleanup_task=session.CleanupCompletionTask;
+                Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
+                KeyedActiveSessionRunner<Result1> keyed_runner = store.CreateRunner<String, Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    ID1,
+                    null);
+                Assert.Equal(1, store.GetCurrentStatistics()!.RunnerCount);
+                SpyRunnerX runner = (SpyRunnerX)keyed_runner.Runner;
+                Task disp_task = runner.DisposeTask;
+                //Act
+                ts.Clock.Advance(OwnCacheTestSetup.STEP);
+                store.InitCacheExpiration();
+                //Assess
+                Assert.Equal(0, Task.WaitAny(disp_task, Task.Delay(10000)));
+                stat = store.GetCurrentStatistics()!;
+                Assert.Equal(1, stat.SessionCount);
+                Assert.Equal(0, stat.RunnerCount);
+                Assert.True(runner.Disposed);
+                Assert.Null(store.GetRunner<Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    keyed_runner.RunnerNumber,
+                    null));
+                ts.Clock.Reset();
+            }
+
+            //Test case: an active session expired before its runners 
+            //Arrange
+            ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
+            using (ActiveSessionStore store = ts.CreateStore()) {
+                session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session_cleanup_task=session.CleanupCompletionTask;
+                ts.Clock.Advance(OwnCacheTestSetup.SESSION_ALMOST_GONE);
+                Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
+                KeyedActiveSessionRunner<Result1> keyed_runner = store.CreateRunner<String, Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    ID1,
+                    null);
+                Assert.Equal(1, store.GetCurrentStatistics()!.RunnerCount);
+                SpyRunnerX runner = (SpyRunnerX)keyed_runner.Runner;
+                Task disp_task = runner.DisposeTask;
+                KeyedActiveSessionRunner<Result1> keyed_runner2 = store.CreateRunner<String, Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    ID1,
+                    null);
+                Assert.Equal(2, store.GetCurrentStatistics()!.RunnerCount);
+                SpyRunnerX runner2 = (SpyRunnerX)keyed_runner2.Runner;
+                Task disp_task2 = runner2.DisposeTask;
+                //Act
+                ts.Clock.Advance(OwnCacheTestSetup.STEP);
+                store.InitCacheExpiration();
+                //Assess
+                Assert.Equal(0, Task.WaitAny(session_cleanup_task, Task.Delay(10000)));
+                Assert.Equal(0, store.GetCurrentStatistics()!.SessionCount);
+                Assert.True((session as Active_Session)!.Disposed);
+                Assert.Equal(0, Task.WaitAny(Task.WhenAll(disp_task,disp_task2), Task.Delay(10000)));
+                stat=store.GetCurrentStatistics()!;
+                Assert.Equal(0, stat.RunnerCount);
+                Assert.True(runner.Disposed);
+                Assert.Null(store.GetRunner<Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    keyed_runner.RunnerNumber,
+                    null));
+                Assert.True(runner2.Disposed);
+                Assert.Null(store.GetRunner<Result1>(
+                    ts.MockSession.Object,
+                    session,
+                    (session as Active_Session)!.RunnerManager,
+                    keyed_runner2.RunnerNumber,
+                    null));
+                ts.Clock.Reset();
+            }
+
+        }
+        //TODO Test case: on cache, an ActiveSession with runners expired
         //TODO Test case: Create runner race conditions - ActiveSession level lock
         //TODO Test case: Create runner race conditions - store level lock
 
@@ -941,6 +1057,42 @@ namespace ActiveSession.Tests
         /////////////////////////////////////////////////////////////////////////////////////////////
         //Auxilary clases
         /////////////////////////////////////////////////////////////////////////////////////////////
+
+        class FakeSystemClock : ISystemClock
+        {
+            DateTimeOffset _advancedTo,_advanceMoment;
+            
+            static  void DoReset(FakeSystemClock Item)
+            {
+                Item._advancedTo=Item._advanceMoment=DateTimeOffset.Now;
+                Debug.Print("Reset at "+Item._advanceMoment.ToString());
+            }
+
+            public FakeSystemClock()
+            {
+                DoReset(this);
+            }
+
+            public void Advance(TimeSpan Value)
+            {
+                _advanceMoment=DateTimeOffset.Now;
+                _advancedTo=UtcNow+Value;
+                Debug.Print("Advanced by "+Value.ToString()+" at "+_advanceMoment.ToString()+" to "+_advancedTo.ToString());
+            }
+
+            public void Reset() { DoReset(this); }
+
+            public DateTimeOffset UtcNow { 
+                get {
+                    DateTimeOffset current = DateTimeOffset.Now;
+                    if (current<_advancedTo) 
+                        current = _advancedTo+(current-_advanceMoment)/2;
+                    Debug.Print(current.ToString());
+                    return current;
+                }  
+            } 
+        }
+
         class TestException : Exception
         {
             public Int32 Stage { get; init; }
@@ -1196,7 +1348,6 @@ namespace ActiveSession.Tests
 
         class SessionAndRunnerBaseTestSetup : ConstructorTestSetup
         {
-            public readonly MockedCache Cache;
             public const String TEST_SESSION_ID = "TestSessionId";
             public readonly Mock<ISession> MockSession;
             public readonly Expression<Action<ISession>> SessionKeyRemoveExpression = s => s.Remove(It.IsAny<String>());
@@ -1204,9 +1355,8 @@ namespace ActiveSession.Tests
             public Dictionary<String, byte[]> _session_values = new Dictionary<String, byte[]>();
 
 
-            protected SessionAndRunnerBaseTestSetup(MockedCache Cache) : base(Cache.CacheMock)
+            protected SessionAndRunnerBaseTestSetup(Mock<IMemoryCache>? MockCache) : base(MockCache)
             {
-                this.Cache=Cache;
                 MockSession=new Mock<ISession>();
                 MockSession.SetupGet(s => s.IsAvailable).Returns(true);
                 MockSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
@@ -1234,10 +1384,40 @@ namespace ActiveSession.Tests
                 ;
             }
 
+            static IActiveSessionRunnerFactory<TRequest, TResult> MockRunnerFactory<TRequest, TResult>(
+                Func<TRequest, IActiveSessionRunner<TResult>> Factory)
+            {
+                Mock<IActiveSessionRunnerFactory<TRequest, TResult>>? factory_mock = new();
+                factory_mock.Setup(s => s.Create(It.IsAny<TRequest>(), It.IsAny<IServiceProvider>()))
+                    .Returns((TRequest r, IServiceProvider sp) => Factory(r));
+                return factory_mock.Object;
+            }
+
+            public void AddRunnerFactory<TRequest, TResult>(Func<TRequest, IActiveSessionRunner<TResult>> Factory)
+            {
+                MockRootServiceProvider.Setup(RunnerFactoryExpression<TRequest, TResult>())
+                    .Returns(MockRunnerFactory(Factory));
+            }
+
+            public Expression<Func<IServiceProvider, Object?>> RunnerFactoryExpression<TRequest, TResult>()
+            {
+                return s => s.GetService(typeof(IActiveSessionRunnerFactory<TRequest, TResult>));
+            }
 
         }
 
-        class CreateFetchTestSetup : SessionAndRunnerBaseTestSetup, IDisposable
+        class CachedSessionAndRunnerBaseTestSetup : SessionAndRunnerBaseTestSetup
+        {
+            public readonly MockedCache Cache;
+
+            protected CachedSessionAndRunnerBaseTestSetup(MockedCache Cache) : base(Cache.CacheMock)
+            {
+                this.Cache=Cache;
+            }
+        }
+
+
+        class CreateFetchTestSetup : CachedSessionAndRunnerBaseTestSetup, IDisposable
         {
             public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
             public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
@@ -1271,7 +1451,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        class RunnerTestSetup : SessionAndRunnerBaseTestSetup, IDisposable
+        class RunnerTestSetup : CachedSessionAndRunnerBaseTestSetup, IDisposable
         {
             public readonly Mock<IActiveSession> StubActiveSession;
             readonly Object? _lockObject = null;
@@ -1316,32 +1496,95 @@ namespace ActiveSession.Tests
                 MockRunnerManager.SetupGet(RunnerCreationLockExpression).Returns(_lockObject);
             }
 
-            public Expression<Func<IServiceProvider, Object?>> RunnerFactoryExpression<TRequest, TResult>()
-            {
-                return s => s.GetService(typeof(IActiveSessionRunnerFactory<TRequest, TResult>));
-            }
-
-            IActiveSessionRunnerFactory<TRequest,TResult> MockRunnerFactory<TRequest, TResult>(
-                Func<TRequest, IActiveSessionRunner<TResult>> Factory)
-            {
-                Mock<IActiveSessionRunnerFactory<TRequest, TResult>>? factory_mock = new ();
-                factory_mock.Setup(s => s.Create(It.IsAny<TRequest>(), It.IsAny<IServiceProvider>()))
-                    .Returns((TRequest r,IServiceProvider sp) => Factory(r));
-                return factory_mock.Object;
-            }
-
-            public void AddRunnerFactory<TRequest,TResult>(Func<TRequest,IActiveSessionRunner<TResult>> Factory)
-            {
-                MockRootServiceProvider.Setup(RunnerFactoryExpression<TRequest, TResult>())
-                    .Returns(MockRunnerFactory(Factory));
-            }
-
             public void Dispose()
             {
                 _cts.Dispose();
             }
 
         }
+
+        class OwnCacheTestSetup: SessionAndRunnerBaseTestSetup
+        {
+            public readonly FakeSystemClock Clock;
+
+            public static readonly TimeSpan STEP = TimeSpan.FromMinutes(2) ;
+            public static readonly TimeSpan SESSION_IDLE = TimeSpan.FromMinutes(10); //Default was 20 min
+            public static readonly TimeSpan SESSION_ALMOST_GONE = SESSION_IDLE-TimeSpan.FromSeconds(20);
+            public static readonly TimeSpan RUNNER_IDLE = TimeSpan.FromSeconds(30); //Default
+            public Action? DisposeSpyAction = null;
+
+            readonly ServiceProviderMock _mockedSessionServiceProvider;
+            RunnerManagerFactory _runnerManagerFactory;
+
+            public OwnCacheTestSetup(): base(null) 
+            {
+                _runnerManagerFactory=new RunnerManagerFactory();
+                _mockedSessionServiceProvider=new ServiceProviderMock(MockRootServiceProvider);
+                SessOptions.IdleTimeout=SESSION_IDLE; 
+                ActSessOptions.UseOwnCache=true;
+                ActSessOptions.TrackStatistics=true;
+                Clock=new FakeSystemClock();
+                ActSessOptions.OwnCacheOptions=new MemoryCacheOptions { 
+                    Clock=Clock, 
+                    ExpirationScanFrequency=TimeSpan.FromSeconds(10) 
+                };
+                AddRunnerFactory<String, Result1>(SpyRunnerFactory);
+            }
+
+            IActiveSessionRunner<Result1> SpyRunnerFactory(String Request)
+            {
+                return new SpyRunnerX(Request,DisposeSpyAction);
+            }
+
+            public new ActiveSessionStore CreateStore()
+            {
+                IMemoryCache? cache = MockCache?.Object;
+                return new ActiveSessionStore(
+                    null,
+                    MockRootServiceProvider.Object,
+                    _runnerManagerFactory,
+                    IActSessionOptions,
+                    ISessOptions,
+                    _loggerFactory.LoggerFactory);
+            }
+
+        }
+
+        public class SpyRunnerX : ActiveSessionRunnerBase, IActiveSessionRunner<Result1>
+        {
+            public Boolean Disposed { get; private set; } = false;
+            public String Arg { get; private set; }
+            Action? _disposeSpyAction;
+            ManualResetEvent _evt = new ManualResetEvent(false);
+            public Task DisposeTask;
+
+            public SpyRunnerX(String Arg, Action? DisposeSpyAction):base()  
+            {
+                this.Arg=Arg;
+                DisposeTask=new Task(() => { _evt.WaitOne(); _evt.Dispose(); });
+                _disposeSpyAction=DisposeSpyAction;
+            }
+
+            protected override void Dispose(Boolean Disposing)
+            {
+                DisposeTask.Start();
+                _disposeSpyAction?.Invoke();
+                _evt.Set();
+                Disposed=true;
+                base.Dispose(Disposing);
+            }
+
+            public ValueTask<ActiveSessionRunnerResult<Result1>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+            {
+                throw new NotImplementedException();
+            }
+
+            public ActiveSessionRunnerResult<Result1> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
 
     }
 }
