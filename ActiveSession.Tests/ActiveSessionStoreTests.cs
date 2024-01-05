@@ -935,7 +935,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //TODO Test group: test expireation from real cache
+        //Test group: test expirations from real cache
         [Fact]
         public void OwnCacheExpirations()
         {
@@ -953,8 +953,8 @@ namespace ActiveSession.Tests
                 Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
                 //Act 
                 ts.Clock.Advance(OwnCacheTestSetup.SESSION_IDLE);
-                //Assess
                 store.InitCacheExpiration();
+                //Assess
                 Assert.Equal(0, Task.WaitAny(session_cleanup_task, Task.Delay(10000)));
                 Assert.Equal(0, store.GetCurrentStatistics()!.SessionCount);
                 Assert.True((session as Active_Session)!.Disposed);
@@ -1048,9 +1048,161 @@ namespace ActiveSession.Tests
             }
 
         }
-        //TODO Test case: on cache, an ActiveSession with runners expired
-        //TODO Test case: Create runner race conditions - ActiveSession level lock
-        //TODO Test case: Create runner race conditions - store level lock
+
+        //Test group: CreateRunner with race condition
+        [Fact]
+        public void CreateRunner_Race()
+        {
+            Task session_cleanup_task;
+            IActiveSession session;
+            const string ID1 = "Id1";
+            const string ID2 = "Id2";
+            ManualResetEvent evt1=new ManualResetEvent(false), evt2=new ManualResetEvent(false);
+            ManualResetEvent proceed_event = new ManualResetEvent(false);
+            int test_value=0, test_factor=0;
+            Boolean cr1 = false, cr2 = false;
+            Action waiter1 = () => { cr1=true; proceed_event.Set(); evt1.WaitOne(); test_value+=test_factor; test_factor*=2; };
+            Action waiter2 = () => { cr2=true; proceed_event.Set(); evt2.WaitOne(); test_value+=2*test_factor; test_factor*=2; };
+            KeyedActiveSessionRunner<Result1> keyed_runner1=default;
+            KeyedActiveSessionRunner<Result1> keyed_runner2 = default;
+            Task create_task1, create_task2;
+            Boolean global_lock_used;
+            //Arrange common stuff
+            Mock<ISession> stub_another_isession = new Mock<ISession>();
+            stub_another_isession.SetupGet(s => s.Id).Returns("AnotherId");
+            OwnCacheTestSetup ts = new OwnCacheTestSetup();
+
+            //Test case: Create runner race conditions - ActiveSession level lock
+            //Arrange
+            ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
+            using (ActiveSessionStore store = ts.CreateStore()) {
+                try {
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                    session_cleanup_task=session.CleanupCompletionTask;
+                    evt1.Reset();
+                    evt2.Reset();
+                    test_value=0;
+                    test_factor=1;
+                    cr1=false;
+                    cr2=false;
+                    //Act
+                    ts.FactorySpyAction=waiter1;
+                    proceed_event.Reset();
+                    create_task1=Task.Run(()=>
+                        {
+                            keyed_runner1 = store.CreateRunner<String, Result1>(
+                            ts.MockSession.Object,
+                            session,
+                            (session as Active_Session)!.RunnerManager,
+                            ID1,
+                            null);
+                        }
+                    );
+                    Assert.True(proceed_event.WaitOne(10000));
+                    ts.FactorySpyAction=waiter2;
+                    proceed_event.Reset();
+                    create_task2=Task.Run(() => {
+                            keyed_runner2=store.CreateRunner<String, Result1>(
+                                ts.MockSession.Object,
+                                session,
+                                (session as Active_Session)!.RunnerManager,
+                                ID2,
+                                null);
+                        }
+                    );
+                    //Assess
+                    Assert.True(cr1);
+                    Assert.False(cr2);
+                    global_lock_used=Task.WaitAny(Task.Run(()=>store.FetchOrCreateSession(stub_another_isession.Object,null)),Task.Delay(1000))!=0;
+                    evt1.Set();
+                    Assert.True(proceed_event.WaitOne(10000));
+                    Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));
+                    Assert.True(cr2);
+                    evt2.Set();
+                    Assert.Equal(0, Task.WaitAny(create_task2, Task.Delay(2000)));
+                    //Next 2 lines tests runners creation order
+                    Assert.Equal(4, test_factor);
+                    Assert.Equal(5, test_value);
+                    Assert.NotNull(keyed_runner1.Runner);
+                    Assert.NotNull(keyed_runner2.Runner);
+                    Assert.NotEqual(keyed_runner1.RunnerNumber, keyed_runner2.RunnerNumber);
+                    Assert.False(global_lock_used);
+                    //Cleanup
+                    ts.Clock.Advance(OwnCacheTestSetup.STEP);
+                    store.InitCacheExpiration();
+                }
+                finally {
+                    ts.FactorySpyAction=null;
+                    ts.Clock.Reset();
+                }
+            }
+
+            //Test case: Create runner race conditions - store level lock
+            //Arrange
+            ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
+            using (ActiveSessionStore store = ts.CreateStore()) {
+                try {
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                    session_cleanup_task=session.CleanupCompletionTask;
+                    evt1.Reset();
+                    evt2.Reset();
+                    test_value=0;
+                    test_factor=1;
+                    cr1=false;
+                    cr2=false;
+                    ts.MockRunnerManager.SetupGet(ts.LockObjectExpression).Returns((IRunnerManager?)null);
+                    //Act
+                    ts.FactorySpyAction=waiter1;
+                    proceed_event.Reset();
+                    create_task1=Task.Run(() =>
+                        {
+                            keyed_runner1=store.CreateRunner<String, Result1>(
+                            ts.MockSession.Object,
+                            session,
+                            ts.MockRunnerManager.Object,
+                            ID1,
+                            null);
+                        }
+                    );
+                    Assert.True(proceed_event.WaitOne(120000));
+                    ts.FactorySpyAction=waiter2;
+                    proceed_event.Reset();
+                    create_task2=Task.Run(() => {
+                        keyed_runner2=store.CreateRunner<String, Result1>(
+                            ts.MockSession.Object,
+                            session,
+                            ts.MockRunnerManager.Object,
+                            ID2,
+                            null);
+                    }
+                    );
+                    //Assess
+                    Assert.True(cr1);
+                    Assert.False(cr2);
+                    global_lock_used=Task.WaitAny(Task.Run(() => store.FetchOrCreateSession(stub_another_isession.Object, null)), Task.Delay(1000))!=0;
+                    evt1.Set();
+                    Assert.True(proceed_event.WaitOne(120000));
+                    Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));
+                    Assert.True(cr2);
+                    evt2.Set();
+                    Assert.Equal(0, Task.WaitAny(create_task2, Task.Delay(2000)));
+                    //Next 2 lines tests runners creation order
+                    Assert.Equal(4, test_factor);
+                    Assert.Equal(5, test_value);
+                    Assert.NotNull(keyed_runner1.Runner);
+                    Assert.NotNull(keyed_runner2.Runner);
+                    Assert.True(global_lock_used);
+                    //Cleanup
+                    ts.Clock.Advance(OwnCacheTestSetup.STEP);
+                    store.InitCacheExpiration();
+                }
+                finally {
+                    ts.FactorySpyAction=null;
+                    ts.Clock.Reset();
+                }
+            }
+
+        }
 
 
 
@@ -1306,6 +1458,8 @@ namespace ActiveSession.Tests
             public readonly Mock<IServiceProvider> MockRootServiceProvider;
             readonly Object _lockObject=new Object();
 
+            public Expression<Func<IRunnerManager, Object?>> LockObjectExpression = s => s.RunnerCreationLock;
+
             public Boolean LoggerCreated() {
                 return _loggerFactory.LoggerCreationCount(LOGGING_CATEGORY_NAME)>0;
             }
@@ -1319,7 +1473,7 @@ namespace ActiveSession.Tests
                 IActSessionOptions=Options.Create(ActSessOptions);
                 ISessOptions=Options.Create(SessOptions);
                 MockRunnerManager=new Mock<IRunnerManager>();
-                MockRunnerManager.SetupGet(s => s.RunnerCreationLock).Returns(_lockObject);
+                MockRunnerManager.SetupGet(LockObjectExpression).Returns(_lockObject);
                 MockRunnerManager.Setup(s => s.PerformRunnersCleanupAsync(It.IsAny<IActiveSession>())).Returns(Task.CompletedTask);
                 StubRMFactory=new Mock<IRunnerManagerFactory>();
                 StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<ILogger>(),
@@ -1512,6 +1666,7 @@ namespace ActiveSession.Tests
             public static readonly TimeSpan SESSION_ALMOST_GONE = SESSION_IDLE-TimeSpan.FromSeconds(20);
             public static readonly TimeSpan RUNNER_IDLE = TimeSpan.FromSeconds(30); //Default
             public Action? DisposeSpyAction = null;
+            public Action? FactorySpyAction = null;
 
             readonly ServiceProviderMock _mockedSessionServiceProvider;
             RunnerManagerFactory _runnerManagerFactory;
@@ -1533,6 +1688,7 @@ namespace ActiveSession.Tests
 
             IActiveSessionRunner<Result1> SpyRunnerFactory(String Request)
             {
+                FactorySpyAction?.Invoke();
                 return new SpyRunnerX(Request,DisposeSpyAction);
             }
 

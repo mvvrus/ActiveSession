@@ -5,7 +5,7 @@
     /// </summary>
     /// <typeparam name="TRequest">Type of the initialization data used to create a new runner</typeparam>
     /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-    public interface IActiveSessionRunnerFactory<in TRequest, TResult>
+    public interface IActiveSessionRunnerFactory<TRequest, TResult>
     {
         /// <summary>
         /// 

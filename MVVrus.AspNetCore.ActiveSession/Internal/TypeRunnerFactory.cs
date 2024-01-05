@@ -34,7 +34,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             _params[0] = Request!;
             return ActivatorUtilities.CreateInstance(Services, _runner_type, _params) as IActiveSessionRunner<TResult>;
-            throw new NotImplementedException();
         }
     }
 }
