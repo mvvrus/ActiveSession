@@ -1126,7 +1126,7 @@ namespace ActiveSession.Tests
                     Assert.NotNull(keyed_runner1.Runner);
                     Assert.NotNull(keyed_runner2.Runner);
                     Assert.NotEqual(keyed_runner1.RunnerNumber, keyed_runner2.RunnerNumber);
-                    Assert.False(global_lock_used);
+                    Assert.True(global_lock_used);
                     //Cleanup
                     ts.Clock.Advance(OwnCacheTestSetup.STEP);
                     store.InitCacheExpiration();
