@@ -44,14 +44,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
+        public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionCreateRunner(_sessionId, trace_identifier);
             #endif
-            KeyedActiveSessionRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
+            KeyedRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
                 this,
                 _runnerManager,
                 Request,
@@ -63,14 +63,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return created;
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
+        public IRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
-            IActiveSessionRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier);
+            IRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier);
             _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
@@ -78,14 +78,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return fetched;
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken Token)
+        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken Token)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
-            ValueTask<IActiveSessionRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier, Token);
+            ValueTask<IRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier, Token);
             _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);

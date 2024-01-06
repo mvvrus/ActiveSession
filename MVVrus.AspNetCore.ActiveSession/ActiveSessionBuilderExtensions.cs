@@ -18,7 +18,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// to the <see cref="HttpContext.Features"/> collection.
         /// </para>
         /// <para>
-        /// The feature is added only if at list one runner factory service (<see cref="IActiveSessionRunnerFactory{TRequest, TResult}"/>) 
+        /// The feature is added only if at list one runner factory service (<see cref="IRunnerFactory{TRequest, TResult}"/>) 
         /// was registered inthe application's service container via one of AddActiveSession extension methods defined in the 
         /// <see cref="ActiveSessionServiceCollectionExtensions"/> class.
         /// </para>

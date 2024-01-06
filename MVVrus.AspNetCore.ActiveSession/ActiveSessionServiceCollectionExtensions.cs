@@ -15,7 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
         /// <typeparam name="TResult">
-        /// Type used to specialize a <see cref="IActiveSessionRunner"></see> generic interface, 
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
@@ -25,13 +25,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remark>
         /// A runner factory service is a specialization of the 
-        /// generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}"/>
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}"/>
         /// 
         /// In this overload the factory delegate does not use service container 
         /// and no configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
-            Func<TRequest, IActiveSessionRunner<TResult>> Factory)
+            Func<TRequest, IRunner<TResult>> Factory)
         {
             return AddActiveSessions(Services, Factory, null);
         }
@@ -41,7 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
         /// <typeparam name="TResult">
-        /// Type used to specialize a <see cref="IActiveSessionRunner"></see> generic interface, 
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
@@ -55,13 +55,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remark>
         /// A runner factory service is a specialization of the 
-        /// generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
         /// In this overload the factory delegate does not use service container 
         /// and a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
-        Func<TRequest, IActiveSessionRunner<TResult>> Factory,
+        Func<TRequest, IRunner<TResult>> Factory,
         Action<ActiveSessionOptions>? Configurator)
         {
             return AddActiveSessions<TRequest, TResult>(Services, (Request, _) => Factory(Request), Configurator);
@@ -72,7 +72,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
         /// <typeparam name="TResult">
-        /// Type used to specialize a <see cref="IActiveSessionRunner"></see> generic interface, 
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
@@ -82,13 +82,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remark>
         /// A runner factory service is a specialization of the 
-        /// generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
         /// In this overload the factory delegate does use service container 
         /// and no configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
-            Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory)
+            Func<TRequest, IServiceProvider, IRunner<TResult>> Factory)
         {
             return AddActiveSessions(Services, Factory, null);
         }
@@ -98,7 +98,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
         /// <typeparam name="TResult">
-        /// Type used to specialize a <see cref="IActiveSessionRunner"></see> generic interface, 
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
@@ -112,17 +112,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remarks>
         /// A runner factory service is a specialization of the 
-        /// generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
         /// In this overload the factory delegate does use service container 
         /// and a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remarks>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
-            Func<TRequest, IServiceProvider, IActiveSessionRunner<TResult>> Factory, Action<ActiveSessionOptions>? Configurator)
+            Func<TRequest, IServiceProvider, IRunner<TResult>> Factory, Action<ActiveSessionOptions>? Configurator)
         {
             AddActiveSessionInfrastructure(Services, Configurator);
             ActiveSessionStore.RegisterTResult(typeof(TResult));
-            Services.TryAddSingleton<IActiveSessionRunnerFactory<TRequest, TResult>>
+            Services.TryAddSingleton<IRunnerFactory<TRequest, TResult>>
                     (sp => new DelegateRunnerFactory<TRequest, TResult>(Factory));
             return Services;
         }
@@ -131,15 +131,15 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Extension method used to configure a type-based variant of runner factory services
         /// </summary>
         /// <typeparam name="TRunner">Class used as implementation of a runner
-        /// implementing one or more specializations of <see cref="IActiveSessionRunner"></see> generic interface
+        /// implementing one or more specializations of <see cref="IRunner"></see> generic interface
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
         /// <param name="ExtraArguments">Additional arguments to pass into TRunner constructor</param>
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <remarks>
-        /// Runner factory service is a specializations of the generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>
-        /// Specializations of  <see cref="IActiveSessionRunnerFactory{TRequest,TResult}"></see>  
+        /// Runner factory service is a specializations of the generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
+        /// Specializations of  <see cref="IRunnerFactory{TRequest,TResult}"></see>  
         /// for all combinations of TRequest and TResult supported by the TRunner type are added
         /// In this overload a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is not used
         /// </remarks>
@@ -150,12 +150,12 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <summary>
         /// Extension method used to configure a type-based variant of runner factory services
-        /// (specializations of the generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>)
-        /// Specializations of  <see cref="IActiveSessionRunnerFactory{TRequest,TResult}"></see>  
+        /// (specializations of the generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>)
+        /// Specializations of  <see cref="IRunnerFactory{TRequest,TResult}"></see>  
         /// for all combinations of TRequest and TResult supported by the TRunner type are added
         /// </summary>
         /// <typeparam name="TRunner">Class used as implementation of a runner
-        /// implementing one or more specializations of <see cref="IActiveSessionRunner"></see> generic interface
+        /// implementing one or more specializations of <see cref="IRunner"></see> generic interface
         /// </typeparam>
         /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
         /// <param name="Configurator">
@@ -166,8 +166,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <remarks>
-        /// Runner factory service is a specializations of the generic runner factory interface <see cref="IActiveSessionRunnerFactory{TRequest,TResult}">.</see>
-        /// Specializations of  <see cref="IActiveSessionRunnerFactory{TRequest,TResult}"></see>  
+        /// Runner factory service is a specializations of the generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
+        /// Specializations of  <see cref="IRunnerFactory{TRequest,TResult}"></see>  
         /// for all combinations of TRequest and TResult supported by the TRunner type are added
         /// In this overload a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remarks>
@@ -179,14 +179,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (!runner_type.IsClass||runner_type.IsAbstract)
                 throw new InvalidOperationException($"{runner_type.FullName} is not a non-abstract class.");
 
-            //Select all types (TResult) for which IActiveSessionRunner<TResult> is implemented by the class
+            //Select all types (TResult) for which IRunner<TResult> is implemented by the class
             Type[] result_types = runner_type.FindInterfaces(
-                (m, _) => m.IsConstructedGenericType&&m.GetGenericTypeDefinition()==typeof(IActiveSessionRunner<>)
+                (m, _) => m.IsConstructedGenericType&&m.GetGenericTypeDefinition()==typeof(IRunner<>)
                 , null
                 ).Select(type => type.GenericTypeArguments[0]).ToArray();
             if (result_types.Length<=0)
                 throw new InvalidOperationException(
-                    $"{runner_type.FullName} does not implement any specialisation of IActiveSessionRunner<> generic interface"
+                    $"{runner_type.FullName} does not implement any specialisation of IRunner<> generic interface"
                     );
 
             //Find suitable constructors: 
@@ -229,7 +229,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             IEnumerable<Type> unique_first_param_types =
                 selected_constructors.Select(c => c.GetParameters()[0].ParameterType).Distinct();
 
-            //Add to service list (Services) implementations of IActiveSessionRunnerFactory<TRequest,TResult>
+            //Add to service list (Services) implementations of IRunnerFactory<TRequest,TResult>
             // via the class TypeRunnerFactory<TRequest,TResult>
             // for all combinations of request and result types 
             //            int extra_params_length = (ExtraArguments?.Length??0);
@@ -240,7 +240,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 foreach (Type request_type in unique_first_param_types) {
                     type_args[0]=request_type;
                     type_args[1]=result_type;
-                    Type factory_service_type = typeof(IActiveSessionRunnerFactory<,>)
+                    Type factory_service_type = typeof(IRunnerFactory<,>)
                         .MakeGenericType(type_args);
                     ConstructorInfo factory_impl_object_constructor = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)

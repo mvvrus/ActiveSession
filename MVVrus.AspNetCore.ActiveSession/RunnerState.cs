@@ -1,9 +1,9 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// Enumeration containing possible states of a runner object? implementing a <see cref="IActiveSessionRunner{TResult}"/>interface.
+    /// Enumeration containing possible states of a runner object? implementing a <see cref="IRunner{TResult}"/>interface.
     /// </summary>
-    public enum ActiveSessionRunnerState
+    public enum RunnerState
     {
         /// <value> Just created and not started </value>
         NotStarted=0,
@@ -20,9 +20,9 @@
     }
 
     /// <summary>
-    /// Class containing an extension method for <see cref="ActiveSessionRunnerState"/> enumerable
+    /// Class containing an extension method for <see cref="RunnerState"/> enumerable
     /// </summary>
-    public static class ActiveSessionRunnerStateExtensions
+    public static class RunnerStateExtensions
     {
         /// <summary>
         /// Returns true if the state, specified by <paramref name="State"/> is final, 
@@ -30,9 +30,9 @@
         /// </summary>
         /// <param name="State">The runner state to analyze/</param>
         /// <returns>true if the <paramref name="State"/> specified is a final one (Complete, Failed or Aborted), false otherwise</returns>
-        public static Boolean IsFinal(this ActiveSessionRunnerState State)
+        public static Boolean IsFinal(this RunnerState State)
         {
-            return State>=ActiveSessionRunnerState.Complete;
+            return State>=RunnerState.Complete;
         }
 
     }

@@ -3,15 +3,15 @@
     internal interface IActiveSessionStore
     {
         public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier);
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, 
+        public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session, 
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             TRequest Request, String? TraceIdentifier);
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session,
+        public IRunner<TResult>? GetRunner<TResult>(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier);
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager, 

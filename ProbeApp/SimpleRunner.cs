@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.Primitives;
 using MVVrus.AspNetCore.ActiveSession;
-using static MVVrus.AspNetCore.ActiveSession.IActiveSessionRunner;
-using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
+using static MVVrus.AspNetCore.ActiveSession.IRunner;
+using static MVVrus.AspNetCore.ActiveSession.RunnerState;
 
 
 namespace ProbeApp
 {
-    public class SimpleRunner : ActiveSessionRunnerBase, IActiveSessionRunner<int>
+    public class SimpleRunner : RunnerBase, IRunner<int>
     {
         readonly Object _lock=new Object();
         int _immediate, _end, _delay_in_ms;
         Int32 _last_set=-1;
-        ActiveSessionRunnerState _state_to_set = Stalled;
+        RunnerState _state_to_set = Stalled;
         Task? _task_to_continue;
         ILogger? _logger;
 
@@ -30,30 +30,30 @@ namespace ProbeApp
             }
         }
 
-        public ActiveSessionRunnerResult<Int32> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
+        public RunnerResult<Int32> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
         {
-            if(State!=Progressed) return new ActiveSessionRunnerResult<int>(_last_set, State, Position);
-            ActiveSessionRunnerResult<int> result;
+            if(State!=Progressed) return new RunnerResult<int>(_last_set, State, Position);
+            RunnerResult<int> result;
             lock (_lock) {
                 SetState(_state_to_set);
-                result= new ActiveSessionRunnerResult<int>(_last_set, State, Position);
+                result= new RunnerResult<int>(_last_set, State, Position);
             }
             return result;
         }
 
-        public async ValueTask<ActiveSessionRunnerResult<Int32>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+        public async ValueTask<RunnerResult<Int32>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
         {
             if(CompareAndSetStateInterlocked(Stalled, NotStarted)==NotStarted) StartBackground();
             if (Advance<=0) Advance=1;
-            ActiveSessionRunnerResult<int> result=default;
+            RunnerResult<int> result=default;
             for (int i=0;i<Advance; i++) {
-                ActiveSessionRunnerState state = State;
-                result=new ActiveSessionRunnerResult<int>(_last_set, state, Position);
+                RunnerState state = State;
+                result=new RunnerResult<int>(_last_set, state, Position);
                 if (state!=Stalled&&state!=Progressed) break;
                 if (state==Stalled) await _task_to_continue!;
                 if(State==Progressed) lock (_lock) {
                         SetState(_state_to_set);
-                        result=new ActiveSessionRunnerResult<int>(_last_set, State, Position);
+                        result=new RunnerResult<int>(_last_set, State, Position);
                 }
             }
             return result;

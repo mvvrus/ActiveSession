@@ -5,7 +5,7 @@
         void RegisterSession(IActiveSession SessionKey);
         Int32 GetNewRunnerNumber(IActiveSession SessionKey, String? TraceIdentifier = null);
         void ReturnRunnerNumber(IActiveSession SessionKey, Int32 RunnerNumber);
-        void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IActiveSessionRunner Runner, Type ResultType);
+        void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IRunner Runner, Type ResultType);
         Task? UnregisterRunner(IActiveSession SessionKey, int RunnerNumber);
         RunnerInfo? GetRunnerInfo(IActiveSession SessionKey, int RunnerNumber);
         Object? RunnerCreationLock { get; }

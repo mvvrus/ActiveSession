@@ -3,9 +3,9 @@ using Microsoft.Extensions.Primitives;
 
 namespace ActiveSession.Tests
 {
-    public class SpyRunnerBase<TResult> : IActiveSessionRunner<TResult>
+    public class SpyRunnerBase<TResult> : IRunner<TResult>
     {
-        public ActiveSessionRunnerState State => throw new NotImplementedException();
+        public RunnerState State => throw new NotImplementedException();
 
         public int Position => throw new NotImplementedException();
 
@@ -14,19 +14,19 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public ActiveSessionRunnerResult<TResult> GetAvailable(int StartPosition, Int32 Advance, String? TraceIdentifier)
+        public RunnerResult<TResult> GetAvailable(int StartPosition, Int32 Advance, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
 
         public CancellationToken CompletionToken => throw new NotImplementedException();
 
-        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMore(int StartPosition, CancellationToken token = default)
+        public ValueTask<RunnerResult<TResult>> GetMore(int StartPosition, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
 
-        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
+        public ValueTask<RunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
@@ -87,18 +87,18 @@ namespace ActiveSession.Tests
         public SpyRunner5(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
     }
 
-    class SpyRunner6 : SpyRunner1, IActiveSessionRunner<String>
+    class SpyRunner6 : SpyRunner1, IRunner<String>
     {
         public SpyRunner6(Request1 Request) : base(Request)
         {
         }
 
-        ActiveSessionRunnerResult<String> IActiveSessionRunner<String>.GetAvailable(Int32 StartPosition, Int32 Advance, String? TraceIdentifier)
+        RunnerResult<String> IRunner<String>.GetAvailable(Int32 StartPosition, Int32 Advance, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
 
-        ValueTask<ActiveSessionRunnerResult<String>> IActiveSessionRunner<String>.GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
+        ValueTask<RunnerResult<String>> IRunner<String>.GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
         {
             throw new NotImplementedException();
         }

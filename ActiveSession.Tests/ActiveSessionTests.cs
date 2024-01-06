@@ -296,9 +296,9 @@ namespace ActiveSession.Tests
             public const Int32 TEST_RUNNER_NUMBER = 10;
             public const String EXISTING_TEST_RUNNER_ARG = "ExistingRunnerArg";
 
-            readonly Expression<Func<IActiveSessionStore, KeyedActiveSessionRunner<Result1>>> _createRunnerExpression;
-            readonly Expression<Func<IActiveSessionStore,IActiveSessionRunner<Result1>?>> _getRunnerExpression;
-            readonly Expression<Func<IActiveSessionStore, ValueTask<IActiveSessionRunner<Result1>?>>> _getRunnerExpressionAsync;
+            readonly Expression<Func<IActiveSessionStore, KeyedRunner<Result1>>> _createRunnerExpression;
+            readonly Expression<Func<IActiveSessionStore,IRunner<Result1>?>> _getRunnerExpression;
+            readonly Expression<Func<IActiveSessionStore, ValueTask<IRunner<Result1>?>>> _getRunnerExpressionAsync;
             public readonly SpyRunner1 ExistingRunner = new SpyRunner1(new Request1 { Arg = EXISTING_TEST_RUNNER_ARG });
             public readonly Mock<HttpContext> StubContext;
 
@@ -312,15 +312,15 @@ namespace ActiveSession.Tests
                         It.IsAny<String>()
                         );
                 MockStore.Setup(_createRunnerExpression)
-                    .Returns((ISession _, IActiveSession _, IRunnerManager _, Request1 r, String _) => new KeyedActiveSessionRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
+                    .Returns((ISession _, IActiveSession _, IRunnerManager _, Request1 r, String _) => new KeyedRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
                 MockStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
-                    .Returns((IActiveSessionRunner<Result1>?)null);
+                    .Returns((IRunner<Result1>?)null);
                 _getRunnerExpression=s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
                 MockStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
                 MockStore.Setup(s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
-                    .Returns(new ValueTask<IActiveSessionRunner<Result1>?>((IActiveSessionRunner<Result1>?)null));
+                    .Returns(new ValueTask<IRunner<Result1>?>((IRunner<Result1>?)null));
                 _getRunnerExpressionAsync=s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
-                MockStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IActiveSessionRunner<Result1>?>(ExistingRunner));
+                MockStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IRunner<Result1>?>(ExistingRunner));
                 StubContext=new Mock<HttpContext>();
                 StubContext.SetupGet(s => s.Session).Returns(StubSession.Object);
             }

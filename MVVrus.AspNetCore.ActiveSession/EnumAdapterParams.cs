@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// Class containg parametrs to pass to a <see cref="EnumAdapterRunner{TResult}"/> constructor
     /// </summary>
-    /// <typeparam name="TResult">Type specializing the runner's <see cref="IActiveSessionRunner{TResult}"/> interface</typeparam>
+    /// <typeparam name="TResult">Type specializing the runner's <see cref="IRunner{TResult}"/> interface</typeparam>
     /// <param name="Source">The base object implementing <see cref="IEnumerable{T}"/> for which the adapter to be created</param>
     /// <param name="Limit">
     /// Maximum number of elements acquired from the <paramref name="Source"/> 

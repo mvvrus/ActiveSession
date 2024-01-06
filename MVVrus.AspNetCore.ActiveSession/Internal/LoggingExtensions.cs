@@ -381,16 +381,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_FEATURESETSESSIONEXIT, Trace, "Exit ActiveSessionFeature.SetSessiond, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceActiveSessionFeatureSetSessionExit(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(T_DLGTFACTORYCONS, Trace, "Creating delegate runner factory to implement IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        [LoggerMessage(T_DLGTFACTORYCONS, Trace, "Creating delegate runner factory to implement IRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceConstructDelegateFactory(this ILogger Logger, String TRequest, String TResult);
 
-        [LoggerMessage(T_DLGTFACTORYINVOKE, Trace, "Invoke delegate runner factory implementing IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        [LoggerMessage(T_DLGTFACTORYINVOKE, Trace, "Invoke delegate runner factory implementing IRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceInvokingDelegateFactory(this ILogger Logger, String TRequest, String TResult);
 
-        [LoggerMessage(T_TYPEFACTORCONS, Trace, "Creating type-based runner factory to implement IActiveSessionRunnerFactory<{TRequest}, {TResult}> via {ImplementingClassName}.")]
+        [LoggerMessage(T_TYPEFACTORCONS, Trace, "Creating type-based runner factory to implement IRunnerFactory<{TRequest}, {TResult}> via {ImplementingClassName}.")]
         public static partial void LogTraceConstructTypeFactory(this ILogger Logger, String TRequest, String TResult, String ImplementingClassName);
 
-        [LoggerMessage(T_TYPEFACTORYINVOKE, Trace, "Invoke type-based runner factory implementing IActiveSessionRunnerFactory<{TRequest}, {TResult}>.")]
+        [LoggerMessage(T_TYPEFACTORYINVOKE, Trace, "Invoke type-based runner factory implementing IRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult);
 
         [LoggerMessage(T_MANAGERREGACQUIRING, Trace, "DefaultRunnerManager.RegisterRunner entered, acquiring runners lock SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]

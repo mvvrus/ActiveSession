@@ -51,7 +51,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value> Default size of an IActiveSession-implementing  object</value>
         public Int32 ActiveSessionSize { get; set; } = DEFAULT_ACTIVESESSIONSIZE;
 
-        /// <value> Default size of an IActiveSessionRunner-implementing  object</value>
+        /// <value> Default size of an IRunner-implementing  object</value>
         public Int32 DefaultRunnerSize { get; set; } = DEFAULT_RUNNERSIZE;
 
         /// <value> Timeout for logging runner cleanup outcome</value>
@@ -78,6 +78,6 @@ namespace MVVrus.AspNetCore.ActiveSession
  *   UseSessionServicesAsRequestServices(Boolean) - [experimental]set HttpContext.RequestServices property to contain ActiveSession.SessionServices
  *   TrackStatistics(Boolean) - perfom tracking of cache using statistics by an IActiveSessionStore-implementing class
  *   ActiveSessionSize - size of an IActiveSession-implementing object in a cache(arbitrary units, defaults to 1)
- *   DefaultRunnerSize - default size of an IActiveSessionRunner-implementing object in a cache(arbitrary units, defaults to 1)
+ *   DefaultRunnerSize - default size of an IRunner-implementing object in a cache(arbitrary units, defaults to 1)
  *   CleanupLoggingTimeoutMs - timeout to log an outcome of runers cleanup(msec, defaults to null: no outcome logging)
  */ 

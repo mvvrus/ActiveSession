@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using static MVVrus.AspNetCore.ActiveSession.ActiveSessionRunnerState;
-using static MVVrus.AspNetCore.ActiveSession.IActiveSessionRunner;
+using static MVVrus.AspNetCore.ActiveSession.RunnerState;
+using static MVVrus.AspNetCore.ActiveSession.IRunner;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession
@@ -10,7 +10,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// Adapter class making possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
     /// </summary>
-    internal class EnumAdapterRunner<TResult> : ActiveSessionRunnerBase, IActiveSessionRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
+    internal class EnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
     {
         //TODO Implement logging
         const String PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
@@ -48,12 +48,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public override ActiveSessionRunnerState State {
+        public override RunnerState State {
             //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
             //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
             get
             {
-                ActiveSessionRunnerState state = base.State;
+                RunnerState state = base.State;
                 if (state==Stalled && _queue.Count>0) state=Progressed;
 #if TRACE
 #endif
@@ -62,12 +62,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public ActiveSessionRunnerResult<IEnumerable<TResult>> GetAvailable(Int32 StartPosition, Int32 Advance = MAXIMUM_ADVANCE, String? TraceIdentifier=null)
+        public RunnerResult<IEnumerable<TResult>> GetAvailable(Int32 StartPosition, Int32 Advance = MAXIMUM_ADVANCE, String? TraceIdentifier=null)
         {
             CheckDisposed();
 #if TRACE
 #endif
-            ActiveSessionRunnerResult<IEnumerable<TResult>> result = default;
+            RunnerResult<IEnumerable<TResult>> result = default;
             if (Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
                 ThrowInvalidParallelism();
             }
@@ -106,7 +106,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public async ValueTask<ActiveSessionRunnerResult<IEnumerable<TResult>>> GetMoreAsync(
+        public async ValueTask<RunnerResult<IEnumerable<TResult>>> GetMoreAsync(
             Int32 StartPosition, 
             Int32 Advance, 
             String? TraceIdentifier = null, 
@@ -116,7 +116,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             CheckDisposed();
 #if TRACE
 #endif
-            ActiveSessionRunnerResult<IEnumerable<TResult>> result=default;
+            RunnerResult<IEnumerable<TResult>> result=default;
             if (Interlocked.CompareExchange(ref _busy, 1, 0)!=0) {
                 ThrowInvalidParallelism();
             }
@@ -201,10 +201,10 @@ namespace MVVrus.AspNetCore.ActiveSession
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
-        ActiveSessionRunnerResult<IEnumerable<TResult>> MakeResult(IEnumerable<TResult> ResultList)
+        RunnerResult<IEnumerable<TResult>> MakeResult(IEnumerable<TResult> ResultList)
         {
             //LogDebug
-            return new ActiveSessionRunnerResult<IEnumerable<TResult>>(ResultList, State, Position,State==Failed?_failureException:null);
+            return new RunnerResult<IEnumerable<TResult>>(ResultList, State, Position,State==Failed?_failureException:null);
         }
 
         void StartSourceEnumerationIfNotStarted()

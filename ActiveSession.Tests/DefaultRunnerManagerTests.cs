@@ -59,7 +59,7 @@ namespace ActiveSession.Tests
             //Arrange both tests
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
+            Mock<IRunner<Result1>> dummy_runner = new Mock<IRunner<Result1>>();
             using (DefaultRunnerManager manager = new DefaultRunnerManager(
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 //Test: register a runner for an unregistered session
@@ -87,7 +87,7 @@ namespace ActiveSession.Tests
             //Arrange both tests
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
+            Mock<IRunner<Result1>> dummy_runner = new Mock<IRunner<Result1>>();
             using (DefaultRunnerManager manager = new DefaultRunnerManager(
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 //Test: register a runner for an unregistered session
@@ -114,7 +114,7 @@ namespace ActiveSession.Tests
             //Arrange both tests
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner> dummy_runner = new Mock<IActiveSessionRunner>();
+            Mock<IRunner> dummy_runner = new Mock<IRunner>();
             using (DefaultRunnerManager manager = new DefaultRunnerManager(
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object)) {
                 //Test: return an unused runner number for an unregistered session
@@ -169,7 +169,7 @@ namespace ActiveSession.Tests
             //Arrange
             Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_as = MakeStubAs();
-            Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
+            Mock<IRunner<Result1>> dummy_runner = new Mock<IRunner<Result1>>();
             DefaultRunnerManager manager = new DefaultRunnerManager(
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object);
             manager.RegisterSession(stub_as.Object);
@@ -190,10 +190,10 @@ namespace ActiveSession.Tests
             manager.Dispose();
         }
 
-        Expression<Action<IActiveSessionRunner>> AbortExpression = s => s.Abort();
-        Mock<IActiveSessionRunner> MockRunner()
+        Expression<Action<IRunner>> AbortExpression = s => s.Abort();
+        Mock<IRunner> MockRunner()
         {
-            Mock<IActiveSessionRunner> result = new Mock<IActiveSessionRunner>();
+            Mock<IRunner> result = new Mock<IRunner>();
             result.Setup(AbortExpression);
             return result;
         }
@@ -214,7 +214,7 @@ namespace ActiveSession.Tests
 
             //Test case: AbortAll with runners
             //Arrange
-            Mock<IActiveSessionRunner>[] runners = new Mock<IActiveSessionRunner>[3];
+            Mock<IRunner>[] runners = new Mock<IRunner>[3];
             manager=new DefaultRunnerManager(
                 new MockedLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME).Logger, dummy_sp.Object);
             manager.RegisterSession(stub_as.Object);
@@ -393,7 +393,7 @@ namespace ActiveSession.Tests
                     RegisterTestRunner(manager, stub_as.Object, new RunnerBase(cts1),
                         () => { evt_unreg1.WaitOne(); unreg_cnt1++; });
                     result=manager.PerformRunnersCleanupAsync(stub_as.Object);
-                    Mock<IActiveSessionRunner<Result1>> dummy_runner = new Mock<IActiveSessionRunner<Result1>>();
+                    Mock<IRunner<Result1>> dummy_runner = new Mock<IRunner<Result1>>();
                     //Act & Assess
                     Assert.Throws<InvalidOperationException>(() => manager.RegisterRunner(stub_as.Object, TEST_RUNNER_NUMBER, dummy_runner.Object, typeof(Result1)));
                     evt_unreg1.Set();
@@ -437,7 +437,7 @@ namespace ActiveSession.Tests
             return stub_as;
         }
 
-        int RegisterTestRunner(IRunnerManager Manager, IActiveSession SessionKey, IActiveSessionRunner Runner,
+        int RegisterTestRunner(IRunnerManager Manager, IActiveSession SessionKey, IRunner Runner,
             Action? UnregCallback=null)
         {
             int number = Manager.GetNewRunnerNumber(SessionKey);
@@ -457,7 +457,7 @@ namespace ActiveSession.Tests
             state.Manager.ReturnRunnerNumber(state.SessionKey, state.RunnerNumber);
         }
 
-        class RunnerBase : IActiveSessionRunner
+        class RunnerBase : IRunner
         {
             protected CancellationTokenSource _completionTokenSource;
             
@@ -466,13 +466,13 @@ namespace ActiveSession.Tests
                 _completionTokenSource=Cts??new CancellationTokenSource();
             }
 
-            public ActiveSessionRunnerState State { get; protected set; }
+            public RunnerState State { get; protected set; }
 
             public Int32 Position => 0;
 
             public void Abort()
             {
-                State=ActiveSessionRunnerState.Aborted;
+                State=RunnerState.Aborted;
                 _completionTokenSource.Cancel();
             }
 

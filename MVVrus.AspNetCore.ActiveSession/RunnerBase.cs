@@ -8,9 +8,9 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// A class intended to be used as a base for <see cref="IActiveSessionRunner{TResult}"/> implementations
+    /// A class intended to be used as a base for <see cref="IRunner{TResult}"/> implementations
     /// </summary>
-    public class ActiveSessionRunnerBase : IActiveSessionRunner, IDisposable
+    public class RunnerBase : IRunner, IDisposable
     {
         Int32 _state;
         readonly CancellationTokenSource _completionTokenSource;
@@ -22,7 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="CompletionTokenSource"></param>
         /// <param name="PassCtsOwnership"></param>
-        public ActiveSessionRunnerBase(CancellationTokenSource? CompletionTokenSource=null, Boolean PassCtsOwnership = true)
+        public RunnerBase(CancellationTokenSource? CompletionTokenSource=null, Boolean PassCtsOwnership = true)
         {
             _passCtsOwnership=CompletionTokenSource==null? PassCtsOwnership: true;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
@@ -30,7 +30,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public virtual ActiveSessionRunnerState State { get {return (ActiveSessionRunnerState)Volatile.Read(ref _state);} }
+        public virtual RunnerState State { get {return (RunnerState)Volatile.Read(ref _state);} }
 
         /// <inheritdoc/>
         public virtual Int32 Position { get; protected set; }
@@ -55,25 +55,25 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// TODO
         /// </summary>
         /// <param name="State"></param>
-        protected virtual Boolean SetState(ActiveSessionRunnerState State)
+        protected virtual Boolean SetState(RunnerState State)
         {
             Int32 new_state = (Int32)State, old_state;
             do {
                 old_state=Volatile.Read(ref _state);
-                if (((ActiveSessionRunnerState)old_state).IsFinal())
+                if (((RunnerState)old_state).IsFinal())
                     return false;
             } while (old_state!=Interlocked.CompareExchange(ref _state, new_state, old_state));
-            if (((ActiveSessionRunnerState)new_state).IsFinal())  _completionTokenSource?.Cancel();
+            if (((RunnerState)new_state).IsFinal())  _completionTokenSource?.Cancel();
             return true;
         }
 
         /// <summary>
         /// TODO
         /// </summary>
-        /// <returns>true if <see cref="State"/> was just changed to <see cref="ActiveSessionRunnerState.Aborted"/>, false if final state was already set</returns>
+        /// <returns>true if <see cref="State"/> was just changed to <see cref="RunnerState.Aborted"/>, false if final state was already set</returns>
         protected virtual Boolean DoAbort()
         {
-            return SetState(ActiveSessionRunnerState.Aborted);
+            return SetState(RunnerState.Aborted);
         }
 
         /// <summary>
@@ -82,10 +82,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="NewState"></param>
         /// <param name="OldState"></param>
         /// <returns></returns>
-        protected ActiveSessionRunnerState CompareAndSetStateInterlocked(ActiveSessionRunnerState NewState, ActiveSessionRunnerState OldState)
+        protected RunnerState CompareAndSetStateInterlocked(RunnerState NewState, RunnerState OldState)
         {
-            ActiveSessionRunnerState prev_state =
-                (ActiveSessionRunnerState)Interlocked.CompareExchange(ref _state, (int)NewState, (int)OldState);
+            RunnerState prev_state =
+                (RunnerState)Interlocked.CompareExchange(ref _state, (int)NewState, (int)OldState);
             if (NewState.IsFinal()&&!prev_state.IsFinal())
                 _completionTokenSource?.Cancel();
             return prev_state;

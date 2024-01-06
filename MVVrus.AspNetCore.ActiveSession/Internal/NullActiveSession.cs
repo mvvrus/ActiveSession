@@ -20,17 +20,17 @@
             return Task.CompletedTask;
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
+        public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context)
         {
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
+        public IRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
         {
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
+        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException(MESSAGE);
         }

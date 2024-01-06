@@ -73,7 +73,7 @@ namespace ActiveSession.Tests
             var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
-            IActiveSessionRunner<Result1>? runner;
+            IRunner<Result1>? runner;
             
             Assert.Throws<InvalidOperationException>(() => { runner=result.Create(request, stub_sp.Object); });
         }

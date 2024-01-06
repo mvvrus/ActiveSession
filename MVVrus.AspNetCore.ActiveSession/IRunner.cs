@@ -4,32 +4,32 @@ namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
     /// Contains collection of common, type-indendent constants, properies and methods 
-    /// for a generic runner ( IActiveSessionRunner{TResult} ) interface
+    /// for a generic runner ( IRunner{TResult} ) interface
     /// </summary>
-    public interface IActiveSessionRunner
+    public interface IRunner
     {
         /// <value>
         /// Constant indicating the start position, from which the runner execution begins
         /// </value>
         public const Int32 BEGINNING_POSITION = 0;
         /// <value>
-        /// Constant indicating the use of current <see cref="IActiveSessionRunner.Position"/>, as a fetch start position
+        /// Constant indicating the use of current <see cref="IRunner.Position"/>, as a fetch start position
         /// </value>
         public const Int32 CURRENT_POSITION = -1;
         /// <value>
-        /// Constant indicating the use of default value as a desired advance of a <see cref="IActiveSessionRunner.Position"></see>.
+        /// Constant indicating the use of default value as a desired advance of a <see cref="IRunner.Position"></see>.
         /// </value>
         public const Int32 DEFAULT_ADVANCE = 0;
 
         /// <value>
-        /// Constant indicating the use of maximum available value as a desired advance of a <see cref="IActiveSessionRunner.Position"></see>.
+        /// Constant indicating the use of maximum available value as a desired advance of a <see cref="IRunner.Position"></see>.
         /// </value>
         public const Int32 MAXIMUM_ADVANCE = Int32.MaxValue;
 
         /// <value>
         /// Current state of the runner object
         /// </value>
-        public ActiveSessionRunnerState State { get; }
+        public RunnerState State { get; }
 
         /// <value>
         /// Current position of the runner object
@@ -53,10 +53,10 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </summary>
     /// <typeparam name="TResult">The type of the result returned by the interface methods</typeparam>
     /// <remarks>
-    /// Inherited from non-generic <see cref="IActiveSessionRunner"></see> interface 
+    /// Inherited from non-generic <see cref="IRunner"></see> interface 
     /// that contains properties and methosds independent of the type of the result.
     /// </remarks>
-    public interface IActiveSessionRunner<TResult>:IActiveSessionRunner
+    public interface IRunner<TResult>:IRunner
     {
         /// <summary>
         /// Asynchronously fetch the next (or first) results from the runner
@@ -64,9 +64,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="StartPosition">
         /// Position value from which the fetching of the results should begin
         /// <remarks> 
-        /// <para>Use <see cref="IActiveSessionRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
-        /// <para>Use <see cref="IActiveSessionRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
-        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IActiveSessionRunner.Position">Position property</see>value</para>
+        /// <para>Use <see cref="IRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
+        /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
+        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
         /// <param name="Advance">Desired increment of the runner's Position, at which the fetch should stop</param>
@@ -79,10 +79,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         /// </param>
         /// <returns> 
-        /// A task returning an <see cref="ActiveSessionRunnerResult{TResult}"/> value containing the state, the position of the runner at the point of completion 
+        /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner at the point of completion 
         /// and the result (of type <typeparamref name="TResult"/>) if any
         /// </returns>
-        public ValueTask<ActiveSessionRunnerResult<TResult>> GetMoreAsync(
+        public ValueTask<RunnerResult<TResult>> GetMoreAsync(
             Int32 StartPosition, 
             Int32 Advance, 
             String? TraceIdentifier=null, 
@@ -95,15 +95,15 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="StartPosition">
         /// Position value from which the fetching of the results should begin
         /// <remarks> 
-        /// <para>Use <see cref="IActiveSessionRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
-        /// <para>Use <see cref="IActiveSessionRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
-        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IActiveSessionRunner.Position">Position property</see>value</para>
+        /// <para>Use <see cref="IRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
+        /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
+        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
         /// <param name="Advance">Desired increment of the runner's Position, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
-        /// An <see cref="ActiveSessionRunnerResult{TResult}"/> value containing the state, the position of the runner 
+        /// An <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner 
         /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any
-        public ActiveSessionRunnerResult<TResult> GetAvailable(Int32 StartPosition= CURRENT_POSITION, Int32 Advance=MAXIMUM_ADVANCE, String? TraceIdentifier = null);
+        public RunnerResult<TResult> GetAvailable(Int32 StartPosition= CURRENT_POSITION, Int32 Advance=MAXIMUM_ADVANCE, String? TraceIdentifier = null);
     }
 }

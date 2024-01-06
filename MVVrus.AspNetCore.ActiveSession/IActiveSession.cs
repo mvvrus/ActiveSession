@@ -15,8 +15,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Request">Initialization data (of type <typeparamref name="TRequest"/>)</param>
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        /// <returns>A <see cref="KeyedActiveSessionRunner{TResult}"/> record containng the runner reference and its key</returns>
-        KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context);
+        /// <returns>A <see cref="KeyedRunner{TResult}"/> record containng the runner reference and its key</returns>
+        KeyedRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context);
 
         /// <summary>
         /// A method used to search for an existing runner
@@ -25,8 +25,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        /// <returns>The existing runner (of type <see cref="IActiveSessionRunner{TResult}"/>) if any or null</returns>
-        IActiveSessionRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext Context);
+        /// <returns>The existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        IRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext Context);
 
         /// <summary>
         /// An asynchronous version of <see cref="GetRunner{TResult}(int, HttpContext)"/> method.
@@ -36,8 +36,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
-        /// <returns>A <see cref="ValueTask{T}"/> wrapping the existing runner (of type <see cref="IActiveSessionRunner{TResult}"/>) if any or null</returns>
-        ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+        /// <returns>A <see cref="ValueTask{T}"/> wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
             int RunnerNumber,
             HttpContext Context, 
             CancellationToken CancellationToken = default

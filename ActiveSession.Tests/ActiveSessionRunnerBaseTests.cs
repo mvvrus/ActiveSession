@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionRunnerBaseTests
+    public class RunnerBaseTests
     {
         //TODO Implement tests
     }

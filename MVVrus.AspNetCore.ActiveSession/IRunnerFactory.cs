@@ -5,7 +5,7 @@
     /// </summary>
     /// <typeparam name="TRequest">Type of the initialization data used to create a new runner</typeparam>
     /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-    public interface IActiveSessionRunnerFactory<TRequest, TResult>
+    public interface IRunnerFactory<TRequest, TResult>
     {
         /// <summary>
         /// 
@@ -15,7 +15,7 @@
         /// A <see cref="IServiceProvider"/> interface of a services container, which can be used 
         /// for dependency injection while creating the runner object.
         /// </param>
-        /// <returns>A new runner object implementing <see cref="IActiveSessionRunner{TResult}"/> interface or null if the object cannot be created</returns>
-        IActiveSessionRunner<TResult>? Create(TRequest Request, IServiceProvider Services);
+        /// <returns>A new runner object implementing <see cref="IRunner{TResult}"/> interface or null if the object cannot be created</returns>
+        IRunner<TResult>? Create(TRequest Request, IServiceProvider Services);
     }
 }

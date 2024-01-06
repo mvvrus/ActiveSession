@@ -10,14 +10,14 @@ namespace ProbeApp
             SimpleRunnerParams runner_params= new SimpleRunnerParams(Immediate:10, End:100);
             String id = active_session?.Id??"<null>";
             int runner_key=-1;
-            IActiveSessionRunner<int>? runner=null;
+            IRunner<int>? runner=null;
             if (RunnerNumber.HasValue) {
                 runner_key=RunnerNumber.Value;
                 runner=active_session?.GetRunner<int>(runner_key, Context);
             }
             if(runner==null)
                 (runner, runner_key) = active_session?.CreateRunner<SimpleRunnerParams,int>(runner_params, Context)??default;
-            ActiveSessionRunnerResult<int> runner_result = await runner.GetMoreAsync(-1);
+            RunnerResult<int> runner_result = await runner.GetMoreAsync(-1);
             String result;
             String head = "";
             String body = "";

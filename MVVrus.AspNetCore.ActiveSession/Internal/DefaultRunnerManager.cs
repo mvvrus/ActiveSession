@@ -51,7 +51,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
 
-        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IActiveSessionRunner Runner, Type ResultType)
+        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IRunner Runner, Type ResultType)
         {
             CheckSession(SessionKey);
             CheckDisposed();
@@ -250,7 +250,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw new InvalidOperationException("DefaultRunnerManager can serve runners from one session only/");
         }
 
-        Task? RunDisposeRunnerTask(IActiveSessionRunner Runner, String SessionId, Int32 RunnerNumber) 
+        Task? RunDisposeRunnerTask(IRunner Runner, String SessionId, Int32 RunnerNumber) 
             //This method is always performed with RunnerCreationLock acquired
         {
             #if TRACE

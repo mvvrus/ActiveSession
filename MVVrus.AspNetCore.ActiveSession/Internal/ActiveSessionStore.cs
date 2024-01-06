@@ -229,7 +229,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         }
 
-        public KeyedActiveSessionRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
+        public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             TRequest Request, 
@@ -238,7 +238,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
-            IActiveSessionRunner<TResult>? runner;
+            IRunner<TResult>? runner;
             #if TRACE
             _logger?.LogTraceCreateRunner(session_id, trace_identifier);
             #endif
@@ -268,7 +268,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     using (ICacheEntry new_entry = _memoryCache.CreateEntry(runner_key)) {
                         new_entry.SlidingExpiration=_runnerIdleTimeout;
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
-                        IActiveSessionRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
+                        IRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
                         runner=factory.Create(Request, ActiveSession.SessionServices);
                         if (runner==null) {
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
@@ -347,10 +347,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceCreateRunnerExit(session_id, runner_number, trace_identifier);
             #endif
-            return new KeyedActiveSessionRunner<TResult>() { Runner=runner, RunnerNumber=runner_number };
+            return new KeyedRunner<TResult>() { Runner=runner, RunnerNumber=runner_number };
         }
 
-        public IActiveSessionRunner<TResult>? GetRunner<TResult>(ISession Session,
+        public IRunner<TResult>? GetRunner<TResult>(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, 
@@ -360,7 +360,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
             String runner_session_key = SessionKey(session_id);
-            IActiveSessionRunner<TResult>? result = null;
+            IRunner<TResult>? result = null;
             #if TRACE
             _logger?.LogTraceGetRunner(session_id, RunnerNumber, trace_identifier);
             #endif
@@ -386,7 +386,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public async ValueTask<IActiveSessionRunner<TResult>?> GetRunnerAsync<TResult>(
+        public async ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
@@ -396,7 +396,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
-            IActiveSessionRunner<TResult>? result = null;
+            IRunner<TResult>? result = null;
             #if TRACE
             _logger?.LogTraceGetRunnerAsync(session_id, RunnerNumber, trace_identifier);
             #endif
@@ -547,7 +547,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        private IActiveSessionRunnerFactory<TRequest, TResult> GetRunnerFactory<TRequest, TResult>(String TraceIdentifier)
+        private IRunnerFactory<TRequest, TResult> GetRunnerFactory<TRequest, TResult>(String TraceIdentifier)
         {
             #if TRACE
             _logger?.LogTraceGetRunnerFactory(TraceIdentifier);
@@ -559,15 +559,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 request_type_name=key.TRequest.FullName!;
                 result_type_name=key.TResult.FullName!;
             }
-            IActiveSessionRunnerFactory<TRequest, TResult>? factory = null;
+            IRunnerFactory<TRequest, TResult>? factory = null;
             if (_factoryCache!=null) {
                 if (_factoryCache.ContainsKey(key)) {
-                    factory=(IActiveSessionRunnerFactory<TRequest, TResult>)_factoryCache[key];
+                    factory=(IRunnerFactory<TRequest, TResult>)_factoryCache[key];
                     _logger?.LogDebugGetRunnerFactoryFromCache(request_type_name, result_type_name, TraceIdentifier);
                 }
             }
             if (factory==null) {
-                factory=_rootServiceProvider.GetRequiredService<IActiveSessionRunnerFactory<TRequest, TResult>>();
+                factory=_rootServiceProvider.GetRequiredService<IRunnerFactory<TRequest, TResult>>();
                 _logger?.LogDebugInstatiateNewRunnerFactory(request_type_name, result_type_name, TraceIdentifier);
                 if (_factoryCache!=null) {
                     #if TRACE
@@ -590,7 +590,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             //Do not call UnregisterRunnerInSession here because the session is inaccessible here and may even be destroyed
             //One remove session variables of an unexisting runner while searching for it and cannot find it in the cache
-            IActiveSessionRunner runner = runner_info.Runner;
+            IRunner runner = runner_info.Runner;
             runner.Abort();
             runner_info.RunnerManager.UnregisterRunner(runner_info.ActiveSession, runner_info.Number);
             runner_info.RunnerManager.ReturnRunnerNumber(runner_info.ActiveSession, runner_info.Number);
@@ -640,11 +640,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        private IActiveSessionRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
+        private IRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
             IRunnerManager RunnerManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
         {
             Object? value_from_cache;
-            IActiveSessionRunner<TResult>? result;
+            IRunner<TResult>? result;
             #if TRACE
             _logger?.LogTraceExtractRunnerFromCache(Session.Id, RunnerNumber, TraceIdentifier);
             #endif
@@ -655,8 +655,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 result= _cacheAsTask ?
                     //Note: the cache alwais contains a completed task so the next line always executes synchronously
-                    (value_from_cache as Task<IActiveSessionRunner<TResult>?>)?.Result :
-                    value_from_cache as IActiveSessionRunner<TResult>;
+                    (value_from_cache as Task<IRunner<TResult>?>)?.Result :
+                    value_from_cache as IRunner<TResult>;
                 if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(TraceIdentifier);
             }
             else {
@@ -675,7 +675,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
 
-        private Task<IActiveSessionRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
+        private Task<IRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
 #pragma warning disable IDE0060 // Remove unused parameter
             IRunnerManager RunnerManager,
             String HostId,
@@ -690,7 +690,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogErrorRemoteRunnerUnavailable(TraceIdentifier);
                 throw new InvalidOperationException("Using remote runners is not allowed  configuration setting ThrowOnRemoteRunner");
             }
-            return Task.FromResult<IActiveSessionRunner<TResult>?>(null); //Just now I do not want to implement remote runner
+            return Task.FromResult<IRunner<TResult>?>(null); //Just now I do not want to implement remote runner
 
             //Possible future implementation draft
             //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
@@ -749,14 +749,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             public IActiveSession ActiveSession;
             public Int32 Number;
             public Boolean UnregisterNumber;
-            public IActiveSessionRunner Runner;
+            public IRunner Runner;
 
             public RunnerPostEvictionInfo(
                 IRunnerManager RunnerManager,
                 Int32 Number,
                 Boolean UnregisterNumber,
                 IActiveSession ActiveSession,
-                IActiveSessionRunner Runner
+                IRunner Runner
             )
             {
                 this.RunnerManager=RunnerManager;
