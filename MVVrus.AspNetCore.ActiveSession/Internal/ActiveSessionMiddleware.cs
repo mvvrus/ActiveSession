@@ -11,12 +11,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         readonly Boolean _useSessionServicesAsRequestServices;
         readonly Boolean _preloadActiveSession;
+        readonly Func<HttpContext,Boolean> _filter;
 
         //Properties for testing
         internal RequestDelegate Next { get { return _next; } }
         internal IActiveSessionStore Store { get { return _store; } }
 
         public ActiveSessionMiddleware(RequestDelegate Next,
+            Func<HttpContext, Boolean> Filter,
             IActiveSessionStore Store,
             ILoggerFactory? LoggerFactory,
             IOptions<ActiveSessionOptions> Options
@@ -40,6 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 throw;
             }
+            _filter=Filter;
             #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddlewareExit();
             #endif
@@ -51,26 +54,30 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceInvokeActiveSessionMiddleware(Context.TraceIdentifier);
             #endif
             IServiceProvider request_services = Context.RequestServices;
-            IActiveSessionFeature feature = 
-                _store.CreateFeatureObject(Context.Session, Context.TraceIdentifier);
-            Context.Features.Set(feature);
-            _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
+            IActiveSessionFeature? feature = null;
             try {
-                if (_preloadActiveSession ||_useSessionServicesAsRequestServices) {
-                    #if TRACE
-                    _logger?.LogTraceWaitingForActiveSessionLoading(Context.TraceIdentifier);
-                    #endif
-                    await feature.LoadAsync();
-                }
-                if (_useSessionServicesAsRequestServices) {
-                    if(feature.IsLoaded && feature.ActiveSession.IsAvailable) {
-                        Context.RequestServices=feature.ActiveSession.SessionServices;
-                        _logger?.LogDebugRequestServicesChangedToSessionServices(Context.TraceIdentifier);
+                if (_filter.Invoke(Context)) {
+                    feature=_store.CreateFeatureObject(Context.Session, Context.TraceIdentifier);
+                    Context.Features.Set(feature);
+                    _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
+                    if (_preloadActiveSession||_useSessionServicesAsRequestServices) {
+                        #if TRACE
+                        _logger?.LogTraceWaitingForActiveSessionLoading(Context.TraceIdentifier);
+                        #endif
+                        await feature.LoadAsync();
                     }
-                    #if TRACE
-                    _logger?.LogTraceCompleteRequestServicesSubstitutionAttempt(Context.TraceIdentifier);
-                    #endif
+                    if (_useSessionServicesAsRequestServices) {
+                        if (feature.IsLoaded&&feature.ActiveSession.IsAvailable) {
+                            Context.RequestServices=feature.ActiveSession.SessionServices;
+                            _logger?.LogDebugRequestServicesChangedToSessionServices(Context.TraceIdentifier);
+                        }
+                        #if TRACE
+                        _logger?.LogTraceCompleteRequestServicesSubstitutionAttempt(Context.TraceIdentifier);
+                        #endif
+                    }
+
                 }
+                else Context.Features.Set((IActiveSessionFeature?)null);
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareInvokeRest(Context.TraceIdentifier);
                 #endif
@@ -78,7 +85,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareControlReturns(Context.TraceIdentifier);
                 #endif
-                await feature.CommitAsync();
+                if(feature!=null) await feature!.CommitAsync();
             }
             catch (Exception exception) {
                 #if TRACE
@@ -87,7 +94,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw;
             }
             finally {
-                Context.Features.Set<IActiveSessionFeature>(null);
+                Context.Features.Set((IActiveSessionFeature?)null);
                 IActiveSessionFeatureControl? feature_control = feature as IActiveSessionFeatureControl;
                 feature_control?.Clear();
                 Context.RequestServices=request_services;

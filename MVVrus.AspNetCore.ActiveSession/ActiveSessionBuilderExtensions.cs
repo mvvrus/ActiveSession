@@ -11,6 +11,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Adds the ActiveSession midleware to an application middleware pipeline to be built
         /// </summary>
         /// <param name="Builder">The application middleware pipeline builder</param>
+        /// <param name="Filter">
+        /// A predicate used to filter requests for which active session feature is available.
+        /// Defaults to null that means the feature is available for all requests
+        /// </param>
         /// <returns>The <paramref name="Builder"/> parameter value to allow call chaining.</returns>
         /// <remarks>
         /// <para>
@@ -23,7 +27,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <see cref="ActiveSessionServiceCollectionExtensions"/> class.
         /// </para>
         /// </remarks>
-        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder) 
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, Boolean>? Filter=null ) 
         {
             ILogger? logger = Builder.
                                 ApplicationServices.
@@ -36,7 +40,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             //Try to get IActiveSessionStore fro DI container to check if any of AddActiveSessions methods were ever called
             try {
                 Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
-                Builder.UseMiddleware<ActiveSessionMiddleware>();
+                Builder.UseMiddleware<ActiveSessionMiddleware>(Filter??ACCEPTALL_FILTER);
                 logger?.LogInformationActiveSessionMiddlewareRegistered();
             }
             catch (Exception exception) {
