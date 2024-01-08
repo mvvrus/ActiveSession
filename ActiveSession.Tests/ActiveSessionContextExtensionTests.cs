@@ -19,8 +19,11 @@ namespace ActiveSession.Tests
             stub_feature_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns((IActiveSessionFeature?)null);
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s=>s.Features).Returns(stub_feature_col.Object);
-            //Act & assess
-            Assert.Null(stub_context.Object.GetActiveSession());
+            //Act 
+            IActiveSession? active_session = stub_context.Object.GetActiveSession();
+            //Assess
+            Assert.NotNull(active_session);
+            Assert.False(active_session.IsAvailable);
         }
 
         [Fact]
@@ -33,8 +36,11 @@ namespace ActiveSession.Tests
             stub_feature_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns(stub_feature.Object);
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s => s.Features).Returns(stub_feature_col.Object);
-            //Act & assess
-            Assert.Null(stub_context.Object.GetActiveSession());
+            //Act 
+            IActiveSession? active_session = stub_context.Object.GetActiveSession();
+            //Assess
+            Assert.NotNull(active_session);
+            Assert.False(active_session.IsAvailable);
         }
 
         [Fact]
@@ -49,8 +55,11 @@ namespace ActiveSession.Tests
             stub_feature_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns(stub_feature.Object);
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s => s.Features).Returns(stub_feature_col.Object);
-            //Act & assess
-            Assert.Null(stub_context.Object.GetActiveSession());
+            //Act 
+            IActiveSession? active_session = stub_context.Object.GetActiveSession();
+            //Assess
+            Assert.NotNull(active_session);
+            Assert.False(active_session.IsAvailable);
         }
 
         [Fact]
