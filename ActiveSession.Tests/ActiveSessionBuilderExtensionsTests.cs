@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using System;
 using System.Collections.Generic;
@@ -70,7 +71,7 @@ namespace ActiveSession.Tests
             mock_builder.Verify(apb => apb.Use(It.IsAny<Func<RequestDelegate, RequestDelegate>>()), Times.Never);
         }
 
-        //TODO Test case: custom filter delegate installation
+        //Test case: custom filter delegate installation
         [Fact]
         public void UseActiveSessions_DelegateFilter()
         {
@@ -94,6 +95,45 @@ namespace ActiveSession.Tests
             Type delegate_target_type = use_delegate_target.GetType();
             Object[] arg_values = (Object[])(((use_delegate_target.GetType()).GetField("args"))!.GetValue(use_delegate_target))!;
             Assert.True(ReferenceEquals(filter, arg_values[0]));
+            //End of fragile test
+        }
+
+        //Test case: Regex-based filter delegate installation
+        [Fact]
+        public void UseActiveSessions_RegexFilter()
+        {
+            //Arrange
+            const string PATH1 = "path1";
+            const string PATH2 = "path2";
+            const string REST = "(/subpath?p1=1";
+            const string REQ_PATH1 = "/"+PATH1+REST;
+            const string REQ_PATH2 = "/"+PATH2+REST;
+            ActiveSessionOptions options = new ActiveSessionOptions();
+
+            Mock<IActiveSessionStore> dummy_store = new Mock<IActiveSessionStore>();
+            Mock<IServiceProvider> stub_sp = new Mock<IServiceProvider>();
+            stub_sp.Setup(s => s.GetService(typeof(IActiveSessionStore))).Returns(dummy_store.Object);
+            stub_sp.Setup(s => s.GetService(typeof(IOptions<ActiveSessionOptions>))).Returns(Options.Create(options));
+            MockedLoggerFactory factory_mock = new MockedLoggerFactory();
+            stub_sp.Setup(s => s.GetService(typeof(ILoggerFactory))).Returns(factory_mock.LoggerFactory);
+            Mock<IApplicationBuilder> mock_builder = new Mock<IApplicationBuilder>();
+            mock_builder.SetupGet<IServiceProvider>(s => s.ApplicationServices).Returns(stub_sp.Object);
+            Func<RequestDelegate, RequestDelegate>? use_delegate = null;
+            mock_builder.Setup(apb => apb.Use(It.IsAny<Func<RequestDelegate, RequestDelegate>>()))
+                .Callback((Func<RequestDelegate, RequestDelegate> f) => use_delegate=f).Returns(mock_builder.Object);
+            Mock<HttpContext> fake_context=new Mock<HttpContext>();
+            fake_context.SetupSequence(s => s.Request.Path).Returns(REQ_PATH1).Returns(REQ_PATH2);
+            String filter="^/"+PATH1+"(/.*)?";
+            //Act
+            mock_builder.Object.UseActiveSessions(filter);
+            //Assess
+            //The test below may be fragile because of use of the specific knowledge about UseMiddleware method implementation
+            Object use_delegate_target = use_delegate!.Target!;
+            Type delegate_target_type = use_delegate_target.GetType();
+            Object[] arg_values = (Object[])(((use_delegate_target.GetType()).GetField("args"))!.GetValue(use_delegate_target))!;
+            Func<HttpContext, Boolean> middleware_filter = (Func<HttpContext, Boolean>)arg_values[0];
+            Assert.True(middleware_filter(fake_context.Object)); //REQ_PATH1
+            Assert.False(middleware_filter(fake_context.Object)); //REQ_PATH2
             //End of fragile test
         }
 

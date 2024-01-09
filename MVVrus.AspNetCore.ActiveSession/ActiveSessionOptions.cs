@@ -61,6 +61,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Asynchronously preload IActiveSessionFeature.ActiveSession before processing the rest of the pipeline
         /// </value>
         public Boolean PreloadActiveSession { get; set; } = true;
+
+        /// <value>
+        /// Timeout for processing HTTP request path string by a middleware Regex-based filter
+        /// </value>
+        public TimeSpan PathRegexTimeout { get; internal set; } = DEFAULT_PATHREGEXTIMEOUT;
     }
 }
 

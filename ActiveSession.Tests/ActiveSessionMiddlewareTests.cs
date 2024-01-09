@@ -156,7 +156,6 @@ namespace ActiveSession.Tests
             Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
         }
 
-        //TODO Test filtering
         //Test case: Invoke ActiveSessionMiddleware with a filtered out request
         [Fact]
         public void InvokeActiveSessionMiddleware_FilteredOut()
