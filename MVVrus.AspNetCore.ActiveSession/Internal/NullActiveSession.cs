@@ -30,7 +30,7 @@
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
+        public Task<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException(MESSAGE);
         }

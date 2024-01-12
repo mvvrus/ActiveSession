@@ -11,7 +11,7 @@
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier);
-        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
+        public Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager, 

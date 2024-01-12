@@ -36,8 +36,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
-        /// <returns>A <see cref="ValueTask{T}"/> wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
-        ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
+        /// <returns>A <see cref="Task{T}"/> wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
             int RunnerNumber,
             HttpContext Context, 
             CancellationToken CancellationToken = default
