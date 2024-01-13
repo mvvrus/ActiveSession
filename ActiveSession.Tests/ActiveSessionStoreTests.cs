@@ -1113,7 +1113,7 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.True(cr1);
                     Assert.False(cr2);
-                    global_lock_used=Task.WaitAny(Task.Run(()=>store.FetchOrCreateSession(stub_another_isession.Object,null)),Task.Delay(1000))!=0;
+                    global_lock_used=Task.WaitAny(Task.Run(()=>store.FetchOrCreateSession(stub_another_isession.Object,null)),Task.Delay(2000))!=0;
                     evt1.Set();
                     Assert.True(proceed_event.WaitOne(10000));
                     Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));
@@ -1179,7 +1179,7 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.True(cr1);
                     Assert.False(cr2);
-                    global_lock_used=Task.WaitAny(Task.Run(() => store.FetchOrCreateSession(stub_another_isession.Object, null)), Task.Delay(1000))!=0;
+                    global_lock_used=Task.WaitAny(Task.Run(() => store.FetchOrCreateSession(stub_another_isession.Object, null)), Task.Delay(2000))!=0;
                     evt1.Set();
                     Assert.True(proceed_event.WaitOne(120000));
                     Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));

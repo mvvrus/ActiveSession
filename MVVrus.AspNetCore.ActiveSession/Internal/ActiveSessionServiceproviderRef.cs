@@ -9,8 +9,8 @@
         {
             HttpContext context = Accessor.HttpContext??throw new InvalidOperationException("HttpContext is unaccessible");
             IActiveSession? active_session = context.GetActiveSession();
-            IsFromSession=active_session != null;
-            Services=active_session?.SessionServices??context.RequestServices;
+            IsFromSession=active_session != null && active_session!.IsAvailable;
+            Services=IsFromSession ? active_session!.SessionServices : context.RequestServices;
         }
     }
 }
