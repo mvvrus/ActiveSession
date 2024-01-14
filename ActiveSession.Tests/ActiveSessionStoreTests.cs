@@ -496,7 +496,6 @@ namespace ActiveSession.Tests
                 ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
                 ts.ActSessOptions.Prefix=PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
-                ts.ActSessOptions.CacheRunnerAsTask=true;
                 ts.ActSessOptions.DefaultRunnerSize=ASR_SIZE;
                 ts.AddRunnerFactory<Request1, Result1>(
                     arg =>
@@ -524,8 +523,6 @@ namespace ActiveSession.Tests
                         Assert.True(ts.Cache.IsEntryStored);
                         String runner_key = PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID
                             +"_"+RunnerTestSetup.RUNNER_1.ToString();
-                        Assert.IsType<Task<IRunner<Result1>>>(ts.Cache.Value);
-                        Assert.True(ReferenceEquals(runner_and_key.Runner, ((Task<IRunner<Result1>>)(ts.Cache.Value)).Result));
                         Assert.Equal(runner_key, ts.Cache.Key);
                         Assert.Equal(RUNNER_EXPIRATION, ts.Cache.SlidingExpiration);
                         Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
@@ -626,51 +623,6 @@ namespace ActiveSession.Tests
                 //Test case: search for an existing runner with incompatible type
                 //Arrange
                 MockedLogger logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        IRunner<String>? runner2 = store.GetRunner<String>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            runner_and_key.RunnerNumber,
-                            null);
-                        //Assess
-                        Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
-                    }
-                }
-                logger_mock=ts.InitLogger();
-
-                //Test case: search for an existing runner, cached as task
-                //Arrange
-                ts.ActSessOptions.CacheRunnerAsTask=true;
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            runner_and_key.RunnerNumber,
-                            null);
-                        //Assess
-                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
-                    }
-                }
-
-                //Test case: search for an existing runner, cached as task, incompatible type
-                //Arrange
-                logger_mock=ts.InitLogger();
                 logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
                 using (store=ts.CreateStore()) {
                     using (cts=new CancellationTokenSource()) {
@@ -801,28 +753,6 @@ namespace ActiveSession.Tests
                     }
                 }
                 logger_mock=ts.InitLogger();
-
-                //Test case: search for an existing runner, cached as task
-                //Arrange
-                ts.ActSessOptions.CacheRunnerAsTask=true;
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            runner_and_key.RunnerNumber,
-                            null,
-                            CancellationToken.None).GetAwaiter().GetResult();
-                        //Assess
-                        Assert.True(ReferenceEquals(runner_and_key.Runner, runner));
-                    }
-                }
 
                 //Test case: search for an existing runner, cached as task, incompatible type
                 //Arrange

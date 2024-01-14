@@ -23,7 +23,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly TimeSpan _runnerIdleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
-        readonly Boolean _cacheAsTask;
         bool _disposed = false;
         ILogger? _logger;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
@@ -105,7 +104,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _runnerIdleTimeout=options.RunnerIdleTimeout;
             _maxLifetime = options.MaxLifetime;
             _throwOnRemoteRunner=options.ThrowOnRemoteRunner;
-            _cacheAsTask=options.CacheRunnerAsTask;
             _trackStatistics=options.TrackStatistics;
             _activeSessionSize=options.ActiveSessionSize;
             _runnerSize=options.DefaultRunnerSize;
@@ -301,7 +299,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_entry.ExpirationTokens.Add(expiration_token);
                                 //An assignment to Value property should be the last one before new_entry.Dispose()
                                 //to avoid adding bad entry to the cache by Dispose() 
-                                new_entry.Value=_cacheAsTask ? Task.FromResult(runner) : runner;
+                                new_entry.Value= runner;
                                 try {
                                     RunnerManager.RegisterRunner(ActiveSession, runner_number, runner, typeof(TResult));
                                 }
@@ -653,10 +651,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceReturnRunnerFromCache(Session.Id, RunnerNumber, TraceIdentifier);
                 #endif
-                result= _cacheAsTask ?
-                    //Note: the cache alwais contains a completed task so the next line always executes synchronously
-                    (value_from_cache as Task<IRunner<TResult>?>)?.Result :
-                    value_from_cache as IRunner<TResult>;
+                result=value_from_cache as IRunner<TResult>;
                 if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(TraceIdentifier);
             }
             else {

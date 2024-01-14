@@ -36,9 +36,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>Throw exception if the runner is running by the remote application instance</value>
         public Boolean ThrowOnRemoteRunner { get; set; } = true;
 
-        /// <value>Store runners in the cache as completed task obects to speed up async calls</value>
-        public Boolean CacheRunnerAsTask { get; set; }
-
         /// <value>Options used to set up own MemoryCache instance (ignored for shared cache)</value>
         public MemoryCacheOptions? OwnCacheOptions { get; set; }
 
