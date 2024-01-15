@@ -23,9 +23,9 @@ namespace ActiveSession.Tests
                             String value = value_property.GetValue(ConfigValues!)?.ToString()??"";
                             mgr[ActiveSessionConstants.CONFIG_SECTION_NAME+":"+config_property.Name]=value;
                         }
-                    }
-                    else {
-                        //TODO
+                        else {
+                            //TODO process nested config?
+                        }
                     }
                 }
             }

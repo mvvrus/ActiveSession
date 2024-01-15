@@ -23,13 +23,6 @@ namespace ProbeApp
             _logger?.LogDebug($"Parameters: {Params}");
         }
 
-        protected override Boolean DoAbort()
-        {
-            lock (_lock) { //TODO Is lock required?
-                return SetState(Aborted);
-            }
-        }
-
         public RunnerResult<Int32> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
         {
             if(State!=Progressed) return new RunnerResult<int>(_last_set, State, Position);
@@ -43,7 +36,7 @@ namespace ProbeApp
 
         public async ValueTask<RunnerResult<Int32>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
         {
-            if(CompareAndSetStateInterlocked(Stalled, NotStarted)==NotStarted) StartBackground();
+            if(StartRunning()) StartBackground();
             if (Advance<=0) Advance=1;
             RunnerResult<int> result=default;
             for (int i=0;i<Advance; i++) {

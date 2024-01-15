@@ -212,7 +212,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (State!=NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE
 #endif
-            if(CompareAndSetStateInterlocked(Stalled, NotStarted)==NotStarted) _enumTask=Task.Run(EnumerateSource);
+            if(StartRunning()) _enumTask=Task.Run(EnumerateSource);
 #if TRACE
 #endif
         }
