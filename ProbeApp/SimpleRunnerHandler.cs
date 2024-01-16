@@ -17,7 +17,7 @@ namespace ProbeApp
             }
             if(runner==null)
                 (runner, runner_key) = active_session?.CreateRunner<SimpleRunnerParams,int>(runner_params, Context)??default;
-            RunnerResult<int> runner_result = await runner.GetMoreAsync(-1);
+            RunnerResult<int> runner_result = await runner.GetRequiredAsync(-1);
             String result;
             String head = "";
             String body = "";

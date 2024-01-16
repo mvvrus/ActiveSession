@@ -1660,7 +1660,7 @@ namespace ActiveSession.Tests
                 base.Dispose(Disposing);
             }
 
-            public ValueTask<RunnerResult<Result1>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+            public ValueTask<RunnerResult<Result1>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
             {
                 throw new NotImplementedException();
             }

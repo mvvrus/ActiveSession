@@ -23,7 +23,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         IEnumerable<TResult>? _source;
         Task? _enumTask;
 
-        //Pseudo-lock to block parallel execution of GetMoreAsync/GetAvailable methods,
+        //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
         //The code using it just exits then the pseudo-lock cannot be acquired,
         Int32 _busy;
 
@@ -106,7 +106,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public async ValueTask<RunnerResult<IEnumerable<TResult>>> GetMoreAsync(
+        public async ValueTask<RunnerResult<IEnumerable<TResult>>> GetRequiredAsync(
             Int32 StartPosition, 
             Int32 Advance, 
             String? TraceIdentifier = null, 
@@ -126,11 +126,11 @@ namespace MVVrus.AspNetCore.ActiveSession
                 if (StartPosition==CURRENT_POSITION) StartPosition=Position;
                 if (StartPosition!=Position)
                     //TODO LogError
-                    throw new InvalidOperationException("GetMoreAsync: a start position differs from the current one");
+                    throw new InvalidOperationException("GetRequiredAsync: a start position differs from the current one");
                 if (Advance==DEFAULT_ADVANCE) Advance=_defaultAdvance;
                 if(Advance<=0)
                     //TODO LogError
-                    throw new InvalidOperationException($"GetMoreAsync: Invalid Advance value: {Advance}");
+                    throw new InvalidOperationException($"GetRequiredAsync: Invalid Advance value: {Advance}");
 #if TRACE
 #endif
                 StartSourceEnumerationIfNotStarted();

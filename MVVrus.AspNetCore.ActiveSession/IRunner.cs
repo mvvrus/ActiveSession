@@ -82,7 +82,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner at the point of completion 
         /// and the result (of type <typeparamref name="TResult"/>) if any
         /// </returns>
-        public ValueTask<RunnerResult<TResult>> GetMoreAsync(
+        public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
             Int32 StartPosition, 
             Int32 Advance, 
             String? TraceIdentifier=null, 

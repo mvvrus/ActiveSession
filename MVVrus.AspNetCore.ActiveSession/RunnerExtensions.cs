@@ -8,7 +8,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     public static class RunnerExtensions
     {
         /// <summary>
-        /// A simplified form of <see cref="IRunner{TResult}.GetMoreAsync(int, int, String?, CancellationToken)"></see> method always used the default value for an Advance parameter
+        /// A simplified form of <see cref="IRunner{TResult}.GetRequiredAsync(int, int, String?, CancellationToken)"></see> method always used the default value for an Advance parameter
         /// </summary>
         /// <param name="Runner">The runner instance to be used by this extension method </param>
         /// <param name="StartPosition">
@@ -23,22 +23,22 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner at the point of completion 
         /// and the result (of type <typeparamref name="TResult"/>) if any
         /// </returns>
-        public static ValueTask<RunnerResult<TResult>> GetMoreAsync<TResult>(
+        public static ValueTask<RunnerResult<TResult>> GetRequiredAsync<TResult>(
             this IRunner<TResult> Runner,
             Int32 StartPosition, 
             CancellationToken Token = default
         )
         {
-            return Runner.GetMoreAsync(StartPosition, DEFAULT_ADVANCE, null, Token);
+            return Runner.GetRequiredAsync(StartPosition, DEFAULT_ADVANCE, null, Token);
         }
 
-        //public static ValueTask<RunnerResult<TResult>> GetMoreAsync<TResult>(
+        //public static ValueTask<RunnerResult<TResult>> GetRequiredAsync<TResult>(
         //    this IRunner<TResult> Runner,
         //    Int32 StartPosition,
         //    CancellationToken Token = default
         //)
         //{
-        //    return Runner.GetMoreAsync(StartPosition, DEFAULT_ADVANCE, null, Token);
+        //    return Runner.GetRequiredAsync(StartPosition, DEFAULT_ADVANCE, null, Token);
         //}
 
     }

@@ -21,12 +21,7 @@ namespace ActiveSession.Tests
 
         public CancellationToken CompletionToken => throw new NotImplementedException();
 
-        public ValueTask<RunnerResult<TResult>> GetMore(int StartPosition, CancellationToken token = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ValueTask<RunnerResult<TResult>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
+        public ValueTask<RunnerResult<TResult>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
@@ -98,7 +93,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        ValueTask<RunnerResult<String>> IRunner<String>.GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
+        ValueTask<RunnerResult<String>> IRunner<String>.GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
         {
             throw new NotImplementedException();
         }

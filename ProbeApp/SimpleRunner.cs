@@ -34,7 +34,7 @@ namespace ProbeApp
             return result;
         }
 
-        public async ValueTask<RunnerResult<Int32>> GetMoreAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+        public async ValueTask<RunnerResult<Int32>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
         {
             if(StartRunning()) StartBackground();
             if (Advance<=0) Advance=1;
