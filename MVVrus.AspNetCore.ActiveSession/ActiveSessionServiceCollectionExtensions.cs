@@ -18,7 +18,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Factory">
         /// The factory delegate to be used by the runner factory service.
         /// </param>
@@ -44,7 +44,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Factory">
         /// The factory delegate to be used by the runner factory service.
         /// </param>
@@ -75,7 +75,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Factory">
         /// The factory delegate to be used by the runner factory service.
         /// </param>
@@ -101,7 +101,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
         /// returned by the factory delegate.
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Factory">
         /// The factory delegate to be used by the runner factory service.
         /// </param>
@@ -133,7 +133,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <typeparam name="TRunner">Class used as implementation of a runner
         /// implementing one or more specializations of <see cref="IRunner"></see> generic interface
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="ExtraArguments">Additional arguments to pass into TRunner constructor</param>
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <exception cref="InvalidOperationException"></exception>
@@ -157,7 +157,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <typeparam name="TRunner">Class used as implementation of a runner
         /// implementing one or more specializations of <see cref="IRunner"></see> generic interface
         /// </typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Configurator">
         /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
         /// May be null, if no additional configuraion to be performed
@@ -265,7 +265,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
         /// </summary>
         /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remarks>
         /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
@@ -282,7 +282,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
         /// </summary>
         /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
-        /// <param name="Services">IServiceCollection implementation to be used to configure an application service container</param>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
         /// <param name="Configurator">
         /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
         /// May be null, if no additional configuraion to be performed
@@ -299,20 +299,28 @@ namespace MVVrus.AspNetCore.ActiveSession
             return Services.AddActiveSessions<EnumAdapterRunner<TRunner>>(Configurator);
         }
 
-        internal static void AddActiveSessionInfrastructure(IServiceCollection Services, Action<ActiveSessionOptions>? PostConfigurator)
-        //The internal access modifier is for testing
+        /// <summary>
+        /// Add infrastructure services for the ActiveSession fearure and optionally configure the feature
+        /// </summary>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
+        /// <param name="Configurator">
+        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
+        /// May be null, if no additional configuraion to be performed
+        /// </param>
+        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        public static IServiceCollection AddActiveSessionInfrastructure(this IServiceCollection Services, Action<ActiveSessionOptions>? Configurator=null)
         {
-            //Add common services for the active sessions feature
             if (!Services.Any(s => s.ServiceType==typeof(IActiveSessionStore))) { //The first run of this method
                 Services.TryAddSingleton<IActiveSessionStore, ActiveSessionStore>();
                 Services.TryAddSingleton<IRunnerManagerFactory, RunnerManagerFactory>();
                 Services.AddOptions<ActiveSessionOptions>().Configure<IConfiguration>(ReadActiveSessionsConfig);
             }
-            if (PostConfigurator!=null)
-                Services.AddOptions<ActiveSessionOptions>().PostConfigure(PostConfigurator);
+            if (Configurator!=null)
+                Services.AddOptions<ActiveSessionOptions>().PostConfigure(Configurator);
             Services.AddHttpContextAccessor();
             Services.TryAddScoped<ActiveSessionServiceProviderRef>();
             Services.TryAdd(ServiceDescriptor.Scoped(typeof(IActiveSessionService<>),typeof(ActiveSessionService<>)));
+            return Services;
         }
 
         private static void ReadActiveSessionsConfig(ActiveSessionOptions Options, IConfiguration Configuration)
