@@ -61,6 +61,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
         }
 
+        /// <inheritdoc/>
+        public Exception? Exception { get; protected set; }
+
         /// <summary>
         /// Sets the <see cref="State"/> property to the value specified by <paramref name="State"/> parameter in a thread-safe manner.
         /// If the runner is already in a final state, or a requested state value is NotStarted the state will not be changed 

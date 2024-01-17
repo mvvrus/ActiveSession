@@ -477,6 +477,8 @@ namespace ActiveSession.Tests
             }
 
             public CancellationToken CompletionToken => _completionTokenSource.Token;
+
+            public Exception? Exception => throw new NotImplementedException();
         }
 
         class RunnerDisposable: RunnerBase, IDisposable

@@ -21,6 +21,8 @@ namespace ActiveSession.Tests
 
         public CancellationToken CompletionToken => throw new NotImplementedException();
 
+        public Exception? Exception => throw new NotImplementedException();
+
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
         {
             throw new NotImplementedException();

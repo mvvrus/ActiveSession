@@ -45,7 +45,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// CancellationToken to be cancelled then runner is completed:
         /// fetched all data and passed it to a caller, aborted or failed with an exception
         /// </value>
-        CancellationToken CompletionToken { get; }
+        public CancellationToken CompletionToken { get; }
+
+        /// <value>
+        /// The exception that cause the <see cref="State"/> to change to <see cref="RunnerState.Failed"/>, otherwise - null
+        /// </value>
+        public Exception? Exception { get; }
     }
 
     /// <summary>

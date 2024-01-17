@@ -27,8 +27,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         //The code using it just exits then the pseudo-lock cannot be acquired,
         Int32 _busy;
 
-        Exception? _failureException;
-
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory): 
             base(Params.CompletionTokenSource, Params.PassCtsOwnership)
@@ -148,7 +146,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     else if (_queue.IsAddingCompleted) {
 #if TRACE
 #endif
-                        SetState(_failureException==null?Complete:Failed);
+                        SetState(Exception==null?Complete:Failed);
                     }
                     else {
 #if TRACE
@@ -204,7 +202,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         RunnerResult<IEnumerable<TResult>> MakeResult(IEnumerable<TResult> ResultList)
         {
             //LogDebug
-            return new RunnerResult<IEnumerable<TResult>>(ResultList, State, Position,State==Failed?_failureException:null);
+            return new RunnerResult<IEnumerable<TResult>>(ResultList, State, Position,State==Failed?Exception:null);
         }
 
         void StartSourceEnumerationIfNotStarted()
@@ -243,7 +241,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
             catch (Exception e) {
                 //LogError
-                _failureException=e;
+                Exception=e;
             }
             finally {
 #if TRACE
