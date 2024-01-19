@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using MVVrus.AspNetCore.ActiveSession.StdRunner;
 using static MVVrus.AspNetCore.ActiveSession.RunnerState;
 using static MVVrus.AspNetCore.ActiveSession.IRunner;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
@@ -72,6 +73,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             try {
 #if TRACE
 #endif
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), _logger);
                 List<TResult> result_list = new List<TResult>();
                 for(Int32 i=0;i<Advance && _queue.Count>0 && base.State==Stalled; i++) {
 #if TRACE
@@ -121,14 +123,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             try {
 #if TRACE
 #endif
-                if (StartPosition==CURRENT_POSITION) StartPosition=Position;
-                if (StartPosition!=Position)
-                    //TODO LogError
-                    throw new InvalidOperationException("GetRequiredAsync: a start position differs from the current one");
-                if (Advance==DEFAULT_ADVANCE) Advance=_defaultAdvance;
-                if(Advance<=0)
-                    //TODO LogError
-                    throw new InvalidOperationException($"GetRequiredAsync: Invalid Advance value: {Advance}");
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), _logger);
 #if TRACE
 #endif
                 StartSourceEnumerationIfNotStarted();
