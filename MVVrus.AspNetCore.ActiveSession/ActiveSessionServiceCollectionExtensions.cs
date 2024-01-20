@@ -262,44 +262,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
-        /// </summary>
-        /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
-        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
-        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
-        /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
-        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
-        /// and the second - of type <see cref="IEnumerable{TResult}"/>
-        /// </remarks>
-        public static IServiceCollection AddActiveSessionsEnumAdapter<TRunner>(this IServiceCollection Services)
-        {
-            return Services.AddActiveSessions<EnumAdapterRunner<TRunner>>();
-
-        }
-
-        /// <summary>
-        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TRunner"/> objects as ActiveService runner
-        /// </summary>
-        /// <typeparam name="TRunner">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
-        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
-        /// <param name="Configurator">
-        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
-        /// May be null, if no additional configuraion to be performed
-        /// </param>
-        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
-        /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
-        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
-        /// and the second - of type <see cref="IEnumerable{TResult}"/>
-        /// </remarks>
-        public static IServiceCollection AddActiveSessionsEnumAdapter<TRunner>(this IServiceCollection Services,
-            Action<ActiveSessionOptions>? Configurator)
-        {
-            return Services.AddActiveSessions<EnumAdapterRunner<TRunner>>(Configurator);
-        }
-
-        /// <summary>
         /// Add infrastructure services for the ActiveSession fearure and optionally configure the feature
         /// </summary>
         /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>

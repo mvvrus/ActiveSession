@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace MVVrus.AspNetCore.ActiveSession
+namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
     /// Class containg parametrs to pass to a <see cref="EnumAdapterRunner{TResult}"/> constructor
@@ -22,11 +22,11 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// Flag showing that the  <see cref="EnumAdapterRunner{TResult}" /> is responsible for disposing 
     /// the <paramref name="CompletionTokenSource"/> value passed to it, if any (defaults to true)
     /// </param>
-    public record struct EnumAdapterParams<TResult> (
+    public record struct EnumAdapterParams<TResult>(
         IEnumerable<TResult> Source,
-        Int32 Limit = 1,
+        int Limit = 1,
         CancellationTokenSource? CompletionTokenSource = null,
-        Boolean PassSourceOnership =true,
-        Boolean PassCtsOwnership=true
+        bool PassSourceOnership = true,
+        bool PassCtsOwnership = true
     );
 }
