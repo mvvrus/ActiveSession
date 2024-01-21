@@ -1,4 +1,5 @@
-﻿using static MVVrus.AspNetCore.ActiveSession.IRunner;
+﻿using System.Text.RegularExpressions;
+using static MVVrus.AspNetCore.ActiveSession.IRunner;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -24,6 +25,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 throw new InvalidOperationException($"{classname}.{MethodName}: Invalid advance value: {Advance}");
             }
 
+        }
+
+        static Regex _genericNamePattern=new Regex(@"^(.+)`\d+");
+
+        public static String MakeClassCategoryName(Type Class)
+        {
+            String full_name = Class.FullName!;
+            MatchCollection matches = _genericNamePattern.Matches(full_name);
+            return matches.Count>0?matches[1].Value:full_name;
+            throw new NotImplementedException();
         }
     }
 }

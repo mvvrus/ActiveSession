@@ -7,7 +7,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// </summary>
     /// <typeparam name="TResult">Type specializing the runner's <see cref="IRunner{TResult}"/> interface</typeparam>
     /// <param name="Source">The base object implementing <see cref="IEnumerable{T}"/> for which the adapter to be created</param>
-    /// <param name="Limit">
+    /// <param name="DefaultAdvance">
     /// Maximum number of elements acquired from the <paramref name="Source"/> 
     /// to be returned to the caller in one call(defaults to 1)
     /// </param>
@@ -15,6 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// An external <see cref="CancellationTokenSource"/> instance used to obtain a completion token for the runner, 
     /// null(default) means use a newly created instance
     /// </param>
+    /// <param name="EnumAheadLimit">Size of a queue of items enumerated ahead but not fetched yet</param>
     /// <param name="PassSourceOnership">
     /// Flag showing that the  <see cref="EnumAdapterRunner{TResult}" /> is responsible for disposing the <paramref name="Source"/> value passed to it (defaults to true)
     /// </param>
@@ -24,8 +25,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// </param>
     public record struct EnumAdapterParams<TResult>(
         IEnumerable<TResult> Source,
-        int Limit = 1,
+        int? DefaultAdvance = null,
         CancellationTokenSource? CompletionTokenSource = null,
+        Int32? EnumAheadLimit=null,
         bool PassSourceOnership = true,
         bool PassCtsOwnership = true
     );

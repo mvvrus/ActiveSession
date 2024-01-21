@@ -2,8 +2,8 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using static MVVrus.AspNetCore.ActiveSession.RunnerState;
-using static MVVrus.AspNetCore.ActiveSession.IRunner;
-using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
+using Microsoft.Extensions.Logging;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -13,7 +13,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     internal class EnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
     {
         //TODO Implement logging
-        const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
         const int SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
         readonly BlockingCollection<TResult> _queue;
@@ -28,16 +27,31 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         int _busy;
 
         [ActiveSessionConstructor]
+        public EnumAdapterRunner(IEnumerable<TResult> Source, ILoggerFactory? LoggerFactory) :
+            this(Source,true,null,true,null,null,LoggerFactory) { }
+
+        [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory) :
-            base(Params.CompletionTokenSource, Params.PassCtsOwnership)
+            this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
+                Params.DefaultAdvance, Params.EnumAheadLimit, LoggerFactory) {}
+
+        protected EnumAdapterRunner(
+            IEnumerable<TResult> Source,
+            Boolean PassSourceOnership,
+            CancellationTokenSource? CompletionTokenSource,
+            Boolean PassCtsOwnership,
+            Int32? DefaultAdvance,
+            Int32? EnumAheadLimit,
+            ILoggerFactory? LoggerFactory) :
+            base(CompletionTokenSource, PassCtsOwnership)
         {
-            _source = Params.Source ?? throw new ArgumentNullException(nameof(Params), "AdapterBase property cannot be null");
-            _logger = LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+            _source = Source ?? throw new ArgumentNullException(nameof(Source));
+            _logger = LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
 #if TRACE
 #endif
-            _queue = new BlockingCollection<TResult>(Params.Limit);
-            _passSourceOnership = Params.PassSourceOnership;
-            _defaultAdvance = Params.Limit;
+            _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT); 
+            _passSourceOnership = PassSourceOnership;
+            _defaultAdvance = DefaultAdvance??ENUM_DEFAULT_ADVANCE; 
             //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate = RunAwaitContinuation;
@@ -61,7 +75,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition, int Advance = MAXIMUM_ADVANCE, string? TraceIdentifier = null)
+        public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition, int Advance, string? TraceIdentifier)
         {
             CheckDisposed();
 #if TRACE
@@ -115,8 +129,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         public async ValueTask<RunnerResult<IEnumerable<TResult>>> GetRequiredAsync(
             int StartPosition,
             int Advance,
-            string? TraceIdentifier = null,
-            CancellationToken Token = default
+            string? TraceIdentifier,
+            CancellationToken Token
         )
         {
             CheckDisposed();
