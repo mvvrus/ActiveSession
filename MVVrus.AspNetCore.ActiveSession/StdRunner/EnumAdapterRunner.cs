@@ -8,9 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// Adapter class making possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
+    /// This adapter class makes possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
     /// </summary>
-    internal class EnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
+    public class EnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
     {
         //TODO Implement logging
         const int SIGNAL_COMPLETION_DELAY_MSEC = 300;
@@ -18,7 +18,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         readonly BlockingCollection<TResult> _queue;
         readonly bool _passSourceOnership;
         readonly int _defaultAdvance;
-        readonly ILogger? _logger;
         IEnumerable<TResult>? _source;
         Task? _enumTask;
 
@@ -26,15 +25,36 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         //The code using it just exits then the pseudo-lock cannot be acquired,
         int _busy;
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Source"></param>
+        /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(IEnumerable<TResult> Source, ILoggerFactory? LoggerFactory) :
             this(Source,true,null,true,null,null,LoggerFactory) { }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Params"></param>
+        /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
                 Params.DefaultAdvance, Params.EnumAheadLimit, LoggerFactory) {}
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Source"></param>
+        /// <param name="PassSourceOnership"></param>
+        /// <param name="CompletionTokenSource"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <param name="DefaultAdvance"></param>
+        /// <param name="EnumAheadLimit"></param>
+        /// <param name="LoggerFactory"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
             IEnumerable<TResult> Source,
             Boolean PassSourceOnership,
@@ -188,11 +208,25 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             return result;
         }
 
+        /// <inheritdoc/>
+        public ValueTask DisposeAsync()
+        {
+            return SetDisposed() ? DisposeAsyncCore() : ValueTask.CompletedTask;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Disposing"></param>
         protected sealed override void Dispose(bool Disposing)
         {
             DisposeAsyncCore().AsTask().Wait();
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
         protected async virtual ValueTask DisposeAsyncCore()
         {
             if (_enumTask != null) await _enumTask!;
@@ -200,10 +234,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             base.Dispose(true);
         }
 
-        public ValueTask DisposeAsync()
-        {
-            return SetDisposed() ? DisposeAsyncCore() : ValueTask.CompletedTask;
-        }
 
         void ReleaseSource()
         {
@@ -287,15 +317,33 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Action? _continuation;
         readonly ManualResetEventSlim _complete_event = new ManualResetEventSlim(true);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
         public EnumAdapterRunner<TResult> GetAwaiter() { return this; }
+        /// <summary>
+        /// TODO
+        /// </summary>
         public bool IsCompleted { get { return _queue.Count > 0; } }
+        /// <summary>
+        /// TODO
+        /// </summary>
         public void GetResult() { _complete_event.Wait(); }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="continuation"></param>
         public void OnCompleted(Action continuation)
         {
             Schedule(continuation);
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="continuation"></param>
         public void UnsafeOnCompleted(Action continuation)
         {
             Schedule(continuation);
