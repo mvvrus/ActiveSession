@@ -1,5 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
+using static MVVrus.AspNetCore.ActiveSession.RunnerState;
+using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
+
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -9,15 +12,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// <typeparam name="TResult"></typeparam>
     public class AsyncEnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IAsyncDisposable
     {
-        const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
-
         readonly Action<Task<bool>> _itemActionDelegate;
         readonly Action<Task> _returnRestDelegate;
 
-        readonly IAsyncEnumerable<TResult> _asyncEnumerable;
-        readonly int _defaultAdvance = 1; //TODO Initialize in a constructor
-        readonly bool _asyncEnumerableOwned = true; //TODO initialize in a constructor
-        readonly ILogger? _logger = null;
+        readonly IAsyncEnumerable<TResult> _asyncSource;
+        readonly int _defaultAdvance; 
+        readonly bool _asyncEnumerableOwned; 
         readonly BlockingCollection<TResult> _queue;
 
         IAsyncEnumerator<TResult> _asyncEnumerator = null!;
@@ -27,24 +27,75 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        /// <param name="AsyncEnumerable"></param>
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncEnumerable) : base(null, true)
+        /// <param name="AsyncSource"></param>
+        /// <param name="LoggerFactory"></param>
+        [ActiveSessionConstructor]
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncSource, ILoggerFactory? LoggerFactory) :
+            this(AsyncSource, true, null, true, null, null, LoggerFactory) { }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Params"></param>
+        /// <param name="LoggerFactory"></param>
+        [ActiveSessionConstructor]
+        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory): 
+            this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
+                Params.DefaultAdvance,Params.EnumAheadLimit,LoggerFactory) { }
+
+        AsyncEnumAdapterRunner(
+            IAsyncEnumerable<TResult> AsyncSource,
+            Boolean PassSourceOnership,
+            CancellationTokenSource? CompletionTokenSource,
+            Boolean PassCtsOwnership,
+            Int32? DefaultAdvance,
+            Int32? EnumAheadLimit,
+            ILoggerFactory? LoggerFactory):
+            this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit,
+                (ILogger?)null) 
+                
         {
-            _asyncEnumerable = AsyncEnumerable;
-            _queue = new BlockingCollection<TResult>(/*TODO Params.Limit*/);
+            LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
+        }
+
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="AsyncSource"></param>
+        /// <param name="PassSourceOnership"></param>
+        /// <param name="CompletionTokenSource"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <param name="DefaultAdvance"></param>
+        /// <param name="EnumAheadLimit"></param>
+        /// <param name="Logger"></param>
+        protected AsyncEnumAdapterRunner(
+            IAsyncEnumerable<TResult> AsyncSource,
+            Boolean PassSourceOnership,
+            CancellationTokenSource? CompletionTokenSource,
+            Boolean PassCtsOwnership,
+            Int32? DefaultAdvance,
+            Int32? EnumAheadLimit,
+            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership)
+        {
+            _asyncSource = AsyncSource;
+            _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _returnRestDelegate = ReturnRest;
+            _logger=Logger;
+            _defaultAdvance=DefaultAdvance??ENUM_DEFAULT_ADVANCE;
+            _asyncEnumerableOwned=PassSourceOnership;
+
             //TODO Shall we start enumeration here?
         }
 
-        //TODO Another constructor?
 
         /// <inheritdoc/>
         public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
         {
             CheckDisposed();
-            if (State == RunnerState.NotStarted || State.IsFinal())
+            if (State == NotStarted || State.IsFinal())
                 return MakeRunnerEnumResult(new List<TResult>());
             Context? completed_context;
             //Acquire pseudo-lock
@@ -80,7 +131,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 if (StartRunning())
                 {
                     //Start _asyncEnumerable enumeration task chain
-                    _asyncEnumerator = _asyncEnumerable.GetAsyncEnumerator(CompletionToken);
+                    _asyncEnumerator = _asyncSource.GetAsyncEnumerator(CompletionToken);
                     _taskChainTail = _asyncEnumerator.MoveNextAsync().AsTask()
                         .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
                 }
@@ -154,9 +205,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _queue.Dispose();
             if (_asyncEnumerableOwned)
             {
-                IAsyncDisposable? async_disposable = _asyncEnumerable as IAsyncDisposable;
+                IAsyncDisposable? async_disposable = _asyncSource as IAsyncDisposable;
                 if (async_disposable != null) await async_disposable.DisposeAsync();
-                else (_asyncEnumerable as IDisposable)?.Dispose();
+                else (_asyncSource as IDisposable)?.Dispose();
             }
             base.Dispose(true);
         }
@@ -188,7 +239,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     if (NextStep.Result && !state_is_final)
                     {
                         _queue.Add(_asyncEnumerator.Current);
-                        SetState(RunnerState.Progressed);
+                        SetState(Progressed);
                         proceed = true;
                     }
                     else
@@ -241,7 +292,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             //The task should run only if _queue.CompleteAdding was called (TODO? Assert)
             if (!State.IsFinal()) _resultContext?.CopyAvailable(_queue); //Should always return true due to _queue.CompleteAdding was called
-            if (_queue.Count <= 0) SetState(Exception == null ? RunnerState.Complete : RunnerState.Failed);
+            if (_queue.Count <= 0) SetState(Exception == null ? Complete : Failed);
             Context completed_context = Interlocked.Exchange(ref _resultContext, null) ?? throw new Exception("Something went wrong");
             completed_context.ResultTaskSource.SetResult(MakeRunnerEnumResult(completed_context.Result));
         }
@@ -251,11 +302,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             bool result = _queue.IsAddingCompleted && _queue.Count <= 0;
             if (result)
             {
-                SetState(Exception == null ? RunnerState.Complete : RunnerState.Failed);
+                SetState(Exception == null ? Complete : Failed);
             }
             else
             {
-                SetState(_queue.Count > 0 ? RunnerState.Progressed : RunnerState.Stalled);
+                SetState(_queue.Count > 0 ? Progressed : Stalled);
             }
         }
 

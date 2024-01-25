@@ -16,7 +16,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         readonly CancellationTokenSource _completionTokenSource;
         readonly Boolean _passCtsOwnership;
         Int32 _disposed = 0; //1 - the instance is disposed or to be disposed
-        readonly ILogger? _logger;
+        /// <value>
+        /// <see cref="ILogger"/> instance used to write log messages. May be set via constructor or directly from the descendant class
+        /// </value>
+        protected ILogger? _logger;
 
         /// <summary>
         /// A RunnerBase instance constructor
@@ -28,7 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="PassCtsOwnership">
         /// Should this instance be responsible for disposing an external <see cref="CompletionToken"/> source passed by <paramref name="CompletionTokenSource"/>.
         /// </param>
-        /// <param name="Logger">TODO</param>
+        /// <param name="Logger"><see cref="ILogger"/> instance used to write log messages</param>
         /// <remarks>
         /// Because the class is intendend to be used as a base one, it's constructor has access level protected, not public.
         /// </remarks>

@@ -13,10 +13,9 @@ namespace ProbeApp
         Int32 _last_set=-1;
         RunnerState _state_to_set = Stalled;
         Task? _task_to_continue;
-        ILogger? _logger;
 
         [ActiveSessionConstructor]
-        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory)
+        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory):base(null,true)
         {
             (_immediate, _end, _delay_in_ms)=Params;
             _logger=LoggerFactory.CreateLogger<SimpleRunner>();
