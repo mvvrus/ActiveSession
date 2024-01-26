@@ -27,7 +27,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A runner factory service is a specialization of the 
         /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}"/>
         /// 
-        /// In this overload the factory delegate does not use service container 
+        /// In this overload the factory delegate does not use service container and set value for runner <see cref="IRunner.Id"/> property
         /// and no configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
@@ -57,14 +57,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A runner factory service is a specialization of the 
         /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
-        /// In this overload the factory delegate does not use service container 
+        /// In this overload the factory delegate does not use service container and set value for runner <see cref="IRunner.Id"/> property
         /// and a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
         Func<TRequest, IRunner<TResult>> Factory,
         Action<ActiveSessionOptions>? Configurator)
         {
-            return AddActiveSessions<TRequest, TResult>(Services, (Request, _) => Factory(Request), Configurator);
+            return AddActiveSessions<TRequest, TResult>(Services, (Request, _, _) => Factory(Request), Configurator);
         }
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A runner factory service is a specialization of the 
         /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
-        /// In this overload the factory delegate does use service container 
+        /// In this overload the factory delegate does use service container but not set value for runner <see cref="IRunner.Id"/> property
         /// and no configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remark>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
@@ -114,11 +114,66 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A runner factory service is a specialization of the 
         /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
         /// 
-        /// In this overload the factory delegate does use service container 
+        /// In this overload the factory delegate does use service container but not set value for runner <see cref="IRunner.Id"/> property 
         /// and a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
         /// </remarks>
         public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
             Func<TRequest, IServiceProvider, IRunner<TResult>> Factory, Action<ActiveSessionOptions>? Configurator)
+        {
+            return AddActiveSessions<TRequest, TResult>(Services, (Request, SP, _) => Factory(Request,SP), Configurator);
+        }
+        /// <summary>
+        /// Extension method to configure use of an factory-based variant of runner factory service
+        /// </summary>
+        /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
+        /// <typeparam name="TResult">
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
+        /// returned by the factory delegate.
+        /// </typeparam>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
+        /// <param name="Factory">
+        /// The factory delegate to be used by the runner factory service.
+        /// </param>
+        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        /// <remark>
+        /// A runner factory service is a specialization of the 
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
+        /// 
+        /// In this overload the factory delegate does use service container and set value for runner <see cref="IRunner.Id"/> property
+        /// and no configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
+        /// </remark>
+        public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
+            Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> Factory)
+        {
+            return AddActiveSessions(Services, Factory, null);
+        }
+
+        /// <summary>
+        /// Extension method to configure use of an factory-based variant of runner factory service
+        /// </summary>
+        /// <typeparam name="TRequest">Type of the input parameter of factory delegate.</typeparam>
+        /// <typeparam name="TResult">
+        /// Type used to specialize a <see cref="IRunner"></see> generic interface, 
+        /// returned by the factory delegate.
+        /// </typeparam>
+        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
+        /// <param name="Factory">
+        /// The factory delegate to be used by the runner factory service.
+        /// </param>
+        /// <param name="Configurator">
+        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
+        /// May be null, if no additional configuraion to be performed
+        /// </param>
+        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        /// <remarks>
+        /// A runner factory service is a specialization of the 
+        /// generic runner factory interface <see cref="IRunnerFactory{TRequest,TResult}">.</see>
+        /// 
+        /// In this overload the factory delegate does use service container and set value for runner <see cref="IRunner.Id"/> property
+        /// and a configuration delegate for changing <see cref="ActiveSessionOptions"></see> is used
+        /// </remarks>
+        public static IServiceCollection AddActiveSessions<TRequest, TResult>(this IServiceCollection Services,
+            Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> Factory, Action<ActiveSessionOptions>? Configurator)
         {
             AddActiveSessionInfrastructure(Services, Configurator);
             ActiveSessionStore.RegisterTResult(typeof(TResult));

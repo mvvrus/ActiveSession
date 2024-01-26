@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProbeApp", "ProbeApp\ProbeA
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MVVrus.AspNetCore.ActiveSession", "MVVrus.AspNetCore.ActiveSession\MVVrus.AspNetCore.ActiveSession.csproj", "{BB6B2C9A-3D95-4F3A-A8A3-EAF832D498B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActiveSession.Tests", "ActiveSession.Tests\ActiveSession.Tests.csproj", "{E8263DE2-F29A-4F79-9AD2-9B1D2C6B8727}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActiveSession.Tests", "ActiveSession.Tests\ActiveSession.Tests.csproj", "{E8263DE2-F29A-4F79-9AD2-9B1D2C6B8727}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

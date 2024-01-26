@@ -15,7 +15,8 @@ namespace ActiveSession.Tests
             var result=new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner1), null, MakeLoggerFactory());
             var request=new Request1 { Arg="value" };
 
-            var runner = result.Create(request, stub_sp.Object);
+            var runner = result.Create(request, stub_sp.Object,default);
+            //TODO Add test with non-default runner
 
             Assert.NotNull(runner);
             Assert.IsType<SpyRunner1>(runner);
@@ -31,7 +32,8 @@ namespace ActiveSession.Tests
             var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
-            var runner = result.Create(request, stub_sp.Object);
+            var runner = result.Create(request, stub_sp.Object, default);
+            //TODO Add test with non-default runner
 
             Assert.NotNull(runner);
             Assert.IsType<SpyRunner8>(runner);
@@ -53,7 +55,8 @@ namespace ActiveSession.Tests
             var result = new TypeRunnerFactory<Request1, Result1>(typeof(SpyRunner8), args, MakeLoggerFactory());
             var request = new Request1 { Arg="value" };
 
-            var runner = result.Create(request, stub_sp.Object);
+            var runner = result.Create(request, stub_sp.Object, default);
+            //TODO Add test with non-default runner
 
             Assert.NotNull(runner);
             Assert.IsType<SpyRunner8>(runner);
@@ -75,7 +78,8 @@ namespace ActiveSession.Tests
 
             IRunner<Result1>? runner;
             
-            Assert.Throws<InvalidOperationException>(() => { runner=result.Create(request, stub_sp.Object); });
+            Assert.Throws<InvalidOperationException>(() => { runner=result.Create(request, stub_sp.Object, default); });
+            //TODO Add test with non-default runner
         }
 
         ILoggerFactory MakeLoggerFactory()

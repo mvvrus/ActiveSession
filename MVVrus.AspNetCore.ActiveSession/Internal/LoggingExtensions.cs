@@ -384,14 +384,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_DLGTFACTORYCONS, Trace, "Creating delegate runner factory to implement IRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceConstructDelegateFactory(this ILogger Logger, String TRequest, String TResult);
 
-        [LoggerMessage(T_DLGTFACTORYINVOKE, Trace, "Invoke delegate runner factory implementing IRunnerFactory<{TRequest}, {TResult}>.")]
-        public static partial void LogTraceInvokingDelegateFactory(this ILogger Logger, String TRequest, String TResult);
+        [LoggerMessage(T_DLGTFACTORYINVOKE, Trace, "Invoke delegate runner factory implementing IRunnerFactory<{TRequest}, {TResult}> for RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceInvokingDelegateFactory(this ILogger Logger, String TRequest, String TResult, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_TYPEFACTORCONS, Trace, "Creating type-based runner factory to implement IRunnerFactory<{TRequest}, {TResult}> via {ImplementingClassName}.")]
         public static partial void LogTraceConstructTypeFactory(this ILogger Logger, String TRequest, String TResult, String ImplementingClassName);
 
-        [LoggerMessage(T_TYPEFACTORYINVOKE, Trace, "Invoke type-based runner factory implementing IRunnerFactory<{TRequest}, {TResult}>.")]
-        public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult);
+        [LoggerMessage(T_TYPEFACTORYINVOKE, Trace, "Invoke type-based runner factory implementing IRunnerFactory<{TRequest}, {TResult}> for RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_MANAGERREGACQUIRING, Trace, "DefaultRunnerManager.RegisterRunner entered, acquiring runners lock SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceRegisterRunnerEnter(this ILogger Logger, String SessionId, Int32 RunnerNumber);

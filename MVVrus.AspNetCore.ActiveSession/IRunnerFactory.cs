@@ -15,7 +15,9 @@
         /// A <see cref="IServiceProvider"/> interface of a services container, which can be used 
         /// for dependency injection while creating the runner object.
         /// </param>
+        /// <param name="RunnerId">Identifier (<see cref="RunnerId"/>) to be assigned to the runner created.</param>
+        /// <param name="TraceIdentifier">The trace identifier of the request in which the method is called (for tracing purposes)</param>
         /// <returns>A new runner object implementing <see cref="IRunner{TResult}"/> interface or null if the object cannot be created</returns>
-        IRunner<TResult>? Create(TRequest Request, IServiceProvider Services);
+        IRunner<TResult>? Create(TRequest Request, IServiceProvider Services, RunnerId RunnerId, String? TraceIdentifier=null);
     }
 }

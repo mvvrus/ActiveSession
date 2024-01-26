@@ -1472,8 +1472,8 @@ namespace ActiveSession.Tests
                 Func<TRequest, IRunner<TResult>> Factory)
             {
                 Mock<IRunnerFactory<TRequest, TResult>>? factory_mock = new();
-                factory_mock.Setup(s => s.Create(It.IsAny<TRequest>(), It.IsAny<IServiceProvider>()))
-                    .Returns((TRequest r, IServiceProvider sp) => Factory(r));
+                factory_mock.Setup(s => s.Create(It.IsAny<TRequest>(), It.IsAny<IServiceProvider>(), It.IsAny<RunnerId>(), It.IsAny<String>()))
+                    .Returns((TRequest r, IServiceProvider _, RunnerId ri, String ti) => Factory(r));
                 return factory_mock.Object;
             }
 

@@ -101,6 +101,7 @@ namespace ActiveSession.Tests
         }
 
         const String REQ_ARG = "Request1 argument";
+        static RunnerId REQ_ID = ("TEST_SESSION", 42);
 
         [Fact]
         public void DelegateFactory_OneParam_NoConfig()
@@ -112,7 +113,7 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, false);
             DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
-            CheckSPIndependentFactory(REQ_ARG, rf);
+            CheckFactory(REQ_ARG, rf);
         }
 
         [Fact]
@@ -125,7 +126,7 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, true);
             DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
-            CheckSPIndependentFactory(REQ_ARG, rf);
+            CheckFactory(REQ_ARG, rf);
         }
 
         [Fact]
@@ -138,7 +139,7 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, false);
             DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
-            Assert.True(factory==rf.Factory);
+            CheckFactory(REQ_ARG, rf);
         }
 
         [Fact]
@@ -151,7 +152,33 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, true);
             DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
-            Assert.True(factory==rf.Factory);
+            CheckFactory(REQ_ARG, rf);
+        }
+
+        [Fact]
+        public void DelegateFactory_ThreeParams_NoConfig()
+        {
+            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1(x,id);
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions(factory);
+
+            CheckInfrastructure(services, false);
+            DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
+            CheckFactory(REQ_ARG, rf, REQ_ID);
+        }
+
+        [Fact]
+        public void DelegateFactory_ThreeParams_Config()
+        {
+            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1(x, id);
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions(factory, o => { });
+
+            CheckInfrastructure(services, true);
+            DelegateRunnerFactory<Request1, Result1> rf = MakeAndCheckDelegateFactory(services);
+            CheckFactory(REQ_ARG, rf, REQ_ID);
         }
 
         private static DelegateRunnerFactory<Request1, Result1> MakeAndCheckDelegateFactory(IServiceCollection services)
@@ -164,15 +191,14 @@ namespace ActiveSession.Tests
             return (DelegateRunnerFactory<Request1, Result1>)rf;
         }
 
-        private static void CheckSPIndependentFactory(String RequestArg, DelegateRunnerFactory<Request1, Result1> rf)
+        private static void CheckFactory(String RequestArg, DelegateRunnerFactory<Request1, Result1> rf, RunnerId Id=default)
         {
             Mock<IServiceProvider> mock_sp = new Mock<IServiceProvider>();
             mock_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns(null);
-            IRunner<Result1> runner =
-              rf.Factory(new Request1 { Arg=RequestArg }, mock_sp.Object);
+            IRunner<Result1> runner = rf.Create(new Request1  { Arg = RequestArg }, mock_sp.Object, Id);
             Assert.IsType<SpyRunner1>(runner);
             Assert.Equal(RequestArg, ((SpyRunner1)runner).Request.Arg);
-            mock_sp.Verify(x => x.GetService(It.IsAny<Type>()), Times.Never());
+            Assert.Equal(Id, ((SpyRunner1)runner).Id);
         }
 
         //================= Tests for TypeRunnerFactory-based factories ==================================================

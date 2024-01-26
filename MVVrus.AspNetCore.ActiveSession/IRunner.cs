@@ -51,6 +51,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// The exception that cause the <see cref="State"/> to change to <see cref="RunnerState.Failed"/>, otherwise - null
         /// </value>
         public Exception? Exception { get; }
+
+        /// <value>
+        /// Runnner identifier (see <see cref="RunnerId"/>) if exposed by the runner and assigned, otherwise - default(RunnerId)
+        /// </value>
+        public RunnerId Id { get=>default; }
     }
 
     /// <summary>
@@ -74,7 +79,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
-        /// <param name="Advance">Desired increment of the runner's Position, at which the fetch should stop</param>
+        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
         /// <param name="Token">
         /// <see cref="CancellationToken"/> that may be used to break the method execution.
@@ -105,7 +110,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
-        /// <param name="Advance">Desired increment of the runner's Position, at which the fetch should stop</param>
+        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
         /// An <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner 
         /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any

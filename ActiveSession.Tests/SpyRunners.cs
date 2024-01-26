@@ -46,9 +46,11 @@ namespace ActiveSession.Tests
     public class SpyRunner1 : SpyRunnerBase<Result1>
     {
         public Request1 Request { get; init; }
-        public SpyRunner1(Request1 Request)
+        public RunnerId Id { get; init; } 
+        public SpyRunner1(Request1 Request, RunnerId RunnerId=default)
         {
             this.Request=Request;
+            Id=RunnerId;
         }
     }
 

@@ -267,7 +267,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         new_entry.SlidingExpiration=_runnerIdleTimeout;
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                         IRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
-                        runner=factory.Create(Request, ActiveSession.SessionServices);
+                        runner=factory.Create(Request, ActiveSession.SessionServices,(session_id,runner_number));
                         if (runner==null) {
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");

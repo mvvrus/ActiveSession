@@ -4,13 +4,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class DelegateRunnerFactory<TRequest, TResult> : IRunnerFactory<TRequest, TResult>
     {
-        readonly Func<TRequest, IServiceProvider, IRunner<TResult>> _factory;
+        readonly Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> _factory;
         readonly ILogger? _logger;
 
-        //For testing purposes
-        internal Func<TRequest, IServiceProvider, IRunner<TResult>> Factory { get { return _factory; } }
-
-        public DelegateRunnerFactory(Func<TRequest, IServiceProvider, IRunner<TResult>> Factory, ILogger? Logger=null)
+        public DelegateRunnerFactory(Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> Factory, ILogger? Logger=null)
         {
             _logger = Logger;
             #if TRACE
@@ -19,12 +16,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _factory= Factory;
         }
 
-        public IRunner<TResult> Create(TRequest Request, IServiceProvider Services)
+        public IRunner<TResult> Create(TRequest Request, IServiceProvider Services, RunnerId RunnerId, String? TraceIdentifier = null)
         {
             #if TRACE
-            _logger?.LogTraceInvokingDelegateFactory(typeof(TRequest).FullName??UNKNOWN_TYPE, typeof(TResult).FullName??UNKNOWN_TYPE);
+            _logger?.LogTraceInvokingDelegateFactory(
+                typeof(TRequest).FullName??UNKNOWN_TYPE, 
+                typeof(TResult).FullName??UNKNOWN_TYPE, 
+                RunnerId,
+                TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER);
             #endif
-            return _factory(Request, Services);
+            return _factory(Request, Services, RunnerId);
         }
     }
 }

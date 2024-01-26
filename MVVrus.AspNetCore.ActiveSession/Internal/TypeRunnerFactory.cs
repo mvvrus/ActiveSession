@@ -17,7 +17,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceConstructTypeFactory(
                 typeof(TRequest).FullName??UNKNOWN_TYPE, 
                 typeof(TResult).FullName??UNKNOWN_TYPE,
-                this.GetType().FullName!
+                GetType().FullName!
             );
             #endif
             _runner_type= RunnerType;
@@ -26,11 +26,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (params_length > 0) Array.Copy(Params!, 0, _params, 1, params_length);
         }
 
-        public IRunner<TResult>? Create(TRequest Request, IServiceProvider Services)
+        public IRunner<TResult>? Create(TRequest Request, IServiceProvider Services, RunnerId RunnerId, String? TraceIdentifier = null)
         {
             //Put Request as a first parameter
             #if TRACE
-            _logger?.LogTraceInvokingTypeFactory(typeof(TRequest).FullName??UNKNOWN_TYPE, typeof(TResult).FullName??UNKNOWN_TYPE);
+            _logger?.LogTraceInvokingTypeFactory(
+                typeof(TRequest).FullName??UNKNOWN_TYPE, 
+                typeof(TResult).FullName??UNKNOWN_TYPE, 
+                RunnerId,
+                TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER);
             #endif
             _params[0] = Request!;
             return ActivatorUtilities.CreateInstance(Services, _runner_type, _params) as IRunner<TResult>;
