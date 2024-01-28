@@ -29,20 +29,22 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// TODO
         /// </summary>
         /// <param name="Source"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(IEnumerable<TResult> Source, ILoggerFactory? LoggerFactory) :
-            this(Source,true,null,true,null,null,LoggerFactory) { }
+        public EnumAdapterRunner(IEnumerable<TResult> Source, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            this(Source,true,null,true,null,null,RunnerId, LoggerFactory) { }
 
         /// <summary>
         /// TODO
         /// </summary>
         /// <param name="Params"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(EnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory) :
+        public EnumAdapterRunner(EnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
-                Params.DefaultAdvance, Params.EnumAheadLimit, LoggerFactory) {}
+                Params.DefaultAdvance, Params.EnumAheadLimit, RunnerId, LoggerFactory) {}
 
         /// <summary>
         /// TODO
@@ -53,6 +55,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="PassCtsOwnership"></param>
         /// <param name="DefaultAdvance"></param>
         /// <param name="EnumAheadLimit"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
@@ -62,8 +65,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
+            RunnerId RunnerId,
             ILoggerFactory? LoggerFactory) :
-            base(CompletionTokenSource, PassCtsOwnership, default)  //TODO add RunnerId to the constructor
+            base(CompletionTokenSource, PassCtsOwnership, RunnerId)  
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
             _logger = LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));

@@ -28,20 +28,22 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// TODO
         /// </summary>
         /// <param name="AsyncSource"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncSource, ILoggerFactory? LoggerFactory) :
-            this(AsyncSource, true, null, true, null, null, LoggerFactory) { }
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncSource, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            this(AsyncSource, true, null, true, null, null, RunnerId, LoggerFactory) { }
 
         /// <summary>
         /// TODO
         /// </summary>
         /// <param name="Params"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TResult> Params, ILoggerFactory? LoggerFactory): 
+        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory): 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
-                Params.DefaultAdvance,Params.EnumAheadLimit,LoggerFactory) { }
+                Params.DefaultAdvance,Params.EnumAheadLimit, RunnerId, LoggerFactory) { }
 
         AsyncEnumAdapterRunner(
             IAsyncEnumerable<TResult> AsyncSource,
@@ -50,9 +52,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
+            RunnerId RunnerId, 
             ILoggerFactory? LoggerFactory):
             this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit,
-                (ILogger?)null) 
+                RunnerId, (ILogger?)null) 
                 
         {
             LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
@@ -68,6 +71,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="PassCtsOwnership"></param>
         /// <param name="DefaultAdvance"></param>
         /// <param name="EnumAheadLimit"></param>
+        /// <param name="RunnerId"></param>
         /// <param name="Logger"></param>
         protected AsyncEnumAdapterRunner(
             IAsyncEnumerable<TResult> AsyncSource,
@@ -76,7 +80,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
-            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, default)  //TODO add RunnerId to the constructor
+            RunnerId RunnerId,
+            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId)
         {
             _asyncSource = AsyncSource;
             _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);
