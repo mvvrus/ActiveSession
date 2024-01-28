@@ -23,12 +23,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// Flag showing that this  <see cref="EnumAdapterRunner{TResult}" /> is responsible for disposing 
     /// the <paramref name="CompletionTokenSource"/> value passed to it, if any (defaults to true)
     /// </param>
+    /// <param name="StartInConstructor">Set to true to start fecthing data from a constructor</param>
     public record struct EnumAdapterParams<TResult>(
         IEnumerable<TResult> Source,
         int? DefaultAdvance = null,
         CancellationTokenSource? CompletionTokenSource = null,
         Int32? EnumAheadLimit=null,
         bool PassSourceOnership = true,
-        bool PassCtsOwnership = true
+        bool PassCtsOwnership = true,
+        Boolean StartInConstructor = false
     );
 }

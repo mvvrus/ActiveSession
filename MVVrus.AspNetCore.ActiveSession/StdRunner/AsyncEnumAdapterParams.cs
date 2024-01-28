@@ -21,6 +21,7 @@
     /// Flag showing that this  <see cref="AsyncEnumAdapterRunner{TResult}" /> is responsible for disposing 
     /// the <paramref name="CompletionTokenSource"/> value passed to it, if any (defaults to true)
     /// </param>
+    /// <param name="StartInConstructor">Set to true to start fecthing data from a constructor</param>
     public record struct AsyncEnumAdapterParams<TResult>
     (
         IAsyncEnumerable<TResult> Source,
@@ -28,6 +29,7 @@
         CancellationTokenSource? CompletionTokenSource = null,
         Int32? EnumAheadLimit = null,
         bool PassSourceOnership = true,
-        bool PassCtsOwnership = true
+        bool PassCtsOwnership = true,
+        Boolean StartInConstructor = false
     );
 }

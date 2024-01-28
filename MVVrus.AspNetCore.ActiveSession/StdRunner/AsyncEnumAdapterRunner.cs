@@ -32,7 +32,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
         public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncSource, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
-            this(AsyncSource, true, null, true, null, null, RunnerId, LoggerFactory) { }
+            this(AsyncSource, true, null, true, null, null, false, RunnerId, LoggerFactory) { }
 
         /// <summary>
         /// TODO
@@ -43,7 +43,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory): 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
-                Params.DefaultAdvance,Params.EnumAheadLimit, RunnerId, LoggerFactory) { }
+                Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, LoggerFactory) { }
 
         AsyncEnumAdapterRunner(
             IAsyncEnumerable<TResult> AsyncSource,
@@ -52,10 +52,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
+            Boolean StartInConstructor,
             RunnerId RunnerId, 
             ILoggerFactory? LoggerFactory):
-            this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit,
-                RunnerId, (ILogger?)null) 
+            this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
+                StartInConstructor, RunnerId,  (ILogger?)null) 
                 
         {
             LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
@@ -71,6 +72,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="PassCtsOwnership"></param>
         /// <param name="DefaultAdvance"></param>
         /// <param name="EnumAheadLimit"></param>
+        /// <param name="StartInConstructor"></param>
         /// <param name="RunnerId"></param>
         /// <param name="Logger"></param>
         protected AsyncEnumAdapterRunner(
@@ -80,6 +82,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
+            Boolean StartInConstructor,
             RunnerId RunnerId,
             ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId)
         {
@@ -91,8 +94,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _logger=Logger;
             _defaultAdvance=DefaultAdvance??ENUM_DEFAULT_ADVANCE;
             _asyncEnumerableOwned=PassSourceOnership;
-
-            //TODO Shall we start enumeration here?
+             if(StartInConstructor) StartSourceEnumerationIfNotStarted();
         }
 
 
@@ -130,20 +132,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
                 ThrowInvalidParallelism();
             }
-            try
-            {
+            try {
                 Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), _logger);
-                if (StartRunning())
-                {
-                    //Start _asyncEnumerable enumeration task chain
-                    _asyncEnumerator = _asyncSource.GetAsyncEnumerator(CompletionToken);
-                    _taskChainTail = _asyncEnumerator.MoveNextAsync().AsTask()
-                        .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
-                }
+                StartSourceEnumerationIfNotStarted();
                 //Try a short, synchrous path first: see if available state and data allows to satisfy the request 
                 bool short_path_ok = _resultContext.CopyAvailable(_queue);
-                if (!short_path_ok)
-                {
+                if (!short_path_ok) {
                     //Come here if the short path failed: available data at current state cannot satisfy the request, so some async work needed
                     _resultContext.StartAccumulation();
                     return new ValueTask<RunnerResult<IEnumerable<TResult>>>(_resultContext.ResultTaskSource.Task);
@@ -215,6 +209,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 else (_asyncSource as IDisposable)?.Dispose();
             }
             base.Dispose(true);
+        }
+
+        void StartSourceEnumerationIfNotStarted()
+        {
+            if (StartRunning()) {
+                //Start _asyncEnumerable enumeration task chain
+                _asyncEnumerator=_asyncSource.GetAsyncEnumerator(CompletionToken);
+                _taskChainTail=_asyncEnumerator.MoveNextAsync().AsTask()
+                    .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
+            }
         }
 
         RunnerResult<IEnumerable<T>> MakeRunnerEnumResult<T>(ICollection<T> Data)

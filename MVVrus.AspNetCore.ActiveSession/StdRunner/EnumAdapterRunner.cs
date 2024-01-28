@@ -33,7 +33,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(IEnumerable<TResult> Source, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
-            this(Source,true,null,true,null,null,RunnerId, LoggerFactory) { }
+            this(Source,true,null,true,null,null,false,RunnerId, LoggerFactory) { }
 
         /// <summary>
         /// TODO
@@ -44,7 +44,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
-                Params.DefaultAdvance, Params.EnumAheadLimit, RunnerId, LoggerFactory) {}
+                Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, LoggerFactory) {}
 
         /// <summary>
         /// TODO
@@ -55,6 +55,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="PassCtsOwnership"></param>
         /// <param name="DefaultAdvance"></param>
         /// <param name="EnumAheadLimit"></param>
+        /// <param name="StartInConstructor"></param>
         /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         /// <exception cref="ArgumentNullException"></exception>
@@ -65,6 +66,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
+            Boolean StartInConstructor,
             RunnerId RunnerId,
             ILoggerFactory? LoggerFactory) :
             base(CompletionTokenSource, PassCtsOwnership, RunnerId)  
@@ -79,6 +81,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate = RunAwaitContinuation;
+            if (StartInConstructor) StartSourceEnumerationIfNotStarted();
 #if TRACE
 #endif
         }
