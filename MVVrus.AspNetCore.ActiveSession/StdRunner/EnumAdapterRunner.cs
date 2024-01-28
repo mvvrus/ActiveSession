@@ -63,7 +63,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
             ILoggerFactory? LoggerFactory) :
-            base(CompletionTokenSource, PassCtsOwnership)
+            base(CompletionTokenSource, PassCtsOwnership, default)  //TODO add RunnerId to the constructor
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
             _logger = LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));

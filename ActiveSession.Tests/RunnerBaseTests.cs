@@ -198,7 +198,7 @@ namespace ActiveSession.Tests
         class RunnerBaseImpl : RunnerBase
         {
             public RunnerBaseImpl(CancellationTokenSource? CompletionTokenSource = null, Boolean PassCtsOwnership = true):
-                base(CompletionTokenSource, PassCtsOwnership) { }
+                base(CompletionTokenSource, PassCtsOwnership, default) { }
 
             public Boolean DoAbortCalled { get; private set; }
 

@@ -76,7 +76,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean PassCtsOwnership,
             Int32? DefaultAdvance,
             Int32? EnumAheadLimit,
-            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership)
+            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, default)  //TODO add RunnerId to the constructor
         {
             _asyncSource = AsyncSource;
             _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);

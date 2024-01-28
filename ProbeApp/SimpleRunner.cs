@@ -15,7 +15,7 @@ namespace ProbeApp
         Task? _task_to_continue;
 
         [ActiveSessionConstructor]
-        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory):base(null,true)
+        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory):base(null,true, default)
         {
             (_immediate, _end, _delay_in_ms)=Params;
             _logger=LoggerFactory.CreateLogger<SimpleRunner>();

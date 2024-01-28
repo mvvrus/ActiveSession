@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
+using MVVrus.AspNetCore.ActiveSession.Internal;
 using System;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
@@ -31,17 +32,26 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="PassCtsOwnership">
         /// Should this instance be responsible for disposing an external <see cref="CompletionToken"/> source passed by <paramref name="CompletionTokenSource"/>.
         /// </param>
+        /// <param name="RunnerId"><see cref="MVVrus.AspNetCore.ActiveSession.RunnerId"/> assigned to the runner to be created.</param>
         /// <param name="Logger"><see cref="ILogger"/> instance used to write log messages</param>
         /// <remarks>
         /// Because the class is intendend to be used as a base one, it's constructor has access level protected, not public.
         /// </remarks>
-        protected RunnerBase(CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, ILogger? Logger=null)
+        protected RunnerBase(CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, 
+            RunnerId RunnerId=default, ILogger? Logger=null)
         {
+            _logger=Logger;
+            this.RunnerId=RunnerId;
+            #if TRACE
+            _logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
+            #endif
             _state=(Int32)RunnerState.NotStarted;
             _passCtsOwnership=PassCtsOwnership || CompletionTokenSource==null;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
             CompletionToken = _completionTokenSource.Token;
-            _logger=Logger;
+            #if TRACE
+            _logger?.LogTraceEnterRunnerBaseConstructorExit(RunnerId);
+            #endif
         }
 
         /// <inheritdoc/>
@@ -62,6 +72,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         public void Dispose()
         {
             if (SetDisposed()) {
+                #if TRACE
+                _logger?.LogTraceRunnerBaseDisposing(RunnerId);
+                #endif
                 Dispose(true);
                 GC.SuppressFinalize(this);
             }
@@ -69,6 +82,9 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <inheritdoc/>
         public Exception? Exception { get; protected set; }
+
+        /// <inheritdoc/>
+        public RunnerId RunnerId { get; init; }
 
         /// <summary>
         /// Sets the <see cref="State"/> property to the value specified by <paramref name="State"/> parameter in a thread-safe manner.
@@ -78,15 +94,30 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns> true if the <see cref="State"/> property</returns> value was really changed, false otherwise.
         protected virtual Boolean SetState(RunnerState State)
         {
-            if(State==RunnerState.NotStarted) return false;
+            if (State==RunnerState.NotStarted) {
+                #if TRACE
+                _logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(RunnerId);
+                #endif
+                return false;
+            }
             Int32 new_state = (Int32)State, old_state;
             do {
                 old_state=Volatile.Read(ref _state);
-                if (((RunnerState)old_state).IsFinal())
+                if (((RunnerState)old_state).IsFinal()) {
+                    #if TRACE
+                    _logger?.LogTraceRunnerBaseChangeFinalStateAttempt(RunnerId);
+                    #endif
                     return false;
+                }
             } while (old_state!=Interlocked.CompareExchange(ref _state, new_state, old_state));
+            #if TRACE
+            _logger?.LogTraceRunnerBaseStateChanged(RunnerId, State);
+            #endif
             if (((RunnerState)new_state).IsFinal())
                 try {
+                    #if TRACE
+                    _logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
+                    #endif
                     _completionTokenSource?.Cancel();
                 }
                 catch (ObjectDisposedException) { }
@@ -110,7 +141,15 @@ namespace MVVrus.AspNetCore.ActiveSession
             RunnerState prev_state =
                 (RunnerState)Interlocked.CompareExchange(ref _state, (int)NewState, (int)RunnerState.NotStarted);
             Boolean result = prev_state==RunnerState.NotStarted;
-            if(result && NewState.IsFinal()) _completionTokenSource?.Cancel();
+            #if TRACE
+            _logger?.LogTraceRunnerBaseStartedInState(RunnerId, State);
+            #endif
+            if (result&&NewState.IsFinal()) {
+                #if TRACE
+                _logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
+                #endif
+                _completionTokenSource?.Cancel();
+            }
             return result; 
         }
 

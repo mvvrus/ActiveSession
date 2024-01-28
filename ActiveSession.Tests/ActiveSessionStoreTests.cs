@@ -1644,7 +1644,7 @@ namespace ActiveSession.Tests
             ManualResetEvent _evt = new ManualResetEvent(false);
             public Task DisposeTask;
 
-            public SpyRunnerX(String Arg, Action? DisposeSpyAction):base(null, true)  
+            public SpyRunnerX(String Arg, Action? DisposeSpyAction):base(null, true, default)  
             {
                 this.Arg=Arg;
                 DisposeTask=new Task(() => { _evt.WaitOne(); _evt.Dispose(); });
