@@ -277,12 +277,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                 else if (!has_marked_constructor&&has_params)
                     selected_constructors.Add(constructor);
             }
-            if (selected_constructors.Count<=0)
-                throw new InvalidOperationException($"No suitable constructors found for type {runner_type.FullName}");
 
-            //Select unique types of the first parameter of all selected constructors as request types (TRequest)
-            IEnumerable<Type> unique_first_param_types =
-                selected_constructors.Select(c => c.GetParameters()[0].ParameterType).Distinct();
+            Int32 count = selected_constructors.Count();
+            if (count<=0)
+                throw new InvalidOperationException($"No suitable constructors found for type {runner_type.FullName}");
+            //Check uniqueness of the first parameter type for all selected constructors
+            if (count!=selected_constructors.Select(c => c.GetParameters()[0].ParameterType).Distinct().Count())
+                throw new InvalidOperationException($"Ambiguous constructors found for type {runner_type.FullName}");
 
             //Add to service list (Services) implementations of IRunnerFactory<TRequest,TResult>
             // via the class TypeRunnerFactory<TRequest,TResult>
@@ -292,7 +293,8 @@ namespace MVVrus.AspNetCore.ActiveSession
             Type[] type_args = new Type[2];
             foreach (Type result_type in result_types) {
                 ActiveSessionStore.RegisterTResult(result_type);
-                foreach (Type request_type in unique_first_param_types) {
+                foreach (ConstructorInfo constructor in selected_constructors) {
+                    Type request_type = constructor.GetParameters()[0].ParameterType;
                     type_args[0]=request_type;
                     type_args[1]=result_type;
                     Type factory_service_type = typeof(IRunnerFactory<,>)
@@ -300,12 +302,14 @@ namespace MVVrus.AspNetCore.ActiveSession
                     ConstructorInfo factory_impl_object_constructor = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)
                         .GetConstructors()[0];
-
+                    Int32 num_req_param = 1;    //TODO check for RunnerId constructor parameter
+                    if (constructor.GetParameters().Count(p => p.ParameterType==typeof(RunnerId))==1) num_req_param++;
                     Services.AddSingleton(
                         factory_service_type, 
                         (new FactoryDelegateTarget(
                             factory_impl_object_constructor, 
-                            runner_type, 
+                            runner_type,
+                            num_req_param,
                             ExtraArguments
                         )).Invoke
                     );
@@ -352,14 +356,17 @@ namespace MVVrus.AspNetCore.ActiveSession
             internal ConstructorInfo FactoryImplObjectConstructor { get; init; }
             internal Type RunnerResultType { get; init; }
             internal Object[] ExtraArguments;
+            internal Int32 NumberOfRequiredParams=1;
 
             public FactoryDelegateTarget(
                 ConstructorInfo FactoryImplObjectConstructor, 
-                Type RunnerResultType, 
+                Type RunnerResultType,
+                Int32 NumberOfRequiredParams,
                 Object[]? ExtraArguments
             ){
                 this.FactoryImplObjectConstructor=FactoryImplObjectConstructor;
                 this.RunnerResultType=RunnerResultType;
+                this.NumberOfRequiredParams=NumberOfRequiredParams;
                 this.ExtraArguments=ExtraArguments??new Object[0];
             }
 
@@ -369,6 +376,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 return FactoryImplObjectConstructor.Invoke(new Object?[] {
                                 RunnerResultType,
                                 ExtraArguments,
+                                NumberOfRequiredParams,
                                 sp.GetService<ILoggerFactory>() 
                             }
                 );

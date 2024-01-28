@@ -46,10 +46,18 @@ namespace ActiveSession.Tests
     public class SpyRunner1 : SpyRunnerBase<Result1>
     {
         public Request1 Request { get; init; }
-        public RunnerId Id { get; init; } 
-        public SpyRunner1(Request1 Request, RunnerId RunnerId=default)
+        public SpyRunner1(Request1 Request)
         {
             this.Request=Request;
+        }
+    }
+
+    public class SpyRunner1_2 : SpyRunner1 
+    {
+        public RunnerId Id { get; init; }
+
+        public SpyRunner1_2(Request1 Request, RunnerId RunnerId = default) : base(Request) 
+        {
             Id=RunnerId;
         }
     }
@@ -59,6 +67,20 @@ namespace ActiveSession.Tests
         public SpyRunner2(Request1 Request) : base(Request) { }
         public SpyRunner2(String StringRequest) : base(new Request1 { Arg=StringRequest }) { }
         public SpyRunner2(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+    }
+
+    class SpyRunner2_2 : SpyRunner1_2
+    {
+        public SpyRunner2_2(Request1 Request) : base(Request) { }
+        public SpyRunner2_2(String StringRequest, RunnerId RunnerId) : base(new Request1 { Arg=StringRequest }, RunnerId) { }
+        public SpyRunner2_2(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
+    }
+
+    class SpyRunner2_2a : SpyRunner1_2
+    {
+        public SpyRunner2_2a(Request1 Request) : base(Request) { }
+        public SpyRunner2_2a(Request1 Request, RunnerId RunnerId) : base(Request, RunnerId) { }
+        public SpyRunner2_2a(int IntRequest) : base(new Request1 { Arg=IntRequest.ToString() }) { }
     }
 
     class SpyRunner3 : SpyRunner1
@@ -125,7 +147,22 @@ namespace ActiveSession.Tests
         public String Param1 { get; init; } = "";
         public int Param2 { get; init; }
         public ISpyInterface1? Param3 { get; init; }
-        public SpyRunner8(Request1 Request, String Param1, int Param2, ISpyInterface1? Param3) : base(Request)
+        public SpyRunner8(Request1 Request, String Param1, int Param2, ISpyInterface1? Param3/*, RunnerId RunnerId = default*/) 
+            : base(Request)
+        {
+            this.Param1=Param1;
+            this.Param2=Param2;
+            this.Param3=Param3;
+        }
+    }
+
+    public class SpyRunner8_2 : SpyRunner1_2
+    {
+        public String Param1 { get; init; } = "";
+        public int Param2 { get; init; }
+        public ISpyInterface1? Param3 { get; init; }
+        public SpyRunner8_2(Request1 Request, String Param1, int Param2, ISpyInterface1? Param3, RunnerId RunnerId = default)
+            : base(Request, RunnerId)
         {
             this.Param1=Param1;
             this.Param2=Param2;

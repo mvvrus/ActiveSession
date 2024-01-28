@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
+using Moq;
 
 namespace ActiveSession.Tests
 {
@@ -106,7 +107,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_OneParam_NoConfig()
         {
-            Func<Request1, IRunner<Result1>> factory = x => new SpyRunner1(x);
+            Func<Request1, IRunner<Result1>> factory = x => new SpyRunner1_2(x);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory);
@@ -119,7 +120,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_OneParam_Config()
         {
-            Func<Request1, IRunner<Result1>> factory = x => new SpyRunner1(x);
+            Func<Request1, IRunner<Result1>> factory = x => new SpyRunner1_2(x);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory, o => { });
@@ -132,7 +133,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_TwoParams_NoConfig()
         {
-            Func<Request1, IServiceProvider, IRunner<Result1>> factory = (x, sp) => new SpyRunner1(x);
+            Func<Request1, IServiceProvider, IRunner<Result1>> factory = (x, sp) => new SpyRunner1_2(x);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory);
@@ -145,7 +146,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_TwoParams_Config()
         {
-            Func<Request1, IServiceProvider, IRunner<Result1>> factory = (x, sp) => new SpyRunner1(x);
+            Func<Request1, IServiceProvider, IRunner<Result1>> factory = (x, sp) => new SpyRunner1_2(x);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory, o => { });
@@ -158,7 +159,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_ThreeParams_NoConfig()
         {
-            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1(x,id);
+            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1_2(x,id);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory);
@@ -171,7 +172,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void DelegateFactory_ThreeParams_Config()
         {
-            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1(x, id);
+            Func<Request1, IServiceProvider, RunnerId, IRunner<Result1>> factory = (x, sp, id) => new SpyRunner1_2(x, id);
             IServiceCollection services = new ServiceCollection();
 
             services.AddActiveSessions(factory, o => { });
@@ -196,9 +197,9 @@ namespace ActiveSession.Tests
             Mock<IServiceProvider> mock_sp = new Mock<IServiceProvider>();
             mock_sp.Setup(x => x.GetService(It.IsAny<Type>())).Returns(null);
             IRunner<Result1> runner = rf.Create(new Request1  { Arg = RequestArg }, mock_sp.Object, Id);
-            Assert.IsType<SpyRunner1>(runner);
-            Assert.Equal(RequestArg, ((SpyRunner1)runner).Request.Arg);
-            Assert.Equal(Id, ((SpyRunner1)runner).Id);
+            Assert.IsType<SpyRunner1_2>(runner);
+            Assert.Equal(RequestArg, ((SpyRunner1_2)runner).Request.Arg);
+            Assert.Equal(Id, ((SpyRunner1_2)runner).Id);
         }
 
         //================= Tests for TypeRunnerFactory-based factories ==================================================
@@ -207,12 +208,16 @@ namespace ActiveSession.Tests
             Type[] RequestTypes,
             Type[] RunnerResultTypes,
             Type implementer,
-            Object[]? ExtraParams = null
+            Object[]? ExtraParams = null,
+            Int32[]? ReqParams = null
         )
         {
+            Int32[] req_params = ReqParams??new Int32[RequestTypes.Length];
+            if (ReqParams==null) Array.Fill(req_params, 1);
             Type[] type_args = new Type[2];
             foreach (Type result_type in RunnerResultTypes) {
-                foreach (Type request_type in RequestTypes) {
+                for (int nreq=0;nreq<RequestTypes.Length;nreq++) {
+                    Type request_type = RequestTypes[nreq];
                     type_args[0]=request_type;
                     type_args[1]=result_type;
                     Type factory_service_type = typeof(IRunnerFactory<,>).MakeGenericType(type_args);
@@ -222,6 +227,7 @@ namespace ActiveSession.Tests
                     Assert.IsType<ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget>(sd.ImplementationFactory.Target);
                     var fdt = (ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget)sd.ImplementationFactory.Target;
                     Assert.Equal(implementer, fdt.RunnerResultType);
+                    Assert.Equal(req_params[nreq], fdt.NumberOfRequiredParams); 
                     if (ExtraParams!=null) {
                         Assert.Equal(ExtraParams!.Length, fdt.ExtraArguments.Length);
                         for(int i=0;i<ExtraParams!.Length;i++) {
@@ -242,17 +248,19 @@ namespace ActiveSession.Tests
             public Type RunnerType { get; init; }
             public Object[]? Params { get; init; }
             public ILoggerFactory? LoggerFactory { get; init; }
+            public Int32 NumberOfRequiredParams { get; init; }
 
-            public FactoryDelegateTargetTestObject(Type RunnerType, Object[]? Params, ILoggerFactory? LoggerFactory)
+            public FactoryDelegateTargetTestObject(Type RunnerType, Object[]? Params, Int32 NumberOfRequiredParams, ILoggerFactory? LoggerFactory)
             {
                 this.RunnerType=RunnerType;
                 this.Params=Params;
                 this.LoggerFactory=LoggerFactory;
+                this.NumberOfRequiredParams=NumberOfRequiredParams;
             }
         }
 
-        [Fact(DisplayName="FactoryDelegateTarget.Invoke method")]
-        public void FactoryDelegateTarget_Invocation()
+        [Fact(DisplayName= "Runner factory(type-based) constructor params")]
+        public void FactoryDelegateTarget_InvocationParams()
         {
             ILoggerFactory dummy_logger_factory = new Mock<ILoggerFactory>().Object;
             Mock<IServiceProvider> mock_sp = new Mock<IServiceProvider>();
@@ -261,7 +269,7 @@ namespace ActiveSession.Tests
             ConstructorInfo ci = typeof(FactoryDelegateTargetTestObject).GetConstructors().FirstOrDefault()!;
             Object[] extra_params = new Object[] {"Test", 1 };
 
-            var fdt = new ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget(ci,typeof(String), extra_params);
+            var fdt = new ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget(ci,typeof(String), 42, extra_params);
             Object result = fdt.Invoke(mock_sp.Object);
 
             mock_sp.Verify(get_lf_service, Times.Once);
@@ -271,8 +279,31 @@ namespace ActiveSession.Tests
             Assert.Equal(typeof(String), fdto.RunnerType);
             Assert.Equal(extra_params, fdto.Params);
             Assert.Equal(dummy_logger_factory, fdto.LoggerFactory);
+            Assert.Equal(42, fdto.NumberOfRequiredParams);
         }
 
+
+        [Fact(DisplayName = "Runner factory(type-based) service resolution")]
+        public void FactoryType()
+        {
+            //Arrrange
+            IServiceCollection services = new ServiceCollection();
+            //Act
+            services.AddActiveSessions<SpyRunner1>();
+            //Assess
+            Type[] type_args = new Type[2];
+            type_args[0]=typeof(Request1);
+            type_args[1]=typeof(Result1);
+            Type factory_service_type = typeof(IRunnerFactory<,>).MakeGenericType(type_args);
+            Assert.Single(services, x => x.ServiceType==factory_service_type);
+            ServiceDescriptor sd = services.Where(x => x.ServiceType==factory_service_type).First();
+            Assert.NotNull(sd.ImplementationFactory);
+            Assert.IsType<ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget>(sd.ImplementationFactory.Target);
+            var fdt = (ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget)sd.ImplementationFactory.Target;
+            Object result = fdt.Invoke(services.BuildServiceProvider());
+            Type factory_type = typeof(TypeRunnerFactory<,>).MakeGenericType(type_args);
+            Assert.IsType(factory_type, result);
+        }
 
         [Fact]
         public void TypeFactory1Constructor_NoConfig()
@@ -305,6 +336,31 @@ namespace ActiveSession.Tests
 
             CheckInfrastructure(services, false);
             CheckTypeFactories(services, new Type[] { typeof(Request1), typeof(String), typeof(int) }, new Type[] { typeof(Result1) }, typeof(SpyRunner2));
+        }
+
+        [Fact]
+        public void TypeFactory_NumerRequiredParams()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            services.AddActiveSessions<SpyRunner2_2>();
+
+            CheckInfrastructure(services, false);
+            CheckTypeFactories(services, 
+                new Type[] { typeof(Request1), typeof(String), typeof(int) }, 
+                new Type[] { typeof(Result1) }, 
+                typeof(SpyRunner2_2),
+                null, 
+                new Int32[] {1,2,1});
+        }
+
+        [Fact]
+        public void TypeFactory_AmbiguousConstructors()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            Assert.Throws<InvalidOperationException>(()=>services.AddActiveSessions<SpyRunner2_2a>());
+
         }
 
         [Fact]
