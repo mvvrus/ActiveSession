@@ -20,7 +20,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// <see cref="ILogger"/> instance used to write log messages. May be set via constructor or directly from the descendant class
         /// </value>
-        protected ILogger? _logger;
+        protected ILogger? Logger { get; init; }
 
         /// <summary>
         /// A RunnerBase instance constructor
@@ -40,17 +40,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected RunnerBase(CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, 
             RunnerId RunnerId=default, ILogger? Logger=null)
         {
-            _logger=Logger;
+            this.Logger=Logger;
             this.RunnerId=RunnerId;
             #if TRACE
-            _logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
+            this.Logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
             #endif
             _state=(Int32)RunnerState.NotStarted;
             _passCtsOwnership=PassCtsOwnership || CompletionTokenSource==null;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
             CompletionToken = _completionTokenSource.Token;
             #if TRACE
-            _logger?.LogTraceEnterRunnerBaseConstructorExit(RunnerId);
+            this.Logger?.LogTraceEnterRunnerBaseConstructorExit(RunnerId);
             #endif
         }
 
@@ -73,7 +73,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             if (SetDisposed()) {
                 #if TRACE
-                _logger?.LogTraceRunnerBaseDisposing(RunnerId);
+                Logger?.LogTraceRunnerBaseDisposing(RunnerId);
                 #endif
                 Dispose(true);
                 GC.SuppressFinalize(this);
@@ -96,7 +96,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             if (State==RunnerState.NotStarted) {
                 #if TRACE
-                _logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(RunnerId);
+                Logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(RunnerId);
                 #endif
                 return false;
             }
@@ -105,18 +105,18 @@ namespace MVVrus.AspNetCore.ActiveSession
                 old_state=Volatile.Read(ref _state);
                 if (((RunnerState)old_state).IsFinal()) {
                     #if TRACE
-                    _logger?.LogTraceRunnerBaseChangeFinalStateAttempt(RunnerId);
+                    Logger?.LogTraceRunnerBaseChangeFinalStateAttempt(RunnerId);
                     #endif
                     return false;
                 }
             } while (old_state!=Interlocked.CompareExchange(ref _state, new_state, old_state));
             #if TRACE
-            _logger?.LogTraceRunnerBaseStateChanged(RunnerId, State);
+            Logger?.LogTraceRunnerBaseStateChanged(RunnerId, State);
             #endif
             if (((RunnerState)new_state).IsFinal())
                 try {
                     #if TRACE
-                    _logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
+                    Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
                     #endif
                     _completionTokenSource?.Cancel();
                 }
@@ -142,11 +142,11 @@ namespace MVVrus.AspNetCore.ActiveSession
                 (RunnerState)Interlocked.CompareExchange(ref _state, (int)NewState, (int)RunnerState.NotStarted);
             Boolean result = prev_state==RunnerState.NotStarted;
             #if TRACE
-            _logger?.LogTraceRunnerBaseStartedInState(RunnerId, State);
+            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, State);
             #endif
             if (result&&NewState.IsFinal()) {
                 #if TRACE
-                _logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
+                Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
                 #endif
                 _completionTokenSource?.Cancel();
             }

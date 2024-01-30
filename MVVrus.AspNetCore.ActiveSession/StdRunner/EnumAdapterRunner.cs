@@ -69,10 +69,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean StartInConstructor,
             RunnerId RunnerId,
             ILoggerFactory? LoggerFactory) :
-            base(CompletionTokenSource, PassCtsOwnership, RunnerId)  
+            base(CompletionTokenSource, PassCtsOwnership, RunnerId,
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TResult>))))
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
-            _logger = LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
 #if TRACE
 #endif
             _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT); 
@@ -116,7 +116,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
 #if TRACE
 #endif
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), _logger);
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), Logger);
                 List<TResult> result_list = new List<TResult>();
                 for (int i = 0; i < Advance && _queue.Count > 0 && base.State == Stalled; i++)
                 {
@@ -172,7 +172,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
 #if TRACE
 #endif
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), _logger);
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), Logger);
 #if TRACE
 #endif
                 StartSourceEnumerationIfNotStarted();

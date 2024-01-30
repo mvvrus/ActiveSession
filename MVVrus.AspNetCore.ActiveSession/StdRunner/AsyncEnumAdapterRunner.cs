@@ -56,12 +56,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             RunnerId RunnerId, 
             ILoggerFactory? LoggerFactory):
             this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
-                StartInConstructor, RunnerId,  (ILogger?)null) 
-                
+                StartInConstructor, RunnerId,
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(AsyncEnumAdapterRunner<TResult>))))
         {
             LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
         }
-
 
         /// <summary>
         /// TODO
@@ -84,19 +83,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? EnumAheadLimit,
             Boolean StartInConstructor,
             RunnerId RunnerId,
-            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId)
+            ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger)
         {
             _asyncSource = AsyncSource;
             _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _returnRestDelegate = ReturnRest;
-            _logger=Logger;
             _defaultAdvance=DefaultAdvance??ENUM_DEFAULT_ADVANCE;
             _asyncEnumerableOwned=PassSourceOnership;
              if(StartInConstructor) StartSourceEnumerationIfNotStarted();
         }
-
 
         /// <inheritdoc/>
         public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
@@ -112,7 +109,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             }
             try
             {
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), _logger);
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), Logger);
                 _resultContext.CopyAvailable(_queue);
                 TailorRunningState();
             }
@@ -133,7 +130,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 ThrowInvalidParallelism();
             }
             try {
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), _logger);
+                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), Logger);
                 StartSourceEnumerationIfNotStarted();
                 //Try a short, synchrous path first: see if available state and data allows to satisfy the request 
                 bool short_path_ok = _resultContext.CopyAvailable(_queue);

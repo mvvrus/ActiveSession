@@ -15,11 +15,10 @@ namespace ProbeApp
         Task? _task_to_continue;
 
         [ActiveSessionConstructor]
-        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory):base(null,true, default)
+        public SimpleRunner(SimpleRunnerParams Params, ILoggerFactory LoggerFactory):base(null,true, default, LoggerFactory.CreateLogger<SimpleRunner>())
         {
             (_immediate, _end, _delay_in_ms)=Params;
-            _logger=LoggerFactory.CreateLogger<SimpleRunner>();
-            _logger?.LogDebug($"Parameters: {Params}");
+            Logger?.LogDebug($"Parameters: {Params}");
         }
 
         public RunnerResult<Int32> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
