@@ -11,14 +11,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         readonly Boolean _useSessionServicesAsRequestServices;
         readonly Boolean _preloadActiveSession;
-        readonly Func<HttpContext,Boolean> _filter;
+        readonly List<Func<HttpContext,Boolean>> _filters;
+        readonly Boolean _acceptAll;
 
         //Properties for testing
         internal RequestDelegate Next { get { return _next; } }
         internal IActiveSessionStore Store { get { return _store; } }
 
         public ActiveSessionMiddleware(RequestDelegate Next,
-            Func<HttpContext, Boolean> Filter,
+            MiddlewareParam FilterParam,
             IActiveSessionStore Store,
             ILoggerFactory? LoggerFactory,
             IOptions<ActiveSessionOptions> Options
@@ -42,7 +43,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 throw;
             }
-            _filter=Filter;
+            _acceptAll=FilterParam.AcceptAll;
+            _filters=FilterParam.Filters;
             #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddlewareExit();
             #endif
@@ -56,7 +58,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IServiceProvider request_services = Context.RequestServices;
             IActiveSessionFeature? feature = null;
             try {
-                if (_filter.Invoke(Context)) {
+                Boolean pass = _acceptAll;
+                for (int i = 0; !pass&&i<_filters.Count; i++)
+                    pass=pass||_filters[i].Invoke(Context);
+                if (pass) {
                     feature=_store.CreateFeatureObject(Context.Session, Context.TraceIdentifier);
                     Context.Features.Set(feature);
                     _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
@@ -102,6 +107,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);
                 #endif
             }
+        }
+
+        internal class MiddlewareParam
+        {
+            public Boolean AcceptAll;
+            public List<Func<HttpContext, Boolean>> Filters = new List<Func<HttpContext, Boolean>>();
+
         }
     }
 }

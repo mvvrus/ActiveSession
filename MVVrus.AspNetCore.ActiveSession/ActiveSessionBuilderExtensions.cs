@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using MVVrus.AspNetCore.ActiveSession.Internal;
+using System.Collections.Generic;
+using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using static System.Text.RegularExpressions.RegexOptions;
 
@@ -43,14 +46,31 @@ namespace MVVrus.AspNetCore.ActiveSession
             logger?.LogTraceUseActiveSessions();
             #endif
 
-            //Try to get IActiveSessionStore fro DI container to check if any of AddActiveSessions methods were ever called
-            try {
-                Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
-                Builder.UseMiddleware<ActiveSessionMiddleware>(Filter??ACCEPTALL_FILTER);
-                logger?.LogInformationActiveSessionMiddlewareRegistered();
+            ActiveSessionMiddleware.MiddlewareParam middleware_param;
+            if (Builder.Properties.ContainsKey(ACTIVESESSION_PROPERTYNAME)) {
+                middleware_param=(ActiveSessionMiddleware.MiddlewareParam)Builder.Properties[ACTIVESESSION_PROPERTYNAME]!;
+                //TODO LogTrace
+            } 
+            else {
+                middleware_param=new ActiveSessionMiddleware.MiddlewareParam();
+                try {
+                    //Try to get IActiveSessionStore from DI container to check if any of AddActiveSessions methods were ever called
+                    Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
+                    Builder.Properties.Add(ACTIVESESSION_PROPERTYNAME, middleware_param);
+                    Builder.UseMiddleware<ActiveSessionMiddleware>(middleware_param);
+                    logger?.LogInformationActiveSessionMiddlewareRegistered();
+                }
+                catch (InvalidOperationException exception) {
+                    logger?.LogWarningAbsentFactoryInplementations(exception);
+                }
             }
-            catch (Exception exception) {
-                logger?.LogWarningAbsentFactoryInplementations(exception);
+            if (Filter==null) {
+                //TODO LogTrace
+                middleware_param.AcceptAll=true;
+            }
+            else {
+                //TODO LogTrace
+                middleware_param.Filters.Add(Filter);
             }
             #if TRACE
             logger?.LogTraceUseActiveSessionsExit();
@@ -87,7 +107,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             return UseActiveSessions(Builder, filter);
         }
 
-        internal static Func<HttpContext, Boolean> ACCEPTALL_FILTER = _ => true;
+        internal const String ACTIVESESSION_PROPERTYNAME = "__ActiveSession__";
 
     }
 }
