@@ -466,13 +466,13 @@ namespace ActiveSession.Tests
                 _completionTokenSource=Cts??new CancellationTokenSource();
             }
 
-            public RunnerState State { get; protected set; }
+            public RunnerStatus State { get; protected set; }
 
             public Int32 Position => 0;
 
             public void Abort()
             {
-                State=RunnerState.Aborted;
+                State=RunnerStatus.Aborted;
                 _completionTokenSource.Cancel();
             }
 

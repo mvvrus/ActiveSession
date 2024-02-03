@@ -5,7 +5,7 @@ namespace ActiveSession.Tests
 {
     public class SpyRunnerBase<TResult> : IRunner<TResult>
     {
-        public RunnerState State => throw new NotImplementedException();
+        public RunnerStatus State => throw new NotImplementedException();
 
         public int Position => throw new NotImplementedException();
 

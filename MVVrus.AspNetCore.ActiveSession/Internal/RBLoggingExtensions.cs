@@ -23,11 +23,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_RUNNERBASECHANGEFINALSTATE, LogLevel.Trace, "RunnerBase: attempt change final state ignored, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseChangeFinalStateAttempt(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASESTATESET, LogLevel.Trace, "RunnerBase: new state set, RunnerId={RunnerId}, State={State}")]
-        public static partial void LogTraceRunnerBaseStateChanged(this ILogger Logger, RunnerId RunnerId, RunnerState State);
+        public static partial void LogTraceRunnerBaseStateChanged(this ILogger Logger, RunnerId RunnerId, RunnerStatus State);
         [LoggerMessage(T_RUNNERBASEREACHFINAL, LogLevel.Trace, "RunnerBase: final state reached, signal the runner completion, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseComeToFinalState(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASESTARTED, LogLevel.Trace, "RunnerBase: the runner started, RunnerId={RunnerId}, State={State}")]
-        public static partial void LogTraceRunnerBaseStartedInState(this ILogger Logger, RunnerId RunnerId, RunnerState State);
+        public static partial void LogTraceRunnerBaseStartedInState(this ILogger Logger, RunnerId RunnerId, RunnerStatus State);
 
     }
 }

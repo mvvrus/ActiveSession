@@ -45,7 +45,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             this.Logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
             #endif
-            _state=(Int32)RunnerState.NotStarted;
+            _state=(Int32)RunnerStatus.NotStarted;
             _passCtsOwnership=PassCtsOwnership || CompletionTokenSource==null;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
             CompletionToken = _completionTokenSource.Token;
@@ -55,14 +55,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public virtual RunnerState State { get {return (RunnerState)Volatile.Read(ref _state);} }
+        public virtual RunnerStatus State { get {return (RunnerStatus)Volatile.Read(ref _state);} }
 
         /// <inheritdoc/>
         public virtual Int32 Position { get; protected set; } = 0;
 
         /// <inheritdoc/>
         public void Abort() { 
-            if(SetState(RunnerState.Aborted)) DoAbort();
+            if(SetState(RunnerStatus.Aborted)) DoAbort();
         }
 
         /// <inheritdoc/>
@@ -92,9 +92,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="State">The target <see cref="State"/> property value</param>
         /// <returns> true if the <see cref="State"/> property</returns> value was really changed, false otherwise.
-        protected virtual Boolean SetState(RunnerState State)
+        protected virtual Boolean SetState(RunnerStatus State)
         {
-            if (State==RunnerState.NotStarted) {
+            if (State==RunnerStatus.NotStarted) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(RunnerId);
                 #endif
@@ -103,7 +103,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Int32 new_state = (Int32)State, old_state;
             do {
                 old_state=Volatile.Read(ref _state);
-                if (((RunnerState)old_state).IsFinal()) {
+                if (((RunnerStatus)old_state).IsFinal()) {
                     #if TRACE
                     Logger?.LogTraceRunnerBaseChangeFinalStateAttempt(RunnerId);
                     #endif
@@ -113,7 +113,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceRunnerBaseStateChanged(RunnerId, State);
             #endif
-            if (((RunnerState)new_state).IsFinal())
+            if (((RunnerStatus)new_state).IsFinal())
                 try {
                     #if TRACE
                     Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
@@ -131,16 +131,16 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <summary>
         /// Set the runner's <see cref="State"/> property to a running state <paramref name="NewState"/> in a thread-safe manner
-        /// only if the state was <see cref="RunnerState.NotStarted"/>
+        /// only if the state was <see cref="RunnerStatus.NotStarted"/>
         /// </summary>
         /// <param name="NewState">The new <see cref="State"/> property value to be set.</param>
         /// <returns>true if <see cref="State"/> has been set, otherwise - false </returns>
-        protected Boolean StartRunning(RunnerState NewState=RunnerState.Stalled)
+        protected Boolean StartRunning(RunnerStatus NewState=RunnerStatus.Stalled)
         {
             CheckDisposed();
-            RunnerState prev_state =
-                (RunnerState)Interlocked.CompareExchange(ref _state, (int)NewState, (int)RunnerState.NotStarted);
-            Boolean result = prev_state==RunnerState.NotStarted;
+            RunnerStatus prev_state =
+                (RunnerStatus)Interlocked.CompareExchange(ref _state, (int)NewState, (int)RunnerStatus.NotStarted);
+            Boolean result = prev_state==RunnerStatus.NotStarted;
             #if TRACE
             Logger?.LogTraceRunnerBaseStartedInState(RunnerId, State);
             #endif

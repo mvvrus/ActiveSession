@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using static MVVrus.AspNetCore.ActiveSession.RunnerState;
+using static MVVrus.AspNetCore.ActiveSession.RunnerStatus;
 using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 
 

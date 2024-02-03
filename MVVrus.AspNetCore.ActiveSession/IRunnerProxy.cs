@@ -15,7 +15,7 @@
         /// Asynchronous <see cref="IRunner.State"/> property counterpart
         /// </summary>
         /// <returns>A <see cref="ValueTask{T}"/> wrapping a value of the <see cref="IRunner.State"/> property (possibly from a remote instance) </returns>
-        public ValueTask<RunnerState> GetStateAsync();
+        public ValueTask<RunnerStatus> GetStateAsync();
 
         /// <summary>
         /// Asynchronous <see cref="IRunner.Position"/> property counterpart

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using MVVrus.AspNetCore.ActiveSession;
 using static MVVrus.AspNetCore.ActiveSession.IRunner;
-using static MVVrus.AspNetCore.ActiveSession.RunnerState;
+using static MVVrus.AspNetCore.ActiveSession.RunnerStatus;
 
 
 namespace ProbeApp
@@ -11,7 +11,7 @@ namespace ProbeApp
         readonly Object _lock=new Object();
         int _immediate, _end, _delay_in_ms;
         Int32 _last_set=-1;
-        RunnerState _state_to_set = Stalled;
+        RunnerStatus _state_to_set = Stalled;
         Task? _task_to_continue;
 
         [ActiveSessionConstructor]
@@ -38,7 +38,7 @@ namespace ProbeApp
             if (Advance<=0) Advance=1;
             RunnerResult<int> result=default;
             for (int i=0;i<Advance; i++) {
-                RunnerState state = State;
+                RunnerStatus state = State;
                 result=new RunnerResult<int>(_last_set, state, Position);
                 if (state!=Stalled&&state!=Progressed) break;
                 if (state==Stalled) await _task_to_continue!;

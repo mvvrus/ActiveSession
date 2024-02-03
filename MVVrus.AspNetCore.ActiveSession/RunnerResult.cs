@@ -7,11 +7,11 @@
     /// <param name="Result">The returned value</param>
     /// <param name="State">The runner state in the moment of return</param>
     /// <param name="Position">The runner position in the moment of return</param>
-    /// <param name="FailureException">Reason of the <see cref="RunnerState.Failed"/> state</param>
+    /// <param name="FailureException">Reason of the <see cref="RunnerStatus.Failed"/> state</param>
     /// <remarks> TODO which methods?</remarks>
     public record struct RunnerResult<TResult>(
         TResult Result, 
-        RunnerState State, 
+        RunnerStatus State, 
         Int32 Position,
         Exception? FailureException=null
      ); 

@@ -29,7 +29,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// Current state of the runner object
         /// </value>
-        public RunnerState State { get; }
+        public RunnerStatus State { get; }
 
         /// <value>
         /// Current position of the runner object
@@ -48,7 +48,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public CancellationToken CompletionToken { get; }
 
         /// <value>
-        /// The exception that cause the <see cref="State"/> to change to <see cref="RunnerState.Failed"/>, otherwise - null
+        /// The exception that cause the <see cref="State"/> to change to <see cref="RunnerStatus.Failed"/>, otherwise - null
         /// </value>
         public Exception? Exception { get; }
 

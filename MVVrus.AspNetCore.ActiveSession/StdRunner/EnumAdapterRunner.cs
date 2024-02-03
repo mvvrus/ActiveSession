@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using static MVVrus.AspNetCore.ActiveSession.RunnerState;
+using static MVVrus.AspNetCore.ActiveSession.RunnerStatus;
 using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 using Microsoft.Extensions.Logging;
 
@@ -87,13 +87,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public override RunnerState State
+        public override RunnerStatus State
         {
             //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
             //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
             get
             {
-                RunnerState state = base.State;
+                RunnerStatus state = base.State;
                 if (state == Stalled && _queue.Count > 0) state = Progressed;
 #if TRACE
 #endif

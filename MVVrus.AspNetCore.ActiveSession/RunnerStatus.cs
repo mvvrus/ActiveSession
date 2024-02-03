@@ -3,7 +3,7 @@
     /// <summary>
     /// Enumeration containing possible states of a runner object? implementing a <see cref="IRunner{TResult}"/>interface.
     /// </summary>
-    public enum RunnerState
+    public enum RunnerStatus
     {
         /// <value> Just created and not started </value>
         NotStarted=0,
@@ -20,9 +20,9 @@
     }
 
     /// <summary>
-    /// Class containing an extension method for <see cref="RunnerState"/> enumerable
+    /// Class containing an extension method for <see cref="RunnerStatus"/> enumerable
     /// </summary>
-    public static class RunnerStateExtensions
+    public static class RunnerStatusExtensions
     {
         /// <summary>
         /// Returns true if the state, specified by <paramref name="State"/> is final, 
@@ -30,9 +30,9 @@
         /// </summary>
         /// <param name="State">The runner state to analyze/</param>
         /// <returns>true if the <paramref name="State"/> specified is a final one (Complete, Failed or Aborted), false otherwise</returns>
-        public static Boolean IsFinal(this RunnerState State)
+        public static Boolean IsFinal(this RunnerStatus State)
         {
-            return State>=RunnerState.Complete;
+            return State>=RunnerStatus.Complete;
         }
 
     }
