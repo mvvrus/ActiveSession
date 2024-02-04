@@ -82,47 +82,47 @@ namespace ActiveSession.Tests
             RunnerBaseImpl runner;
             //Test case: assure the initial state is NotStarted
             runner=new RunnerBaseImpl();
-            Assert.Equal(RunnerStatus.NotStarted, runner.State);
+            Assert.Equal(RunnerStatus.NotStarted, runner.Status);
 
             //Test case: successful start - StartRunning to Stalled when NotStarted
             Assert.True(runner.StartRunningPub(RunnerStatus.Stalled));
-            Assert.Equal(RunnerStatus.Stalled, runner.State);
+            Assert.Equal(RunnerStatus.Stalled, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: false start - StartRunning to Progressed when Stalled
             Assert.False(runner.StartRunningPub(RunnerStatus.Progressed));
-            Assert.Equal(RunnerStatus.Stalled, runner.State);
+            Assert.Equal(RunnerStatus.Stalled, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: attemt to go back to NotStarted - SetState to NotStarted when Stalled
             Assert.False(runner.SetStatePub(RunnerStatus.NotStarted));
-            Assert.Equal(RunnerStatus.Stalled, runner.State);
+            Assert.Equal(RunnerStatus.Stalled, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: change between running states: SetState to Progressed when Stalled
             Assert.True(runner.SetStatePub(RunnerStatus.Progressed));
-            Assert.Equal(RunnerStatus.Progressed, runner.State);
+            Assert.Equal(RunnerStatus.Progressed, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: change running state to final: SetState to Complete when Progressed
             Assert.True(runner.SetStatePub(RunnerStatus.Complete));
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: change final state to running: SetState to Stalled when Complete
             Assert.False(runner.SetStatePub(RunnerStatus.Progressed));
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
 
             //Test case: change one final state to another: SetState to Aborted when Complete
             Assert.False(runner.SetStatePub(RunnerStatus.Aborted));
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
 
             runner.Dispose();
 
             //Test case: successful start to finish - StartRunning to Aborted when NotStarted
             runner=new RunnerBaseImpl();
             Assert.True(runner.StartRunningPub(RunnerStatus.Complete));
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
 
             //Test case: call StartRunning on a disposed runner (must throw)
@@ -135,7 +135,7 @@ namespace ActiveSession.Tests
             runner.StartRunningPub(RunnerStatus.Stalled);
             runner.Dispose();
             Assert.True(runner.SetStatePub(RunnerStatus.Complete));
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
         }
 
@@ -148,7 +148,7 @@ namespace ActiveSession.Tests
             runner=new RunnerBaseImpl();
             runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.State);
+            Assert.Equal(RunnerStatus.Aborted, runner.Status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
             runner.Dispose();
 
@@ -157,7 +157,7 @@ namespace ActiveSession.Tests
             Assert.True(runner.StartRunningPub(RunnerStatus.Stalled));
             runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.State);
+            Assert.Equal(RunnerStatus.Aborted, runner.Status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
             runner.Dispose();
 
@@ -166,7 +166,7 @@ namespace ActiveSession.Tests
             Assert.True(runner.StartRunningPub(RunnerStatus.Complete));
             runner.Abort();
             Assert.False(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Complete, runner.State);
+            Assert.Equal(RunnerStatus.Complete, runner.Status);
             runner.Dispose();
 
             //Test case: Abort runner disposed while running. 
@@ -175,7 +175,7 @@ namespace ActiveSession.Tests
             runner.Dispose();
             runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.State);
+            Assert.Equal(RunnerStatus.Aborted, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
         }
 
@@ -209,7 +209,7 @@ namespace ActiveSession.Tests
 
             public Boolean SetStatePub(RunnerStatus State)
             {
-                return base.SetState(State);
+                return base.SetStatus(State);
             }
 
             public Boolean StartRunningPub(RunnerStatus NewState)

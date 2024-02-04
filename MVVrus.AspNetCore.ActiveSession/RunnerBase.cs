@@ -13,7 +13,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </summary>
     public class RunnerBase : IRunner, IDisposable
     {
-        Int32 _state;
+        Int32 _status;
         readonly CancellationTokenSource _completionTokenSource;
         readonly Boolean _passCtsOwnership;
         Int32 _disposed = 0; //1 - the instance is disposed or to be disposed
@@ -45,7 +45,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             this.Logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
             #endif
-            _state=(Int32)RunnerStatus.NotStarted;
+            _status=(Int32)RunnerStatus.NotStarted;
             _passCtsOwnership=PassCtsOwnership || CompletionTokenSource==null;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
             CompletionToken = _completionTokenSource.Token;
@@ -55,14 +55,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <inheritdoc/>
-        public virtual RunnerStatus State { get {return (RunnerStatus)Volatile.Read(ref _state);} }
+        public virtual RunnerStatus Status { get {return (RunnerStatus)Volatile.Read(ref _status);} }
 
         /// <inheritdoc/>
         public virtual Int32 Position { get; protected set; } = 0;
 
         /// <inheritdoc/>
         public void Abort() { 
-            if(SetState(RunnerStatus.Aborted)) DoAbort();
+            if(SetStatus(RunnerStatus.Aborted)) DoAbort();
         }
 
         /// <inheritdoc/>
@@ -87,33 +87,33 @@ namespace MVVrus.AspNetCore.ActiveSession
         public RunnerId RunnerId { get; init; }
 
         /// <summary>
-        /// Sets the <see cref="State"/> property to the value specified by <paramref name="State"/> parameter in a thread-safe manner.
-        /// If the runner is already in a final state, or a requested state value is NotStarted the state will not be changed 
+        /// Sets the <see cref="Status"/> property to the value specified by <paramref name="Status"/> parameter in a thread-safe manner.
+        /// If the runner is already in a final state, or a requested status value is NotStarted the status will not be changed 
         /// </summary>
-        /// <param name="State">The target <see cref="State"/> property value</param>
-        /// <returns> true if the <see cref="State"/> property</returns> value was really changed, false otherwise.
-        protected virtual Boolean SetState(RunnerStatus State)
+        /// <param name="Status">The target <see cref="Status"/> property value</param>
+        /// <returns> true if the <see cref="Status"/> property</returns> value was really changed, false otherwise.
+        protected virtual Boolean SetStatus(RunnerStatus Status)
         {
-            if (State==RunnerStatus.NotStarted) {
+            if (Status==RunnerStatus.NotStarted) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(RunnerId);
                 #endif
                 return false;
             }
-            Int32 new_state = (Int32)State, old_state;
+            Int32 new_status = (Int32)Status, old_status;
             do {
-                old_state=Volatile.Read(ref _state);
-                if (((RunnerStatus)old_state).IsFinal()) {
+                old_status=Volatile.Read(ref _status);
+                if (((RunnerStatus)old_status).IsFinal()) {
                     #if TRACE
                     Logger?.LogTraceRunnerBaseChangeFinalStateAttempt(RunnerId);
                     #endif
                     return false;
                 }
-            } while (old_state!=Interlocked.CompareExchange(ref _state, new_state, old_state));
+            } while (old_status!=Interlocked.CompareExchange(ref _status, new_status, old_status));
             #if TRACE
-            Logger?.LogTraceRunnerBaseStateChanged(RunnerId, State);
+            Logger?.LogTraceRunnerBaseStateChanged(RunnerId, Status);
             #endif
-            if (((RunnerStatus)new_state).IsFinal())
+            if (((RunnerStatus)new_status).IsFinal())
                 try {
                     #if TRACE
                     Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
@@ -130,21 +130,21 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected virtual void DoAbort() {}
 
         /// <summary>
-        /// Set the runner's <see cref="State"/> property to a running state <paramref name="NewState"/> in a thread-safe manner
-        /// only if the state was <see cref="RunnerStatus.NotStarted"/>
+        /// Set the runner's <see cref="Status"/> property to a running status <paramref name="NewStatus"/> in a thread-safe manner
+        /// only if the status was <see cref="RunnerStatus.NotStarted"/>
         /// </summary>
-        /// <param name="NewState">The new <see cref="State"/> property value to be set.</param>
-        /// <returns>true if <see cref="State"/> has been set, otherwise - false </returns>
-        protected Boolean StartRunning(RunnerStatus NewState=RunnerStatus.Stalled)
+        /// <param name="NewStatus">The new <see cref="Status"/> property value to be set.</param>
+        /// <returns>true if <see cref="Status"/> has been set, otherwise - false </returns>
+        protected Boolean StartRunning(RunnerStatus NewStatus=RunnerStatus.Stalled)
         {
             CheckDisposed();
-            RunnerStatus prev_state =
-                (RunnerStatus)Interlocked.CompareExchange(ref _state, (int)NewState, (int)RunnerStatus.NotStarted);
-            Boolean result = prev_state==RunnerStatus.NotStarted;
+            RunnerStatus prev_status =
+                (RunnerStatus)Interlocked.CompareExchange(ref _status, (int)NewStatus, (int)RunnerStatus.NotStarted);
+            Boolean result = prev_status==RunnerStatus.NotStarted;
             #if TRACE
-            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, State);
+            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, Status);
             #endif
-            if (result&&NewState.IsFinal()) {
+            if (result&&NewStatus.IsFinal()) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
                 #endif

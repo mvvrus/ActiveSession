@@ -99,7 +99,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         public RunnerResult<IEnumerable<TItem>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
         {
             CheckDisposed();
-            if (State == NotStarted || State.IsFinal())
+            if (Status == NotStarted || Status.IsFinal())
                 return MakeRunnerEnumResult(new List<TItem>());
             Context? completed_context;
             //Acquire pseudo-lock
@@ -132,14 +132,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             try {
                 Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), Logger);
                 StartSourceEnumerationIfNotStarted();
-                //Try a short, synchrous path first: see if available state and data allows to satisfy the request 
+                //Try a short, synchrous path first: see if available status and data allows to satisfy the request 
                 bool short_path_ok = _resultContext.CopyAvailable(_queue);
                 if (!short_path_ok) {
-                    //Come here if the short path failed: available data at current state cannot satisfy the request, so some async work needed
+                    //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work needed
                     _resultContext.StartAccumulation();
                     return new ValueTask<RunnerResult<IEnumerable<TItem>>>(_resultContext.ResultTaskSource.Task);
                 }
-                //Short path successfull: set correct State
+                //Short path successfull: set correct Status
                 TailorRunningState();
             }
             catch (Exception)
@@ -221,7 +221,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         RunnerResult<IEnumerable<T>> MakeRunnerEnumResult<T>(ICollection<T> Data)
         {
             Position += Data.Count;
-            return new RunnerResult<IEnumerable<T>> { Result = Data, State = State, Position = Position, FailureException = Exception };
+            return new RunnerResult<IEnumerable<T>> { Result = Data, Status = Status, Position = Position, FailureException = Exception };
         }
 
         void ItemAction(Task<bool> NextStep)
@@ -234,7 +234,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             try
             {
                 if (NextStep.IsCanceled) Abort();
-                result_ready = state_is_final = State.IsFinal();
+                result_ready = state_is_final = Status.IsFinal();
                 if (NextStep.IsFaulted)
                 {
                     Exception = NextStep.Exception;
@@ -245,7 +245,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     if (NextStep.Result && !state_is_final)
                     {
                         _queue.Add(_asyncEnumerator.Current);
-                        SetState(Progressed);
+                        SetStatus(Progressed);
                         proceed = true;
                     }
                     else
@@ -297,8 +297,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         void ReturnRest(Task Antecedent)
         {
             //The task should run only if _queue.CompleteAdding was called (TODO? Assert)
-            if (!State.IsFinal()) _resultContext?.CopyAvailable(_queue); //Should always return true due to _queue.CompleteAdding was called
-            if (_queue.Count <= 0) SetState(Exception == null ? Complete : Failed);
+            if (!Status.IsFinal()) _resultContext?.CopyAvailable(_queue); //Should always return true due to _queue.CompleteAdding was called
+            if (_queue.Count <= 0) SetStatus(Exception == null ? Complete : Failed);
             Context completed_context = Interlocked.Exchange(ref _resultContext, null) ?? throw new Exception("Something went wrong");
             completed_context.ResultTaskSource.SetResult(MakeRunnerEnumResult(completed_context.Result));
         }
@@ -308,11 +308,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             bool result = _queue.IsAddingCompleted && _queue.Count <= 0;
             if (result)
             {
-                SetState(Exception == null ? Complete : Failed);
+                SetStatus(Exception == null ? Complete : Failed);
             }
             else
             {
-                SetState(_queue.Count > 0 ? Progressed : Stalled);
+                SetStatus(_queue.Count > 0 ? Progressed : Stalled);
             }
         }
 

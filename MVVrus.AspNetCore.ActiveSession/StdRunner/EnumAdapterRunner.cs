@@ -87,17 +87,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public override RunnerStatus State
+        public override RunnerStatus Status
         {
-            //Contains (Int32)State with one exception: contains (Int32)Stalled when State may return (Int32)Progressed, see the getter code,
-            //It is Int32, not ActiveSessionState because it to be accessed via Volatile/Interlocked methods
+            //Contains (Int32)Status with one exception: contains (Int32)Stalled when Status may return (Int32)Progressed, see the getter code,
+            //It is Int32, not RunnerStatus because it to be accessed via Volatile/Interlocked methods
             get
             {
-                RunnerStatus state = base.State;
-                if (state == Stalled && _queue.Count > 0) state = Progressed;
+                RunnerStatus status = base.Status;
+                if (status == Stalled && _queue.Count > 0) status = Progressed;
 #if TRACE
 #endif
-                return state;
+                return status;
             }
         }
 
@@ -118,7 +118,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
                 Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), Logger);
                 List<TItem> result_list = new List<TItem>();
-                for (int i = 0; i < Advance && _queue.Count > 0 && base.State == Stalled; i++)
+                for (int i = 0; i < Advance && _queue.Count > 0 && base.Status == Stalled; i++)
                 {
 #if TRACE
 #endif
@@ -137,7 +137,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 {
 #if TRACE
 #endif
-                    SetState(Complete);
+                    SetStatus(Complete);
                 }
                 result = MakeResult(result_list);
             }
@@ -179,7 +179,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 List<TItem> result_list = new List<TItem>();
 #if TRACE
 #endif
-                for (int i = 0; i < Advance && base.State == Stalled && !Token.IsCancellationRequested; i++)
+                for (int i = 0; i < Advance && base.Status == Stalled && !Token.IsCancellationRequested; i++)
                 {
                     TItem? item;
                     if (_queue.TryTake(out item))
@@ -193,7 +193,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     {
 #if TRACE
 #endif
-                        SetState(Exception == null ? Complete : Failed);
+                        SetStatus(Exception == null ? Complete : Failed);
                     }
                     else
                     {
@@ -261,12 +261,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         RunnerResult<IEnumerable<TItem>> MakeResult(IEnumerable<TItem> ResultList)
         {
             //LogDebug
-            return new RunnerResult<IEnumerable<TItem>>(ResultList, State, Position, State == Failed ? Exception : null);
+            return new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status == Failed ? Exception : null);
         }
 
         void StartSourceEnumerationIfNotStarted()
         {
-            if (State != NotStarted) return; //TODO use no synchronization for preliminary check
+            if (Status != NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE
 #endif
             if (StartRunning()) _enumTask = Task.Run(EnumerateSource);
@@ -284,8 +284,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 {
 #if TRACE
 #endif
-                    if (base.State != Stalled)
-                    {  //TODO check for State.IsFinal()
+                    if (base.Status != Stalled)
+                    {  //TODO check for Status.IsFinal()
 #if TRACE
 #endif
                         break;

@@ -27,9 +27,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         public const Int32 MAXIMUM_ADVANCE = Int32.MaxValue;
 
         /// <value>
-        /// Current state of the runner object
+        /// Current status of the runner object
         /// </value>
-        public RunnerStatus State { get; }
+        public RunnerStatus Status { get; }
 
         /// <value>
         /// Current position of the runner object
@@ -48,7 +48,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public CancellationToken CompletionToken { get; }
 
         /// <value>
-        /// The exception that cause the <see cref="State"/> to change to <see cref="RunnerStatus.Failed"/>, otherwise - null
+        /// The exception that cause the <see cref="Status"/> to change to <see cref="RunnerStatus.Failed"/>, otherwise - null
         /// </value>
         public Exception? Exception { get; }
 
@@ -89,7 +89,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         /// </param>
         /// <returns> 
-        /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner at the point of completion 
+        /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner at the point of completion 
         /// and the result (of type <typeparamref name="TResult"/>) if any
         /// </returns>
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
@@ -112,7 +112,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </param>
         /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
-        /// An <see cref="RunnerResult{TResult}"/> value containing the state, the position of the runner 
+        /// An <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner 
         /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any
         public RunnerResult<TResult> GetAvailable(Int32 StartPosition= CURRENT_POSITION, Int32 Advance=MAXIMUM_ADVANCE, String? TraceIdentifier = null);
     }

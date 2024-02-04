@@ -12,9 +12,9 @@
         public Boolean IsLocal { get; }
 
         /// <summary>
-        /// Asynchronous <see cref="IRunner.State"/> property counterpart
+        /// Asynchronous <see cref="IRunner.Status"/> property counterpart
         /// </summary>
-        /// <returns>A <see cref="ValueTask{T}"/> wrapping a value of the <see cref="IRunner.State"/> property (possibly from a remote instance) </returns>
+        /// <returns>A <see cref="ValueTask{T}"/> wrapping a value of the <see cref="IRunner.Status"/> property (possibly from a remote instance) </returns>
         public ValueTask<RunnerStatus> GetStateAsync();
 
         /// <summary>
