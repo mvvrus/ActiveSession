@@ -10,15 +10,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// <summary>
     /// This adapter class makes possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
     /// </summary>
-    public class EnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IDisposable, ICriticalNotifyCompletion
+    public class EnumAdapterRunner<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IDisposable, ICriticalNotifyCompletion
     {
         //TODO Implement logging
         const int SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
-        readonly BlockingCollection<TResult> _queue;
+        readonly BlockingCollection<TItem> _queue;
         readonly bool _passSourceOnership;
         readonly int _defaultAdvance;
-        IEnumerable<TResult>? _source;
+        IEnumerable<TItem>? _source;
         Task? _enumTask;
 
         //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
@@ -32,7 +32,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(IEnumerable<TResult> Source, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+        public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
             this(Source,true,null,true,null,null,false,RunnerId, LoggerFactory) { }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(EnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+        public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
                 Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, LoggerFactory) {}
 
@@ -60,7 +60,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="LoggerFactory"></param>
         /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
-            IEnumerable<TResult> Source,
+            IEnumerable<TItem> Source,
             Boolean PassSourceOnership,
             CancellationTokenSource? CompletionTokenSource,
             Boolean PassCtsOwnership,
@@ -70,12 +70,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             RunnerId RunnerId,
             ILoggerFactory? LoggerFactory) :
             base(CompletionTokenSource, PassCtsOwnership, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TResult>))))
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>))))
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
 #if TRACE
 #endif
-            _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT); 
+            _queue = new BlockingCollection<TItem>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT); 
             _passSourceOnership = PassSourceOnership;
             _defaultAdvance = DefaultAdvance??ENUM_DEFAULT_ADVANCE; 
             //TODO LogDebug parameters passed
@@ -102,12 +102,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition, int Advance, string? TraceIdentifier)
+        public RunnerResult<IEnumerable<TItem>> GetAvailable(int StartPosition, int Advance, string? TraceIdentifier)
         {
             CheckDisposed();
 #if TRACE
 #endif
-            RunnerResult<IEnumerable<TResult>> result = default;
+            RunnerResult<IEnumerable<TItem>> result = default;
             if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
             {
                 ThrowInvalidParallelism();
@@ -117,12 +117,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #if TRACE
 #endif
                 Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), Logger);
-                List<TResult> result_list = new List<TResult>();
+                List<TItem> result_list = new List<TItem>();
                 for (int i = 0; i < Advance && _queue.Count > 0 && base.State == Stalled; i++)
                 {
 #if TRACE
 #endif
-                    TResult? item;
+                    TItem? item;
                     if (_queue.TryTake(out item))
                     {
 #if TRACE
@@ -153,7 +153,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public async ValueTask<RunnerResult<IEnumerable<TResult>>> GetRequiredAsync(
+        public async ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(
             int StartPosition,
             int Advance,
             string? TraceIdentifier,
@@ -163,7 +163,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             CheckDisposed();
 #if TRACE
 #endif
-            RunnerResult<IEnumerable<TResult>> result = default;
+            RunnerResult<IEnumerable<TItem>> result = default;
             if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
             {
                 ThrowInvalidParallelism();
@@ -176,12 +176,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #if TRACE
 #endif
                 StartSourceEnumerationIfNotStarted();
-                List<TResult> result_list = new List<TResult>();
+                List<TItem> result_list = new List<TItem>();
 #if TRACE
 #endif
                 for (int i = 0; i < Advance && base.State == Stalled && !Token.IsCancellationRequested; i++)
                 {
-                    TResult? item;
+                    TItem? item;
                     if (_queue.TryTake(out item))
                     {
 #if TRACE
@@ -258,10 +258,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
-        RunnerResult<IEnumerable<TResult>> MakeResult(IEnumerable<TResult> ResultList)
+        RunnerResult<IEnumerable<TItem>> MakeResult(IEnumerable<TItem> ResultList)
         {
             //LogDebug
-            return new RunnerResult<IEnumerable<TResult>>(ResultList, State, Position, State == Failed ? Exception : null);
+            return new RunnerResult<IEnumerable<TItem>>(ResultList, State, Position, State == Failed ? Exception : null);
         }
 
         void StartSourceEnumerationIfNotStarted()
@@ -280,7 +280,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             if (_source == null) return;
             try
             {
-                foreach (TResult item in _source!)
+                foreach (TItem item in _source!)
                 {
 #if TRACE
 #endif
@@ -328,7 +328,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// TODO
         /// </summary>
         /// <returns></returns>
-        public EnumAdapterRunner<TResult> GetAwaiter() { return this; }
+        public EnumAdapterRunner<TItem> GetAwaiter() { return this; }
         /// <summary>
         /// TODO
         /// </summary>

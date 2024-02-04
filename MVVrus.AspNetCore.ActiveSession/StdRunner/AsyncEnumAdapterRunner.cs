@@ -9,18 +9,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// <summary>
     /// TODO
     /// </summary>
-    /// <typeparam name="TResult"></typeparam>
-    public class AsyncEnumAdapterRunner<TResult> : RunnerBase, IRunner<IEnumerable<TResult>>, IAsyncDisposable
+    /// <typeparam name="TItem"></typeparam>
+    public class AsyncEnumAdapterRunner<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IAsyncDisposable
     {
         readonly Action<Task<bool>> _itemActionDelegate;
         readonly Action<Task> _returnRestDelegate;
 
-        readonly IAsyncEnumerable<TResult> _asyncSource;
+        readonly IAsyncEnumerable<TItem> _asyncSource;
         readonly int _defaultAdvance; 
         readonly bool _asyncEnumerableOwned; 
-        readonly BlockingCollection<TResult> _queue;
+        readonly BlockingCollection<TItem> _queue;
 
-        IAsyncEnumerator<TResult> _asyncEnumerator = null!;
+        IAsyncEnumerator<TItem> _asyncEnumerator = null!;
         Context? _resultContext;
         volatile Task _taskChainTail;
 
@@ -31,7 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TResult> AsyncSource, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> AsyncSource, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
             this(AsyncSource, true, null, true, null, null, false, RunnerId, LoggerFactory) { }
 
         /// <summary>
@@ -41,12 +41,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TResult> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory): 
+        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory): 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
                 Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, LoggerFactory) { }
 
         AsyncEnumAdapterRunner(
-            IAsyncEnumerable<TResult> AsyncSource,
+            IAsyncEnumerable<TItem> AsyncSource,
             Boolean PassSourceOnership,
             CancellationTokenSource? CompletionTokenSource,
             Boolean PassCtsOwnership,
@@ -57,7 +57,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             ILoggerFactory? LoggerFactory):
             this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
                 StartInConstructor, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(AsyncEnumAdapterRunner<TResult>))))
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(AsyncEnumAdapterRunner<TItem>))))
         {
             LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(GetType()));
         }
@@ -75,7 +75,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId"></param>
         /// <param name="Logger"></param>
         protected AsyncEnumAdapterRunner(
-            IAsyncEnumerable<TResult> AsyncSource,
+            IAsyncEnumerable<TItem> AsyncSource,
             Boolean PassSourceOnership,
             CancellationTokenSource? CompletionTokenSource,
             Boolean PassCtsOwnership,
@@ -86,7 +86,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger)
         {
             _asyncSource = AsyncSource;
-            _queue = new BlockingCollection<TResult>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);
+            _queue = new BlockingCollection<TItem>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT);
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _returnRestDelegate = ReturnRest;
@@ -96,11 +96,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public RunnerResult<IEnumerable<TResult>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
+        public RunnerResult<IEnumerable<TItem>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
         {
             CheckDisposed();
             if (State == NotStarted || State.IsFinal())
-                return MakeRunnerEnumResult(new List<TResult>());
+                return MakeRunnerEnumResult(new List<TItem>());
             Context? completed_context;
             //Acquire pseudo-lock
             if (Interlocked.CompareExchange(ref _resultContext, new Context(Advance), null) != null)
@@ -121,7 +121,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public ValueTask<RunnerResult<IEnumerable<TResult>>> GetRequiredAsync(int StartPosition, int Advance, string? TraceIdentifier = null, CancellationToken Token = default)
+        public ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(int StartPosition, int Advance, string? TraceIdentifier = null, CancellationToken Token = default)
         {
             CheckDisposed();
             //Acquire pseudo-lock
@@ -137,7 +137,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 if (!short_path_ok) {
                     //Come here if the short path failed: available data at current state cannot satisfy the request, so some async work needed
                     _resultContext.StartAccumulation();
-                    return new ValueTask<RunnerResult<IEnumerable<TResult>>>(_resultContext.ResultTaskSource.Task);
+                    return new ValueTask<RunnerResult<IEnumerable<TItem>>>(_resultContext.ResultTaskSource.Task);
                 }
                 //Short path successfull: set correct State
                 TailorRunningState();
@@ -150,7 +150,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             }
             //Continue the short path here: release pseudo-lock and return
             Context completed_context = Interlocked.Exchange(ref _resultContext, null) ?? throw new Exception("Something went wrong");
-            return new ValueTask<RunnerResult<IEnumerable<TResult>>>(MakeRunnerEnumResult(completed_context.Result));
+            return new ValueTask<RunnerResult<IEnumerable<TItem>>>(MakeRunnerEnumResult(completed_context.Result));
         }
 
         /// <inheritdoc/>
@@ -324,31 +324,31 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
         class Context
         {
-            public TaskCompletionSource<RunnerResult<IEnumerable<TResult>>> ResultTaskSource { get; init; }
+            public TaskCompletionSource<RunnerResult<IEnumerable<TItem>>> ResultTaskSource { get; init; }
             public TaskCompletionSource AccumulationLatch { get; init; }
             public int ItemsToGetCount { get; init; }
-            public ICollection<TResult> Result { get => _fetchedItems; }
+            public ICollection<TItem> Result { get => _fetchedItems; }
             public bool IsReadyToAccumulate { get { return Volatile.Read(ref _isReadyToAccumulate); } }
 
             public Context(int ItemsToGetCount)
             {
-                ResultTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TResult>>>();
+                ResultTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                 AccumulationLatch = new TaskCompletionSource();
                 this.ItemsToGetCount = ItemsToGetCount;
-                _fetchedItems = new List<TResult>();
+                _fetchedItems = new List<TItem>();
             }
 
-            public int AddItem(TResult Item)
+            public int AddItem(TItem Item)
             {
                 _fetchedItems.Add(Item);
                 return _fetchedItems.Count;
             }
 
-            public bool CopyAvailable(BlockingCollection<TResult> Queue)
+            public bool CopyAvailable(BlockingCollection<TItem> Queue)
             {
                 for (int i = 0; i < ItemsToGetCount; i++)
                 {
-                    TResult? item;
+                    TItem? item;
                     if (!Queue.TryTake(out item)) break;
                     _fetchedItems.Add(item);
                 }
@@ -361,7 +361,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 AccumulationLatch.SetResult();
             }
 
-            readonly List<TResult> _fetchedItems;
+            readonly List<TItem> _fetchedItems;
             bool _isReadyToAccumulate;
         }
     }
