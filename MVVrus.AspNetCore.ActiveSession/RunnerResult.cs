@@ -10,9 +10,20 @@
     /// <param name="FailureException">Reason of the <see cref="RunnerStatus.Failed"/> status</param>
     /// <remarks> TODO which methods?</remarks>
     public record struct RunnerResult<TResult>(
-        TResult Result, 
-        RunnerStatus Status, 
+        TResult Result,
+        RunnerStatus Status,
         Int32 Position,
-        Exception? FailureException=null
-     ); 
+        Exception? FailureException = null
+     )
+    {
+        /// <summary>
+        /// Convert a tupple of values with appropriate types to a RunnerResult
+        /// </summary>
+        /// <param name="Value"></param>
+        public static  implicit operator RunnerResult<TResult>(ValueTuple<TResult,RunnerStatus,Int32> Value)
+        {
+            return new RunnerResult<TResult>(Value.Item1, Value.Item2, Value.Item3);
+        }
+    }
+
 }
