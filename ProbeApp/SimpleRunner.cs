@@ -21,7 +21,7 @@ namespace ProbeApp
             Logger?.LogDebug($"Parameters: {Params}");
         }
 
-        public RunnerResult<Int32> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
+        public RunnerResult<Int32> GetAvailable(Int32 Advance = int.MaxValue, Int32 StartPosition = -1, String? TraceIdentifier = null)
         {
             if(Status!=Progressed) return new RunnerResult<int>(_last_set, Status, Position);
             RunnerResult<int> result;
@@ -32,7 +32,11 @@ namespace ProbeApp
             return result;
         }
 
-        public async ValueTask<RunnerResult<Int32>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+        public async ValueTask<RunnerResult<Int32>> GetRequiredAsync(
+            Int32 Advance = IRunner.DEFAULT_ADVANCE,
+            CancellationToken Token = default,
+            Int32 StartPosition = IRunner.CURRENT_POSITION,
+            String? TraceIdentifier = null)
         {
             if(StartRunning()) StartBackground();
             if (Advance<=0) Advance=1;

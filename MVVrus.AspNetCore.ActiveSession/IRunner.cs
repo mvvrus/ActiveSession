@@ -9,10 +9,6 @@ namespace MVVrus.AspNetCore.ActiveSession
     public interface IRunner
     {
         /// <value>
-        /// Constant indicating the start position, from which the runner execution begins
-        /// </value>
-        public const Int32 BEGINNING_POSITION = 0;
-        /// <value>
         /// Constant indicating the use of current <see cref="IRunner.Position"/>, as a fetch start position
         /// </value>
         public const Int32 CURRENT_POSITION = -1;
@@ -69,17 +65,16 @@ namespace MVVrus.AspNetCore.ActiveSession
     public interface IRunner<TResult>:IRunner
     {
         /// <summary>
-        /// Asynchronously fetch the next (or first) results from the runner
+        /// Asynchronously fetch the next (or first) results from the runner 
         /// </summary>
+        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="StartPosition">
         /// Position value from which the fetching of the results should begin
         /// <remarks> 
-        /// <para>Use <see cref="IRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
         /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
         /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
-        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
         /// <param name="Token">
         /// <see cref="CancellationToken"/> that may be used to break the method execution.
@@ -93,27 +88,26 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// and the result (of type <typeparamref name="TResult"/>) if any
         /// </returns>
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
-            Int32 StartPosition, 
-            Int32 Advance, 
-            String? TraceIdentifier=null, 
-            CancellationToken Token=default
+            Int32 Advance = DEFAULT_ADVANCE,
+            CancellationToken Token = default,
+            Int32 StartPosition =CURRENT_POSITION,
+            String? TraceIdentifier=null
         );
 
         /// <summary>
         /// Returns the result available at the moment of call starting from <see paramref="StartPosition"/>
         /// </summary>
+        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="StartPosition">
         /// Position value from which the fetching of the results should begin
         /// <remarks> 
-        /// <para>Use <see cref="IRunner.BEGINNING_POSITION"/> constant to fetch results from the very begining.</para>
         /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
         /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
         /// </remarks>
         /// </param>
-        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
         /// An <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner 
         /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any
-        public RunnerResult<TResult> GetAvailable(Int32 StartPosition= CURRENT_POSITION, Int32 Advance=MAXIMUM_ADVANCE, String? TraceIdentifier = null);
+        public RunnerResult<TResult> GetAvailable(Int32 Advance = MAXIMUM_ADVANCE, Int32 StartPosition = CURRENT_POSITION, String? TraceIdentifier = null);
     }
 }

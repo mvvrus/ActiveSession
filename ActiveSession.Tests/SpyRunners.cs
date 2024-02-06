@@ -14,7 +14,7 @@ namespace ActiveSession.Tests
             throw new NotImplementedException();
         }
 
-        public RunnerResult<TResult> GetAvailable(int StartPosition, Int32 Advance, String? TraceIdentifier)
+        public RunnerResult<TResult> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, String? TraceIdentifier=null)
         {
             throw new NotImplementedException();
         }
@@ -23,7 +23,11 @@ namespace ActiveSession.Tests
 
         public Exception? Exception => throw new NotImplementedException();
 
-        public ValueTask<RunnerResult<TResult>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken token = default)
+        public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
+            Int32 Advance = IRunner.DEFAULT_ADVANCE,
+            CancellationToken Token = default,
+            Int32 StartPosition = IRunner.CURRENT_POSITION,
+            String? TraceIdentifier = null)
         {
             throw new NotImplementedException();
         }
@@ -114,12 +118,12 @@ namespace ActiveSession.Tests
         {
         }
 
-        RunnerResult<String> IRunner<String>.GetAvailable(Int32 StartPosition, Int32 Advance, String? TraceIdentifier)
+        RunnerResult<String> IRunner<String>.GetAvailable(Int32 Advance, Int32 StartPosition, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }
 
-        ValueTask<RunnerResult<String>> IRunner<String>.GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier, CancellationToken Token)
+        ValueTask<RunnerResult<String>> IRunner<String>.GetRequiredAsync(Int32 Advance, CancellationToken Token, Int32 StartPosition, String? TraceIdentifier)
         {
             throw new NotImplementedException();
         }

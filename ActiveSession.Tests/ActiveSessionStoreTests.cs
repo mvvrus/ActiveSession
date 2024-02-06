@@ -1660,12 +1660,16 @@ namespace ActiveSession.Tests
                 base.Dispose(Disposing);
             }
 
-            public ValueTask<RunnerResult<Result1>> GetRequiredAsync(Int32 StartPosition, Int32 Advance, String? TraceIdentifier = null, CancellationToken Token = default)
+            public ValueTask<RunnerResult<Result1>> GetRequiredAsync(
+                Int32 Advance = IRunner.DEFAULT_ADVANCE,
+                CancellationToken Token = default,
+                Int32 StartPosition = IRunner.CURRENT_POSITION,
+                String? TraceIdentifier = null)
             {
                 throw new NotImplementedException();
             }
 
-            public RunnerResult<Result1> GetAvailable(Int32 StartPosition = -1, Int32 Advance = int.MaxValue, String? TraceIdentifier = null)
+            public RunnerResult<Result1> GetAvailable(Int32 Advance = int.MaxValue, Int32 StartPosition = -1, String? TraceIdentifier = null)
             {
                 throw new NotImplementedException();
             }

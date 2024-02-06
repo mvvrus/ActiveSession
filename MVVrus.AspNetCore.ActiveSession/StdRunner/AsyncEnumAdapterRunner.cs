@@ -96,7 +96,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public RunnerResult<IEnumerable<TItem>> GetAvailable(int StartPosition = -1, int Advance = int.MaxValue, string? TraceIdentifier = null)
+        public RunnerResult<IEnumerable<TItem>> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, string? TraceIdentifier = null)
         {
             CheckDisposed();
             if (Status == NotStarted || Status.IsFinal())
@@ -121,7 +121,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(int StartPosition, int Advance, string? TraceIdentifier = null, CancellationToken Token = default)
+        public ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(
+            Int32 Advance = IRunner.DEFAULT_ADVANCE,
+            CancellationToken Token = default,
+            Int32 StartPosition = IRunner.CURRENT_POSITION,
+            String? TraceIdentifier = null)
         {
             CheckDisposed();
             //Acquire pseudo-lock
