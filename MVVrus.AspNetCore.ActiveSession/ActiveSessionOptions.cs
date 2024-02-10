@@ -63,6 +63,16 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Timeout for processing HTTP request path string by a middleware Regex-based filter
         /// </value>
         public TimeSpan PathRegexTimeout { get; internal set; } = DEFAULT_PATHREGEXTIMEOUT;
+
+        /// <value>
+        /// Default number of items to fetch by GetRequireAsync method of runners, returning an IEnumerable{TItem} result
+        /// </value>
+        public Int32 DefaultEnumerableAdvance { get; set; } = ENUM_DEFAULT_ADVANCE;
+
+        /// <value>
+        /// Default size of a queue used by GetRequireAsync method of runners, returning an IEnumerable{TItem} result
+        /// </value>
+        public Int32 DefaultEnumerableQueueSize { get; set; } = ENUM_DEFAULT_QUEUE_SIZE;
     }
 }
 

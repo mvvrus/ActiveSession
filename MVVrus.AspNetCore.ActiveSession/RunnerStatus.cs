@@ -35,5 +35,16 @@
             return State>=RunnerStatus.Complete;
         }
 
+        /// <summary>
+        /// Returns true if the state, specified by <paramref name="State"/> is final, 
+        /// i.e. that a runner execution beyond that state will never proceed.
+        /// </summary>
+        /// <param name="State">The runner state to analyze/</param>
+        /// <returns>true if the <paramref name="State"/> specified is a final one (Complete, Failed or Aborted), false otherwise</returns>
+        public static Boolean IsRunning(this RunnerStatus State)
+        {
+            return State == RunnerStatus.Stalled || State == RunnerStatus.Progressed;
+        }
+
     }
 }

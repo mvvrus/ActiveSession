@@ -16,5 +16,7 @@
         public const String SESSION_TERMINATED = "Terminated";
         public const String SESSION_ACTIVE = "Active";
         public static readonly TimeSpan DEFAULT_PATHREGEXTIMEOUT = TimeSpan.FromSeconds(1);
+        public const Int32 ENUM_DEFAULT_ADVANCE = 20;
+        public const Int32 ENUM_DEFAULT_QUEUE_SIZE = 1000;
     }
 }

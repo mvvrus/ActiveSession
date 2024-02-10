@@ -4,47 +4,45 @@ using System.Runtime.CompilerServices;
 using static MVVrus.AspNetCore.ActiveSession.RunnerStatus;
 using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
     /// This adapter class makes possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
     /// </summary>
-    public class EnumAdapterRunner<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IDisposable, ICriticalNotifyCompletion
+    public class EnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>, ICriticalNotifyCompletion
     {
         //TODO Implement logging
         const int SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
-        readonly BlockingCollection<TItem> _queue;
-        readonly bool _passSourceOnership;
-        readonly int _defaultAdvance;
         IEnumerable<TItem>? _source;
+        Boolean _passSourceOwnership;
         Task? _enumTask;
-
-        //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
-        //The code using it just exits then the pseudo-lock cannot be acquired,
-        int _busy;
 
         /// <summary>
         /// TODO
         /// </summary>
         /// <param name="Source"></param>
         /// <param name="RunnerId"></param>
+        /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
-            this(Source,true,null,true,null,null,false,RunnerId, LoggerFactory) { }
+        public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options,
+            ILoggerFactory? LoggerFactory) :
+            this(Source,true,null,true,null,null,false,RunnerId, Options, LoggerFactory) { }
 
         /// <summary>
         /// TODO
         /// </summary>
         /// <param name="Params"></param>
         /// <param name="RunnerId"></param>
+        /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+        public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
-                Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, LoggerFactory) {}
+                Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) {}
 
         /// <summary>
         /// TODO
@@ -57,6 +55,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="EnumAheadLimit"></param>
         /// <param name="StartInConstructor"></param>
         /// <param name="RunnerId"></param>
+        /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
@@ -68,16 +67,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? EnumAheadLimit,
             Boolean StartInConstructor,
             RunnerId RunnerId,
+            IOptions<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory) :
             base(CompletionTokenSource, PassCtsOwnership, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>))))
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>))),
+                Options, DefaultAdvance, EnumAheadLimit)
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
+            _passSourceOwnership = PassSourceOnership;
 #if TRACE
 #endif
-            _queue = new BlockingCollection<TItem>(EnumAheadLimit??ENUM_AHEAD_DEFAULT_LIMIT); 
-            _passSourceOnership = PassSourceOnership;
-            _defaultAdvance = DefaultAdvance??ENUM_DEFAULT_ADVANCE; 
             //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate = RunAwaitContinuation;
@@ -86,158 +85,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
         }
 
-        /// <inheritdoc/>
-        public override RunnerStatus Status
-        {
-            //Contains (Int32)Status with one exception: contains (Int32)Stalled when Status may return (Int32)Progressed, see the getter code,
-            //It is Int32, not RunnerStatus because it to be accessed via Volatile/Interlocked methods
-            get
-            {
-                RunnerStatus status = base.Status;
-                if (status == Stalled && _queue.Count > 0) status = Progressed;
-#if TRACE
-#endif
-                return status;
-            }
-        }
-
-        /// <inheritdoc/>
-        public RunnerResult<IEnumerable<TItem>> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, string? TraceIdentifier=null)
-        {
-            CheckDisposed();
-#if TRACE
-#endif
-            RunnerResult<IEnumerable<TItem>> result = default;
-            if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
-            {
-                ThrowInvalidParallelism();
-            }
-            try
-            {
-#if TRACE
-#endif
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetAvailable), Logger);
-                List<TItem> result_list = new List<TItem>();
-                for (int i = 0; i < Advance && _queue.Count > 0 && base.Status == Stalled; i++)
-                {
-#if TRACE
-#endif
-                    TItem? item;
-                    if (_queue.TryTake(out item))
-                    {
-#if TRACE
-#endif
-                        result_list.Add(item ?? throw new NullReferenceException());
-                        Position += 1;
-                    }
-                }
-#if TRACE
-#endif
-                if (_queue.IsAddingCompleted && _queue.Count == 0)
-                {
-#if TRACE
-#endif
-                    SetStatus(Complete);
-                }
-                result = MakeResult(result_list);
-            }
-            finally
-            {
-#if TRACE
-#endif
-                Volatile.Write(ref _busy, 0);
-            }
-#if TRACE
-#endif
-            return result;
-        }
-
-        /// <inheritdoc/>
-        public async ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(
-            Int32 Advance = IRunner.DEFAULT_ADVANCE,
-            CancellationToken Token = default,
-            Int32 StartPosition = IRunner.CURRENT_POSITION,
-            String? TraceIdentifier = null)
-        {
-            CheckDisposed();
-#if TRACE
-#endif
-            RunnerResult<IEnumerable<TItem>> result = default;
-            if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
-            {
-                ThrowInvalidParallelism();
-            }
-            try
-            {
-#if TRACE
-#endif
-                Utilities.ProcessEnumParmeters(ref StartPosition, ref Advance, this, _defaultAdvance, nameof(GetRequiredAsync), Logger);
-#if TRACE
-#endif
-                StartSourceEnumerationIfNotStarted();
-                List<TItem> result_list = new List<TItem>();
-#if TRACE
-#endif
-                for (int i = 0; i < Advance && base.Status == Stalled && !Token.IsCancellationRequested; i++)
-                {
-                    TItem? item;
-                    if (_queue.TryTake(out item))
-                    {
-#if TRACE
-#endif
-                        result_list.Add(item ?? throw new NullReferenceException());
-                        Position += 1;
-                    }
-                    else if (_queue.IsAddingCompleted)
-                    {
-#if TRACE
-#endif
-                        SetStatus(Exception == null ? Complete : Failed);
-                    }
-                    else
-                    {
-#if TRACE
-#endif
-                        await this;
-                    }
-                }
-                result = MakeResult(result_list);
-            }
-            finally
-            {
-                Volatile.Write(ref _busy, 0);
-#if TRACE
-#endif
-            }
-#if TRACE
-#endif
-            return result;
-        }
-
-        /// <inheritdoc/>
-        public ValueTask DisposeAsync()
-        {
-            return SetDisposed() ? DisposeAsyncCore() : ValueTask.CompletedTask;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="Disposing"></param>
-        protected sealed override void Dispose(bool Disposing)
-        {
-            DisposeAsyncCore().AsTask().Wait();
-        }
-
         /// <summary>
         /// TODO
         /// </summary>
         /// <returns></returns>
-        protected async virtual ValueTask DisposeAsyncCore()
+        protected async override Task DisposeAsyncCore()
         {
             if (_enumTask != null) await _enumTask!;
-            _queue.Dispose();
-            base.Dispose(true);
+            await base.DisposeAsyncCore();
         }
 
 
@@ -245,25 +100,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
 #if TRACE
 #endif
-            IDisposable? base_disposable = _passSourceOnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
+            IDisposable? base_disposable = _passSourceOwnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
             base_disposable?.Dispose();
             //TODO
         }
 
-
-        void ThrowInvalidParallelism()
-        {
-            //TODO Log error
-            throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
-        }
-
-        RunnerResult<IEnumerable<TItem>> MakeResult(IEnumerable<TItem> ResultList)
-        {
-            //LogDebug
-            return new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status == Failed ? Exception : null);
-        }
-
-        void StartSourceEnumerationIfNotStarted()
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected override void StartSourceEnumerationIfNotStarted()
         {
             if (Status != NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE
@@ -273,23 +118,60 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="MaxAdvance"></param>
+        /// <param name="Result"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        /// <exception cref="NullReferenceException"></exception>
+        protected override async Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        {
+            for(int i = Result.Count; i < MaxAdvance && Status.IsRunning(); i++) {
+                Token.ThrowIfCancellationRequested();
+
+                TItem? item;
+                if(Queue.TryTake(out item)) {
+#if TRACE
+#endif
+                    Result.Add(item ?? throw new NullReferenceException());
+                }
+                else if(Queue.IsAddingCompleted) {
+#if TRACE
+#endif
+                    break;
+                }
+                else {
+#if TRACE
+#endif
+                    await this;
+                }
+            }
+
+        }
+
         void EnumerateSource()
         {
             CancellationToken completion_token = CompletionToken;
             if (_source == null) return;
             try
             {
-                foreach (TItem item in _source!)
-                {
+                foreach(TItem item in _source!) {
+#if TRACE
+#endif              
+                    if (completion_token.IsCancellationRequested) {
 #if TRACE
 #endif
-                    if (base.Status != Stalled)
-                    {  //TODO check for Status.IsFinal()
+                    break;
+                    }
+                    if (Status.IsFinal())
+                    {  
 #if TRACE
 #endif
                         break;
                     }
-                    if (_queue.TryAdd(item, -1, completion_token))
+                    if (Queue.TryAdd(item, -1, completion_token))
                     {
 #if TRACE
 #endif
@@ -310,7 +192,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
 #if TRACE
 #endif
-                _queue.CompleteAdding();
+                Queue.CompleteAdding();
                 ReleaseSource();
                 TryRunAwaitContinuation();
             }
@@ -331,7 +213,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        public bool IsCompleted { get { return _queue.Count > 0; } }
+        public bool IsCompleted { get { return Queue.Count > 0; } }
         /// <summary>
         /// TODO
         /// </summary>
@@ -372,7 +254,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 _complete_event.Set();
                 //TODO the reaction for an error
             }
-            if (_queue.IsAddingCompleted)
+            if (Queue.IsAddingCompleted)
             {
 #if TRACE
 #endif

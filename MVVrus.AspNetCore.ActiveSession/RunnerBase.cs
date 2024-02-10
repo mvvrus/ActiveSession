@@ -177,7 +177,16 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <exception cref="ObjectDisposedException"></exception>
         protected void CheckDisposed()
         {
-            if (_disposed!=0) throw new ObjectDisposedException(this.GetType().FullName!);
+            if (Disposed()) throw new ObjectDisposedException(this.GetType().FullName!);
+        }
+
+        /// <summary>
+        /// Allow descendant classes to check if disposing has been started
+        /// </summary>
+        /// <returns></returns>
+        protected Boolean Disposed()
+        {
+            return Volatile.Read(ref _disposed)!=0;
         }
 
     }

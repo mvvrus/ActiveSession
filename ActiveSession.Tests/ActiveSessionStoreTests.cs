@@ -1638,7 +1638,8 @@ namespace ActiveSession.Tests
 
         public class SpyRunnerX : RunnerBase, IRunner<Result1>
         {
-            public Boolean Disposed { get; private set; } = false;
+            public new Boolean Disposed { get=>base.Disposed();}
+
             public String Arg { get; private set; }
             Action? _disposeSpyAction;
             ManualResetEvent _evt = new ManualResetEvent(false);
@@ -1656,7 +1657,6 @@ namespace ActiveSession.Tests
                 DisposeTask.Start();
                 _disposeSpyAction?.Invoke();
                 _evt.Set();
-                Disposed=true;
                 base.Dispose(Disposing);
             }
 
