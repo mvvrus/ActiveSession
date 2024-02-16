@@ -8,8 +8,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// <typeparam name="TResult">Type specializing the runner's <see cref="IRunner{TResult}"/> interface</typeparam>
     /// <param name="Source">The base object implementing <see cref="IEnumerable{T}"/> for which the adapter to be created</param>
     /// <param name="DefaultAdvance">
-    /// Maximum number of elements acquired from the <paramref name="Source"/> 
-    /// to be returned to the caller in one call(defaults to 1)
+    /// Default maximum number of elements acquired from the <paramref name="Source"/> 
+    /// to be returned to the caller in one call(currently defaults to 20)
     /// </param>
     /// <param name="CompletionTokenSource">
     /// An external <see cref="CancellationTokenSource"/> instance used to obtain a completion token for the runner, 

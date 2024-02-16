@@ -42,7 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="QueueSize"></param>
         protected EnumerableRunnerBase(
             CancellationTokenSource? Cts, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
-            IOptions<ActiveSessionOptions> Options, Int32? DefaultAdvance = null, Int32? QueueSize = null
+            IOptionsSnapshot<ActiveSessionOptions> Options, Int32? DefaultAdvance = null, Int32? QueueSize = null
         ) : this(Cts, PassCtsOwnership, RunnerId, Logger, 
                 DefaultAdvance??Options.Value.DefaultEnumerableAdvance, QueueSize?? Options.Value.DefaultEnumerableQueueSize) {}
 

@@ -28,7 +28,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options,
+        public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory) :
             this(Source,true,null,true,null,null,false,RunnerId, Options, LoggerFactory) { }
 
@@ -40,7 +40,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
+        public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
                 Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) {}
 
@@ -67,7 +67,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? EnumAheadLimit,
             Boolean StartInConstructor,
             RunnerId RunnerId,
-            IOptions<ActiveSessionOptions> Options,
+            IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory) :
             base(CompletionTokenSource, PassCtsOwnership, RunnerId,
                 LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>))),

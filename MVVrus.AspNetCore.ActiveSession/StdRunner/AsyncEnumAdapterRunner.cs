@@ -30,7 +30,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> AsyncSource, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> AsyncSource, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
             this(AsyncSource, true, null, true, null, null, false, RunnerId, Options, LoggerFactory) { }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options"></param>
         /// <param name="LoggerFactory"></param>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptions<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory): 
+        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory): 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
                 Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) { }
 
@@ -54,7 +54,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? EnumAheadLimit,
             Boolean StartInConstructor,
             RunnerId RunnerId,
-            IOptions<ActiveSessionOptions> Options,
+            IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory):
             this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
                 StartInConstructor, RunnerId, Options,
@@ -82,7 +82,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Int32? EnumAheadLimit,
             Boolean StartInConstructor,
             RunnerId RunnerId,
-            IOptions<ActiveSessionOptions> Options,
+            IOptionsSnapshot<ActiveSessionOptions> Options,
             ILogger? Logger) : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger, Options, DefaultAdvance, EnumAheadLimit)
         {
             _asyncSource = AsyncSource;
