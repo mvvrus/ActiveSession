@@ -129,7 +129,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #if TRACE
 #endif
                 ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
-                StartSourceEnumerationIfNotStarted();
+                if(StartRunning()) StartSourceEnumerationIfNotStarted();
                 //Try a short, synchrous path first: see if available status and data allows to satisfy the request 
                 if (FetchAvailable(Advance, result)) {
                     //Short path successfull: set correct Status
@@ -255,7 +255,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         Boolean TryAcquirePseudoLock()
         {
-            return Interlocked.CompareExchange(ref _busy, 1, 0)!=0;
+            return Interlocked.CompareExchange(ref _busy, 1, 0)==0;
         }
 
         void ProcessEnumParmeters(
@@ -297,8 +297,8 @@ namespace MVVrus.AspNetCore.ActiveSession
                 }
                 else {
                     Result.AddRange(_orphannedFetch!.GetRange(0, MaxAdvance-fetched_count));
-                    fetched_count=MaxAdvance;
-                    _orphannedFetch.RemoveRange(0, MaxAdvance-fetched_count);
+                    _orphannedFetch.RemoveRange(0, MaxAdvance - fetched_count);
+                    fetched_count = MaxAdvance;
                 }
             }
             //Fetch from current queue
