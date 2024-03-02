@@ -154,6 +154,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
+        /// This virtual method will be called from <see cref="SetDisposed"/> method when the object 
+        /// realy transition ito the <see cref="Disposed"/> state
+        /// </summary>
+        protected virtual void PreDispose() {}
+
+        /// <summary>
         /// This method is a part of standard disposable pattern. It performs a real work disposing the instance
         /// </summary>
         /// <param name="Disposing">Flag that the metod is called from Dispose(). Not used in this base class/</param>
@@ -163,12 +169,22 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
+        /// Change state of the object to disposed.
         /// Sets the _disposed flag in a thread-safe manner
         /// </summary>
-        /// <returns></returns>
+        /// <returns>true if the state just has been changed to disposing/disposed</returns>
+        /// <remarks>
+        /// This method is called at the beginning of <see cref="IDisposable.Dispose"/> method. 
+        /// It also MUST be called at the beginning of <see cref="IAsyncDisposable.DisposeAsync"/> of the all descendent classes
+        /// that implements interface <see cref="IAsyncDisposable"/>
+        /// </remarks>
         protected Boolean SetDisposed()
         {
-            return Interlocked.Exchange(ref _disposed, 1)==0;
+            if(Interlocked.Exchange(ref _disposed, 1) == 0) {
+                PreDispose();
+                return true;
+            }
+            else return false;
         }
 
         /// <summary>

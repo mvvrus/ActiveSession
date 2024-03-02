@@ -230,8 +230,8 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        //Test group: GetAvailable - using data orphanned due to previous cancellation
-        public void GetAvailable_UseOrphannedData()
+        //Test group: GetAvailable - using data stashed after previous cancellation
+        public void GetAvailable_UseStashedData()
         {
             MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
             MockedLogger logger_mock = logger_factory_mock.MonitorLoggerCategory(nameof(EnumerableRunnerBaseTests));
@@ -247,15 +247,15 @@ namespace ActiveSession.Tests
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE * 2);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
-                    Assert.Throws<OperationCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
 
-                    //Test case: more than required orphanned data to satisfy request
+                    //Test case: more than required stashed data to satisfy request
                     (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
                     Assert.True(CheckRange(result, 0, PAGE_SIZE));
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(PAGE_SIZE, position);
                     Assert.Null(exception);
-                    //Test case: not enough orphanned data to satisfy request but with more data in the queue it's enough
+                    //Test case: not enough stashed data to satisfy request but with more data in the queue it's enough
                     runner.SimulateBackgroundFetch(PAGE_SIZE * 2);
                     (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE * 2);
                     Assert.True(CheckRange(result, PAGE_SIZE, PAGE_SIZE * 2));
@@ -549,7 +549,8 @@ namespace ActiveSession.Tests
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
-                    Assert.Throws<OperationCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    Assert.Equal(TaskStatus.Canceled, result_task.AsTask().Status);
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 }
@@ -581,8 +582,8 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        //Test group: GetRequiredAsync - using data orphanned due to previous cancellation
-        public void GetRequiredAsync_UseOrphannedData()
+        //Test group: GetRequiredAsync - using data stashed due to previous cancellation
+        public void GetRequiredAsync_UseStashedData()
         {
             MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
             MockedLogger logger_mock = logger_factory_mock.MonitorLoggerCategory(nameof(EnumerableRunnerBaseTests));
@@ -599,8 +600,8 @@ namespace ActiveSession.Tests
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE * 2);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
-                    Assert.Throws<OperationCanceledException>(() => result_task.GetAwaiter().GetResult());
-                    //Test case: more than required orphanned data to satisfy request
+                    Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    //Test case: more than required stashed data to satisfy request
                     result_task = runner.GetRequiredAsync(PAGE_SIZE).Preserve();
                     Assert.True(result_task.IsCompletedSuccessfully);
                     (result, status, position, exception) = result_task.Result;
@@ -608,7 +609,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(PAGE_SIZE, position);
                     Assert.Null(exception);
-                    //Test case: not enough orphanned data to satisfy request but with more data in the queue it's enough
+                    //Test case: not enough stashed data to satisfy request but with more data in the queue it's enough
                     runner.SimulateBackgroundFetch(PAGE_SIZE);
                     result_task = runner.GetRequiredAsync(PAGE_SIZE * 2).Preserve();
                     Assert.True(result_task.IsCompletedSuccessfully);
@@ -620,7 +621,7 @@ namespace ActiveSession.Tests
                 }
 
             }
-            //Test case: not enough orphanned data and data in the queue to satisfy request but more data is in the queue
+            //Test case: not enough stashed data and data in the queue to satisfy request but more data is in the queue
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 using(CancellationTokenSource cts = new CancellationTokenSource()) {
                     result_task = runner.GetRequiredAsync(2 * PAGE_SIZE, cts.Token).Preserve();
@@ -628,7 +629,7 @@ namespace ActiveSession.Tests
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
-                    Assert.Throws<OperationCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
                     runner.SimulateBackgroundFetch(PAGE_SIZE);
                     result_task = runner.GetRequiredAsync(PAGE_SIZE * 3).Preserve();
                     Assert.False(result_task.IsCompletedSuccessfully);
@@ -818,14 +819,16 @@ namespace ActiveSession.Tests
             Assert.Throws<ObjectDisposedException>(() => runner.GetRequiredAsync());
             //Test case: Abort after disposing does not throw
             runner.Abort();
-            //TODO Test case: Dispose while GetRequiredAsync is awaiting
-            //runner = new TestEnumerableRunner(logger_mock.Logger);
-            //ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
-            //result_task = runner.GetRequiredAsync();
-            //runner.Dispose();
-            //Task result_as_task = result_task.AsTask();
-            //Assert.True(result_as_task.Wait(TIMEOUT));
-            //Assert.True(result_as_task.IsCompletedSuccessfully);
+            //Test case: Dispose while GetRequiredAsync is awaiting
+            runner = new TestEnumerableRunner(logger_mock.Logger);
+            ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
+            result_task = runner.GetRequiredAsync();
+            runner.Dispose();
+            Task result_as_task = result_task.AsTask();
+            AggregateException e = Assert.Throws<AggregateException>(()=>result_as_task.Wait(TIMEOUT));
+            Assert.Single(e.InnerExceptions);
+            Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
+            Assert.Equal(nameof(EnumerableRunnerBase<int>), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
         [Fact]
@@ -860,6 +863,17 @@ namespace ActiveSession.Tests
             dispose_task = runner.DisposeAsync();
             Assert.True(dispose_task.IsCompletedSuccessfully);
             //TODO Test case: DisposeAsync while GetRequiredAsync is awaiting
+            runner = new TestEnumerableRunner(logger_mock.Logger);
+            ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
+            result_task = runner.GetRequiredAsync();
+            dispose_task = runner.DisposeAsync();
+            dispose_as_task = dispose_task.AsTask();
+            Assert.True(dispose_as_task.Wait(TIMEOUT));
+            Task result_as_task = result_task.AsTask();
+            AggregateException e = Assert.Throws<AggregateException>(() => result_as_task.Wait(TIMEOUT));
+            Assert.Single(e.InnerExceptions);
+            Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
+            Assert.Equal(nameof(EnumerableRunnerBase<int>), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
         ////
@@ -875,6 +889,7 @@ namespace ActiveSession.Tests
             ManualResetEventSlim _fetchEvent = new ManualResetEventSlim(true);
             Boolean _started = false;
             Boolean _disposing = false;
+            volatile Task? _fetchingTask = null;
 
             public Boolean Started { get => _started; }
             public Boolean DisposeCalled { get => _disposing; }
@@ -951,7 +966,7 @@ namespace ActiveSession.Tests
                 _result = Result;
                 _cancellationToken = Token;
                 _fetchException = null;
-                return Task.Run(FetchBody, Token);
+                return _fetchingTask=Task.Run(FetchBody, Token);
             }
 
             protected override void StartSourceEnumerationIfNotStarted()
@@ -962,6 +977,14 @@ namespace ActiveSession.Tests
             protected override async Task DisposeAsyncCore()
             {
                 _disposing = true;
+                _fetchException ??= new ObjectDisposedException("TestEnumerableRunner");
+                _resultEvent.Set();
+                Thread.Sleep(0);
+                if(_fetchingTask != null) 
+                    try {
+                        await _fetchingTask;
+                    }
+                    catch { }
                 _resultEvent.Dispose();
                 await base.DisposeAsyncCore();
                 if(DisposeTaskBody != null) await Task.Run(DisposeTaskBody!);
@@ -969,27 +992,32 @@ namespace ActiveSession.Tests
 
             void FetchBody()
             {
-                if(!_started) throw new InvalidOperationException("Background task was not started yet.");
-                while(!Status.IsFinal() && _result!=null && _result!.Count<_maxAdvance) {
-                    _resultEvent.Wait(_cancellationToken);
-                    Monitor.Enter(this);
-                    try {
-                        if(_fetchException != null) throw _fetchException!;
-                        Int32 item;
-                        while(_result!.Count < _maxAdvance && Queue.TryTake(out item)) _result!.Add(item);
-                        if(_result!.Count < _maxAdvance && !Queue.IsAddingCompleted) {
-                            _resultEvent.Reset();
+                try {
+                    if(!_started) throw new InvalidOperationException("Background task was not started yet.");
+                    while(!Status.IsFinal() && _result != null && _result!.Count < _maxAdvance) {
+                        _resultEvent.Wait(_cancellationToken);
+                        Monitor.Enter(this);
+                        try {
+                            if(_fetchException != null) throw _fetchException!;
+                            Int32 item;
+                            while(_result!.Count < _maxAdvance && Queue.TryTake(out item)) _result!.Add(item);
+                            if(_result!.Count < _maxAdvance && !Queue.IsAddingCompleted) {
+                                _resultEvent.Reset();
+                            }
+                            else {
+                                _result = null;
+                            }
                         }
-                        else {
-                            _result = null;
+                        finally {
+                            _fetchEvent.Set();
+                            Monitor.Exit(this);
                         }
                     }
-                    finally {
-                        _fetchEvent.Set();
-                        Monitor.Exit(this);
-                    }
+
                 }
-            }
+                finally {
+                    _fetchingTask = null;
+                }            }
 
         }
     }

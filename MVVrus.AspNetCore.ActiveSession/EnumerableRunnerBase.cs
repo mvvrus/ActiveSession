@@ -20,7 +20,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         readonly BlockingCollection<TItem> _queue;
         readonly int _defaultAdvance;
         Task? _disposeTask = null;
-        List<TItem>? _orphannedFetch=null;
+        List<TItem>? _stashedFetch=null;
+        volatile TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? _waitingTaskSource = null;
         //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
         //The code using it just exits then the pseudo-lock cannot be acquired,
         int _busy;
@@ -58,7 +59,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected EnumerableRunnerBase(
             CancellationTokenSource? Cts, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
             Int32 DefaultAdvance, Int32 QueueSize
-        ) : base(Cts, PassCtsOwnership, RunnerId, Logger) 
+        ) : base(Cts, PassCtsOwnership, RunnerId, Logger)
         {
             _queue = new BlockingCollection<TItem>(QueueSize);
             _defaultAdvance = DefaultAdvance;
@@ -80,7 +81,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             get
             {
                 RunnerStatus status = base.Status;
-                if (status==Stalled && (_queue.Count>0 || _orphannedFetch!=null)) status=Progressed;
+                if (!Disposed() && status==Stalled && (_queue.Count>0 || _stashedFetch!=null)) status=Progressed;
 #if TRACE
 #endif
                 return status;
@@ -139,20 +140,22 @@ namespace MVVrus.AspNetCore.ActiveSession
                     return new ValueTask<RunnerResult<IEnumerable<TItem>>>(runner_result);
                 }
                 else {
-                    //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work needed
+                    //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work is needed
                     Task<RunnerResult<IEnumerable<TItem>>> result_task;
-                    if (Token.IsCancellationRequested) {
-#if TRACE
-#endif
-                        result_task=Task.FromCanceled<RunnerResult<IEnumerable<TItem>>>(Token);
-                    }
-                    else {
-#if TRACE
-#endif
-                        result_task=FetchRequiredAsync(Advance, result, Token).
-                            ContinueWith(FinishAndMakeResultTaskBody, new Context(Advance, result));
-                    }
-                    ;
+                    _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
+                    result_task = _waitingTaskSource.Task;
+                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
+                        FinishAndMakeResultBody, 
+                        new Context(result), 
+                        TaskContinuationOptions.OnlyOnRanToCompletion);
+                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
+                        CancelResultBody,
+                        new Context(result),
+                        TaskContinuationOptions.OnlyOnCanceled);
+                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
+                        FailResultBody,
+                        new Context(result),
+                        TaskContinuationOptions.OnlyOnFaulted);
 #if TRACE
 #endif
                     return new ValueTask<RunnerResult<IEnumerable<TItem>>>(result_task);
@@ -163,6 +166,18 @@ namespace MVVrus.AspNetCore.ActiveSession
 #endif
                 ReleasePseudoLock();
                 throw;
+            }
+        }
+
+        ///<inheritdoc/>
+        protected override void PreDispose()
+        {
+            base.PreDispose();
+            TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waiting_task_source = _waitingTaskSource;
+            if(waiting_task_source!=null) {
+                //TODO LogTrace
+                waiting_task_source!.TrySetException(new ObjectDisposedException(nameof(EnumerableRunnerBase<TItem>)));
+                ReleasePseudoLock();
             }
         }
 
@@ -210,7 +225,55 @@ namespace MVVrus.AspNetCore.ActiveSession
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
+        void FailResultBody(Task FetchTask, Object? State)
+        {
+            Context state = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
+            //TODO LogTrace
+            StashOrphannedData(state.Accumulator);
+            _waitingTaskSource?.TrySetException(FetchTask.Exception!.InnerExceptions);
+            _waitingTaskSource = null;
+            ReleasePseudoLock();
+        }
+
+        void CancelResultBody(Task _, Object? State)
+        {
+            Context state = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
+            //TODO LogTrace
+            StashOrphannedData(state.Accumulator);
+            _waitingTaskSource?.TrySetCanceled();
+            _waitingTaskSource = null;
+            ReleasePseudoLock();
+        }
+
+        void FinishAndMakeResultBody(Task FetchTask, Object? State)
+        {
+            //We come here only if FetchTask is completed successfully
+            Context state = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
+            //TODO LogTrace
+            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(state.Accumulator);
+            //TODO LogDebug result
+            _waitingTaskSource?.TrySetResult(result);
+            _waitingTaskSource = null;
+            ReleasePseudoLock();
+            //TODO LogTrace
+        }
+
+        void StashOrphannedData(List<TItem> Data)
+        {
+            //TODO LogTrace
+            //TODO Where to check: Debug.Assert(_stashedFetch==null);
+            _stashedFetch = Data;
+        }
+
         RunnerResult<IEnumerable<TItem>> FinishWithResult(List<TItem> ResultList)
+        {
+            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(ResultList);
+            ReleasePseudoLock();
+            //TODO LogDebug
+            return result;
+        }
+
+        RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList)
         {
             Position=Position+ResultList.Count;
             if (_queue.Count==0 && _queue.IsAddingCompleted) {
@@ -220,32 +283,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
             RunnerResult<IEnumerable<TItem>> result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
             //TODO LogTrqce
-            ReleasePseudoLock();
-            //TODO LogDebug
             return result;
-        }
-
-        RunnerResult<IEnumerable<TItem>> FinishAndMakeResultTaskBody(Task FetchTask, Object? State)
-        {
-            Context state = (Context)(State??throw new ArgumentNullException(nameof(State)));
-            //TODO LogTrace
-            //TODO Where to check: Debug.Assert(FetchTask.IsCompleted);
-            if (!FetchTask.IsCompletedSuccessfully) {
-                //Stash fetched data of this unsuccessfull fetch
-                //TODO LogTrace
-                //TODO Where to check: Debug.Assert(_orphannedFetch==null);
-                _orphannedFetch=state.Result;
-            }
-            try {
-                FetchTask.GetAwaiter().GetResult(); //No wait because FetchTask is completed already but may throw
-            }
-            catch (Exception) {
-                //TODO LogTrace
-                ReleasePseudoLock();
-                throw;
-            }
-            //We come here only if FetchTask is completed successfully
-            return FinishWithResult(state.Result);
         }
 
         void ReleasePseudoLock()
@@ -287,17 +325,17 @@ namespace MVVrus.AspNetCore.ActiveSession
 
             if (Status.IsFinal())  return true;
             int fetched_count = Result.Count;
-            if (_orphannedFetch!=null) {
+            if (_stashedFetch!=null) {
                 //Fetch from orphanned results of previosly cancelled or failed  GetRequiredAsync
-                int orphanned_count = _orphannedFetch.Count;
+                int orphanned_count = _stashedFetch.Count;
                 if (orphanned_count<=MaxAdvance-fetched_count) {
-                    Result.AddRange(_orphannedFetch);
+                    Result.AddRange(_stashedFetch);
                     fetched_count+=orphanned_count;
-                    _orphannedFetch=null;
+                    _stashedFetch=null;
                 }
                 else {
-                    Result.AddRange(_orphannedFetch!.GetRange(0, MaxAdvance-fetched_count));
-                    _orphannedFetch.RemoveRange(0, MaxAdvance - fetched_count);
+                    Result.AddRange(_stashedFetch!.GetRange(0, MaxAdvance-fetched_count));
+                    _stashedFetch.RemoveRange(0, MaxAdvance - fetched_count);
                     fetched_count = MaxAdvance;
                 }
             }
@@ -309,13 +347,11 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         class Context
         {
-            public int MaxCount { get; init; }
-            public List<TItem> Result { get; init; }
+            public List<TItem> Accumulator { get; init; }
 
-            public Context(Int32 MaxCount, List<TItem> Result)
+            public Context(List<TItem> Accumulator)
             {
-                this.MaxCount=MaxCount;
-                this.Result=Result;
+                this.Accumulator=Accumulator;
             }
         }
 
