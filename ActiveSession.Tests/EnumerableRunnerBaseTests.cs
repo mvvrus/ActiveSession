@@ -862,7 +862,7 @@ namespace ActiveSession.Tests
             //Test case: second DisposeAsyncCall after disposing
             dispose_task = runner.DisposeAsync();
             Assert.True(dispose_task.IsCompletedSuccessfully);
-            //TODO Test case: DisposeAsync while GetRequiredAsync is awaiting
+            //Test case: DisposeAsync while GetRequiredAsync is awaiting
             runner = new TestEnumerableRunner(logger_mock.Logger);
             ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
             result_task = runner.GetRequiredAsync();
@@ -903,7 +903,7 @@ namespace ActiveSession.Tests
             public TestEnumerableRunner(ILogger? Logger = null,Boolean StartInCostructor=true) 
                 : base(null, true, default(RunnerId), Logger, PAGE_SIZE, 1024) 
             {
-                if(StartInCostructor && StartRunning()) StartSourceEnumerationIfNotStarted();
+                if(StartInCostructor && StartRunning()) StartBackgroundProcessing();
             }
 
             public void SimulateBackgroundFetchWithWait(Int32 Advance, Boolean IsTheLast = false, Exception? BackgroundException = null)
@@ -969,7 +969,7 @@ namespace ActiveSession.Tests
                 return _fetchingTask=Task.Run(FetchBody, Token);
             }
 
-            protected override void StartSourceEnumerationIfNotStarted()
+            protected override void StartBackgroundProcessing()
             {
                 _started=true;
             }
@@ -1013,12 +1013,11 @@ namespace ActiveSession.Tests
                             Monitor.Exit(this);
                         }
                     }
-
                 }
                 finally {
                     _fetchingTask = null;
-                }            }
-
+                }
+            }
         }
     }
 }

@@ -130,7 +130,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #if TRACE
 #endif
                 ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
-                if(StartRunning()) StartSourceEnumerationIfNotStarted();
+                if(StartRunning()) StartBackgroundProcessing();
                 //Try a short, synchrous path first: see if available status and data allows to satisfy the request 
                 if (FetchAvailable(Advance, result)) {
                     //Short path successfull: set correct Status
@@ -204,7 +204,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
-        protected abstract void StartSourceEnumerationIfNotStarted();
+        protected abstract void StartBackgroundProcessing();
 
         /// <summary>
         /// TODO

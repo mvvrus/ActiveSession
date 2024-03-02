@@ -80,7 +80,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate = RunAwaitContinuation;
-            if (StartInConstructor) StartSourceEnumerationIfNotStarted();
+            if (StartInConstructor) StartBackgroundProcessing();
 #if TRACE
 #endif
         }
@@ -108,7 +108,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void StartSourceEnumerationIfNotStarted()
+        protected override void StartBackgroundProcessing()
         {
             if (Status != NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE

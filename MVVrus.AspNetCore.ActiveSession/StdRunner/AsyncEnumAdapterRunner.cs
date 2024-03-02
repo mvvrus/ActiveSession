@@ -89,7 +89,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _asyncEnumerableOwned=PassSourceOnership;
-             if(StartInConstructor) StartSourceEnumerationIfNotStarted();
+             if(StartInConstructor) StartBackgroundProcessing();
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void StartSourceEnumerationIfNotStarted()
+        protected override void StartBackgroundProcessing()
         {
             if (StartRunning()) {
                 //Start _asyncEnumerable enumeration task chain
