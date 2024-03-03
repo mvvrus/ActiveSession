@@ -120,7 +120,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void StartBackgroundProcessing()
+        protected internal override void StartBackgroundProcessing()
         {
             if (StartRunning()) {
                 //Start _asyncEnumerable enumeration task chain
@@ -196,7 +196,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Token"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        protected override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
         {
             _resultContext = new Context(MaxAdvance, Result, Token);
             return _resultContext.ResultTaskSource.Task;

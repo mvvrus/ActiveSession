@@ -29,7 +29,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// TODO
         /// </value>
-        protected BlockingCollection<TItem> Queue { get => _queue; }
+        protected internal BlockingCollection<TItem> Queue { get => _queue; }
 
         /// <summary>
         /// TODO
@@ -204,7 +204,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
-        protected abstract void StartBackgroundProcessing();
+        protected internal abstract void StartBackgroundProcessing();
 
         /// <summary>
         /// TODO
@@ -213,7 +213,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Result"></param>
         /// <param name="Token"></param>
         /// <returns></returns>
-        protected abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
+        protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
 
         /// <summary>
         /// TODO

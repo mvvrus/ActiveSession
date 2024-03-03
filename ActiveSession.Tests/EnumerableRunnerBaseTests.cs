@@ -960,7 +960,7 @@ namespace ActiveSession.Tests
                 }
             }
 
-            protected override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
+            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
             {
                 _maxAdvance = MaxAdvance;
                 _result = Result;
@@ -969,7 +969,7 @@ namespace ActiveSession.Tests
                 return _fetchingTask=Task.Run(FetchBody, Token);
             }
 
-            protected override void StartBackgroundProcessing()
+            protected internal override void StartBackgroundProcessing()
             {
                 _started=true;
             }
@@ -979,7 +979,8 @@ namespace ActiveSession.Tests
                 _disposing = true;
                 _fetchException ??= new ObjectDisposedException("TestEnumerableRunner");
                 _resultEvent.Set();
-                Thread.Sleep(0);
+                //Thread.Sleep(0);
+                Task.Yield().GetAwaiter().GetResult();
                 if(_fetchingTask != null) 
                     try {
                         await _fetchingTask;

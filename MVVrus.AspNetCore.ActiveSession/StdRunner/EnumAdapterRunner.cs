@@ -14,11 +14,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     public class EnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>, ICriticalNotifyCompletion
     {
         //TODO Implement logging
-        const int SIGNAL_COMPLETION_DELAY_MSEC = 300;
 
         IEnumerable<TItem>? _source;
         Boolean _passSourceOwnership;
         Task? _enumTask;
+
+        internal Task? EnumTask { get => _enumTask; }
 
         /// <summary>
         /// TODO
@@ -108,12 +109,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void StartBackgroundProcessing()
+        protected internal override void StartBackgroundProcessing()
         {
-            if (Status != NotStarted) return; //TODO use no synchronization for preliminary check
 #if TRACE
 #endif
-            if (StartRunning()) _enumTask = Task.Run(EnumerateSource);
+            _enumTask = Task.Run(EnumerateSource);
 #if TRACE
 #endif
         }
@@ -126,7 +126,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Token"></param>
         /// <returns></returns>
         /// <exception cref="NullReferenceException"></exception>
-        protected override async Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        protected internal override async Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
         {
             for(int i = Result.Count; i < MaxAdvance && Status.IsRunning(); i++) {
                 Token.ThrowIfCancellationRequested();
@@ -163,7 +163,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     if (completion_token.IsCancellationRequested) {
 #if TRACE
 #endif
-                    break;
+                        break;
                     }
                     if (Status.IsFinal())
                     {  
@@ -177,8 +177,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
                         TryRunAwaitContinuation();
                     }
-                    else if (completion_token.IsCancellationRequested)
+                    else if (completion_token.IsCancellationRequested) { 
+                        //TODO Are we really so need to avoid one more enumeration
+#if TRACE
+#endif
                         break;
+                    }
                 }
 #if TRACE
 #endif
