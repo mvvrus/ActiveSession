@@ -130,7 +130,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #if TRACE
 #endif
                 ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
-                if(StartRunning()) StartBackgroundProcessing();
+                StartRunning();
                 //Try a short, synchrous path first: see if available status and data allows to satisfy the request 
                 if (FetchAvailable(Advance, result)) {
                     //Short path successfull: set correct Status
@@ -214,6 +214,20 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Token"></param>
         /// <returns></returns>
         protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="NewStatus"></param>
+        /// <returns></returns>
+        protected internal override Boolean StartRunning(RunnerStatus NewStatus = RunnerStatus.Stalled)
+        {
+            if(base.StartRunning(NewStatus)) {
+                StartBackgroundProcessing();
+                return true;
+            }
+            else return false;
+        }
 
         /// <summary>
         /// TODO
@@ -319,7 +333,8 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         }
 
-        Boolean FetchAvailable(Int32 MaxAdvance, List<TItem> Result)//Returns true if all available results fetched
+        internal Boolean FetchAvailable(Int32 MaxAdvance, List<TItem> Result)
+        //Returns true if all available results fetched, internal access is added for testing purposes
         {
             TItem? item;
 

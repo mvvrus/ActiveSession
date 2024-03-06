@@ -92,7 +92,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="Status">The target <see cref="Status"/> property value</param>
         /// <returns> true if the <see cref="Status"/> property</returns> value was really changed, false otherwise.
-        protected virtual Boolean SetStatus(RunnerStatus Status)
+        protected internal virtual Boolean SetStatus(RunnerStatus Status)
         {
             if (Status==RunnerStatus.NotStarted) {
                 #if TRACE
@@ -130,12 +130,19 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected virtual void DoAbort() {}
 
         /// <summary>
-        /// Set the runner's <see cref="Status"/> property to a running status <paramref name="NewStatus"/> in a thread-safe manner
-        /// only if the status was <see cref="RunnerStatus.NotStarted"/>
+        /// Begin (and possibly finish immediatly) background execution of the runner if it is not started, and set Sta
+        /// Set the runner's <see cref="Status"/> property accordingly.
         /// </summary>
         /// <param name="NewStatus">The new <see cref="Status"/> property value to be set.</param>
-        /// <returns>true if <see cref="Status"/> has been set, otherwise - false </returns>
-        protected Boolean StartRunning(RunnerStatus NewStatus=RunnerStatus.Stalled)
+        /// <returns>true the runner status has been really changed, otherwise - false </returns>
+        /// <remarks>
+        /// In this base class the method just sets the runner's <see cref="Status"/> property 
+        /// to a running status <paramref name="NewStatus"/> in a thread-safe manner
+        /// (only if the status was <see cref="RunnerStatus.NotStarted"/>).
+        /// Decendent classes may do an additional job to start backgrund processing but only if the base method returns true.
+        /// Otherwise they must just return false.
+        /// </remarks>
+        protected internal virtual Boolean StartRunning(RunnerStatus NewStatus=RunnerStatus.Stalled)
         {
             CheckDisposed();
             RunnerStatus prev_status =

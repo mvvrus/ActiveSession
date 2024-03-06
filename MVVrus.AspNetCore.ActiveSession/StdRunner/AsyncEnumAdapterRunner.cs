@@ -89,7 +89,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _asyncEnumerableOwned=PassSourceOnership;
-             if(StartInConstructor) StartBackgroundProcessing();
+             if(StartInConstructor) this.StartRunning();
         }
 
         /// <summary>

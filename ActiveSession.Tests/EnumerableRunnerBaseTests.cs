@@ -903,7 +903,7 @@ namespace ActiveSession.Tests
             public TestEnumerableRunner(ILogger? Logger = null,Boolean StartInCostructor=true) 
                 : base(null, true, default(RunnerId), Logger, PAGE_SIZE, 1024) 
             {
-                if(StartInCostructor && StartRunning()) StartBackgroundProcessing();
+                if(StartInCostructor) this.StartRunning();
             }
 
             public void SimulateBackgroundFetchWithWait(Int32 Advance, Boolean IsTheLast = false, Exception? BackgroundException = null)
