@@ -193,7 +193,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <exception cref="ObjectDisposedException"></exception>
         protected void CheckDisposed()
         {
-            if (Disposed()) throw new ObjectDisposedException(this.GetType().FullName!);
+            if (Disposed()) throw new ObjectDisposedException(DisposedObjectName());
+        }
+
+        /// <summary>
+        /// Returns object name for an <see cref="ObjectDisposedException"/> constructor
+        /// </summary>
+        /// <returns>Return string with the object class name</returns>
+        /// <remarks>This method is intended to make exception message to be more uniform</remarks>
+        protected String DisposedObjectName()
+        {
+            return this.GetType().Name;
         }
 
         /// <summary>

@@ -176,7 +176,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waiting_task_source = _waitingTaskSource;
             if(waiting_task_source!=null) {
                 //TODO LogTrace
-                waiting_task_source!.TrySetException(new ObjectDisposedException(nameof(EnumerableRunnerBase<TItem>)));
+                waiting_task_source!.TrySetException(new ObjectDisposedException(DisposedObjectName()));
                 ReleasePseudoLock();
             }
         }

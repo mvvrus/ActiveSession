@@ -828,7 +828,7 @@ namespace ActiveSession.Tests
             AggregateException e = Assert.Throws<AggregateException>(()=>result_as_task.Wait(TIMEOUT));
             Assert.Single(e.InnerExceptions);
             Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(EnumerableRunnerBase<int>), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
+            Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
         [Fact]
@@ -873,7 +873,7 @@ namespace ActiveSession.Tests
             AggregateException e = Assert.Throws<AggregateException>(() => result_as_task.Wait(TIMEOUT));
             Assert.Single(e.InnerExceptions);
             Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(EnumerableRunnerBase<int>), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
+            Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
         ////
@@ -977,7 +977,7 @@ namespace ActiveSession.Tests
             protected override async Task DisposeAsyncCore()
             {
                 _disposing = true;
-                _fetchException ??= new ObjectDisposedException("TestEnumerableRunner");
+                _fetchException ??= new ObjectDisposedException("TestEnumerableRunner@mangled");
                 _resultEvent.Set();
                 //Thread.Sleep(0);
                 Task.Yield().GetAwaiter().GetResult();

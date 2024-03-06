@@ -191,7 +191,9 @@ namespace ActiveSession.Tests
             //Test case: SetDisposed on disposed runner
             Assert.False(runner.SetDisposedPub());
             //Test case: CheckDisposed on disposed runner
-            Assert.Throws<ObjectDisposedException>(() => runner.CheckDisposedPub());
+            ObjectDisposedException e = Assert.Throws<ObjectDisposedException>(() => runner.CheckDisposedPub());
+            Assert.Equal(typeof(RunnerBaseImpl).Name, e.ObjectName);
+
         }
 
 
