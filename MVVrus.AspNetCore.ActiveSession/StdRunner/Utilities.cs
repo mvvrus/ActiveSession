@@ -27,14 +27,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
         }
 
-        static Regex _genericNamePattern=new Regex(@"^(.+)`\d+");
+        static Regex _genericNamePattern=new Regex(@"^(.+)`\d+.*");
 
         public static String MakeClassCategoryName(Type Class)
         {
             String full_name = Class.FullName!;
             MatchCollection matches = _genericNamePattern.Matches(full_name);
-            return matches.Count>0?matches[1].Value:full_name;
-            throw new NotImplementedException();
+            return matches.Count>0&& matches[0].Groups.Count>1 ? matches[0].Groups[1].Value:full_name;
         }
     }
 }
