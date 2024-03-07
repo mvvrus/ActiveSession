@@ -18,8 +18,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         IEnumerable<TItem>? _source;
         Boolean _passSourceOwnership;
         Task? _enumTask;
+        readonly Action _tryRunAwaitContinuationDelegate;
 
         internal Task? EnumTask { get => _enumTask; }
+        Task? _fetchTask;
 
         /// <summary>
         /// TODO
@@ -81,7 +83,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             //TODO LogDebug parameters passed
 
             _runAwaitContinuationDelegate = RunAwaitContinuation;
-            if (StartInConstructor) StartBackgroundProcessing();
+            _tryRunAwaitContinuationDelegate = TryRunAwaitContinuation;
+            if (StartInConstructor) this.StartRunning();
 #if TRACE
 #endif
         }
@@ -92,8 +95,32 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <returns></returns>
         protected async override Task DisposeAsyncCore()
         {
-            if (_enumTask != null) await _enumTask!;
+            if(_fetchTask != null) try {
+                    await _fetchTask!;
+                }
+                catch(Exception e) {
+                    if(!(e is TaskCanceledException) && !(e is ObjectDisposedException)) {
+                        //TODO Log exception
+                    }
+                }
+            if(_enumTask != null) try {
+                    await _enumTask!;
+                }
+                catch(Exception e) {
+                    if(!(e is TaskCanceledException) && !(e is ObjectDisposedException)) {
+                        //TODO Log exception
+                    }
+                }
             await base.DisposeAsyncCore();
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected override void PreDispose()
+        {
+            base.PreDispose();
+            TryRunAwaitContinuation();
         }
 
 
@@ -126,29 +153,47 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Token"></param>
         /// <returns></returns>
         /// <exception cref="NullReferenceException"></exception>
-        protected internal override async Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
         {
-            for(int i = Result.Count; i < MaxAdvance && Status.IsRunning(); i++) {
-                Token.ThrowIfCancellationRequested();
+            _fetchTask=FetchRequiredAsyncImpl(MaxAdvance,Result,Token);
+            return _fetchTask;
+        }
 
-                TItem? item;
-                if(Queue.TryTake(out item)) {
+        async Task FetchRequiredAsyncImpl(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        {
+            using(Token.Register(_tryRunAwaitContinuationDelegate)) {
+                while(!Disposed() && Result.Count < MaxAdvance && Status.IsRunning() ){
+                    Token.ThrowIfCancellationRequested();
+
+                    TItem? item;
+                    if(Queue.TryTake(out item)) {
 #if TRACE
 #endif
-                    Result.Add(item ?? throw new NullReferenceException());
-                }
-                else if(Queue.IsAddingCompleted) {
+                        Result.Add(item!);
+                    }
+                    else if(Queue.IsAddingCompleted) {
 #if TRACE
 #endif
-                    break;
-                }
-                else {
+                        break;
+                    }
+                    else {
 #if TRACE
 #endif
-                    await this;
+                        await this;
+                        CheckDisposed();
+                    }
                 }
+
             }
+        }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected override void DoAbort()
+        {
+            TryRunAwaitContinuation();
+            base.DoAbort();
         }
 
         void EnumerateSource()
@@ -160,13 +205,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 foreach(TItem item in _source!) {
 #if TRACE
 #endif              
-                    if (completion_token.IsCancellationRequested) {
-#if TRACE
-#endif
-                        break;
-                    }
-                    if (Status.IsFinal())
-                    {  
+                    if (completion_token.IsCancellationRequested || Status.IsFinal()) {
+                        //No need to proceed.
 #if TRACE
 #endif
                         break;
@@ -178,7 +218,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         TryRunAwaitContinuation();
                     }
                     else if (completion_token.IsCancellationRequested) { 
-                        //TODO Are we really so need to avoid one more enumeration
+                        //Apparently somewhat excessive check. It's intended to sped up a cancellation
+                        //by avoiding one more (possibly long) enumeration at the start of the cycle
 #if TRACE
 #endif
                         break;
@@ -257,6 +298,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
                 _complete_event.Set();
                 //TODO the reaction for an error
+                throw;
             }
             if (Queue.IsAddingCompleted)
             {

@@ -210,7 +210,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <remarks>This method is intended to make exception message to be more uniform</remarks>
         protected String DisposedObjectName()
         {
-            return this.GetType().Name;
+            String name= GetType().Name;
+            int pos = name.IndexOf('`');
+            return pos>=0?name.Substring(0,pos):name;
         }
 
         /// <summary>
