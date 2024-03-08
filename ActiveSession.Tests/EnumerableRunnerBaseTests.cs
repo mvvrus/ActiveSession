@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using MVVrus.AspNetCore.ActiveSession.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -876,6 +877,38 @@ namespace ActiveSession.Tests
             Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
+        [Fact]
+        //Test group: check parameter passing
+        public void Constructor_Params()
+        {
+            IEnumerable<Int32> result;
+            Int32 qsize;
+            Int32 advance;
+
+            //Test case: default parameter values and default options
+            using(TestEnumerableParamRunner runner = new TestEnumerableParamRunner(new ActiveSessionOptions(), null, null)) {
+                Assert.Equal(ActiveSessionConstants.ENUM_DEFAULT_QUEUE_SIZE, runner.FillQueueToCapacity());
+                (result, _, _, _) = runner.GetRequiredAsync().Result;
+                Assert.Equal(ActiveSessionConstants.ENUM_DEFAULT_ADVANCE, result.Count());
+            }
+            //Test case: default parameter values and specified options
+            qsize = 2048;
+            advance = 10;
+            using(TestEnumerableParamRunner runner = new TestEnumerableParamRunner(
+                    new ActiveSessionOptions { DefaultEnumerableQueueSize=qsize, DefaultEnumerableAdvance=advance }, null, null)) {
+                Assert.Equal(qsize, runner.FillQueueToCapacity());
+                (result, _, _, _) = runner.GetRequiredAsync().Result;
+                Assert.Equal(advance, result.Count());
+            }
+            //Test case: specified parameter values and default options
+            using(TestEnumerableParamRunner runner = new TestEnumerableParamRunner(new ActiveSessionOptions(), advance, qsize)) {
+                Assert.Equal(qsize, runner.FillQueueToCapacity());
+                (result, _, _, _) = runner.GetRequiredAsync().Result;
+                Assert.Equal(advance, result.Count());
+            }
+        }
+
+
         ////
         // Auxilary classes
         ////
@@ -1018,6 +1051,27 @@ namespace ActiveSession.Tests
                 finally {
                     _fetchingTask = null;
                 }
+            }
+        }
+
+        class TestEnumerableParamRunner : EnumerableRunnerBase<int>
+        {
+            public TestEnumerableParamRunner(ActiveSessionOptions Options, Int32? DefaultAdvance, Int32? QueueSize) 
+                : base(null, true, default, null, new ActiveSessionOptionsSnapshot(Options), DefaultAdvance, QueueSize) { }
+
+            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected internal override void StartBackgroundProcessing() { }
+
+            public Int32 FillQueueToCapacity()
+            {
+                StartRunning(RunnerStatus.Progressed);
+                Int32 count = 0;
+                while(Queue.TryAdd(count, 100)) count++;
+                return count;
             }
         }
     }
