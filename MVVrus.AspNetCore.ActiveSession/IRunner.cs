@@ -106,8 +106,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         /// </param>
         /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
+        /// <returns>
         /// An <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner 
         /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any
+        /// </returns>
         public RunnerResult<TResult> GetAvailable(Int32 Advance = MAXIMUM_ADVANCE, Int32 StartPosition = CURRENT_POSITION, String? TraceIdentifier = null);
     }
 }

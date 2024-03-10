@@ -87,7 +87,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
 
-        /// <inheritdoc/>
+        // <inheritdoc/>: Invalid cref value "!:TResult" found in triple-slash-comments for GetAvailable 
+        /// <summary>
+        ///  TODO
+        /// </summary>
+        /// <param name="Advance"></param>
+        /// <param name="StartPosition"></param>
+        /// <param name="TraceIdentifier"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public RunnerResult<TResult> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, String? TraceIdentifier = null)
         {
             lock (_lock) {
@@ -112,7 +120,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             }
         }
 
-        /// <inheritdoc/>
+        // <inheritdoc/>: Invalid cref value "!:TResult" found in triple-slash-comments for GetRequiredAsync
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Advance"></param>
+        /// <param name="Token"></param>
+        /// <param name="StartPosition"></param>
+        /// <param name="TraceIdentifier"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
             Int32 Advance = IRunner.DEFAULT_ADVANCE,
             CancellationToken Token = default,
