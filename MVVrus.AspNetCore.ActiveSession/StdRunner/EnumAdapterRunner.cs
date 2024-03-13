@@ -136,13 +136,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected internal override void StartBackgroundProcessing()
+        protected internal override Task StartBackgroundProcessingAsync()
         {
 #if TRACE
 #endif
             _enumTask = Task.Run(EnumerateSource);
 #if TRACE
 #endif
+            return Task.CompletedTask;
         }
 
         /// <summary>

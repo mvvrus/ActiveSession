@@ -1002,9 +1002,10 @@ namespace ActiveSession.Tests
                 return _fetchingTask=Task.Run(FetchBody, Token);
             }
 
-            protected internal override void StartBackgroundProcessing()
+            protected internal override Task StartBackgroundProcessingAsync()
             {
                 _started=true;
+                return Task.CompletedTask;
             }
 
             protected override async Task DisposeAsyncCore()
@@ -1064,7 +1065,7 @@ namespace ActiveSession.Tests
                 throw new NotImplementedException();
             }
 
-            protected internal override void StartBackgroundProcessing() { }
+            protected internal override Task StartBackgroundProcessingAsync() { return Task.CompletedTask; }
 
             public Int32 FillQueueToCapacity()
             {

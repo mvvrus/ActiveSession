@@ -204,7 +204,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
-        protected internal abstract void StartBackgroundProcessing();
+        protected internal abstract Task StartBackgroundProcessingAsync();
 
         /// <summary>
         /// TODO
@@ -227,6 +227,28 @@ namespace MVVrus.AspNetCore.ActiveSession
                 return true;
             }
             else return false;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="NewStatus"></param>
+        /// <returns></returns>
+        protected internal async Task<Boolean> StartRunningAsync(RunnerStatus NewStatus = RunnerStatus.Stalled)
+        {
+            if(base.StartRunning(NewStatus)) {
+                await StartBackgroundProcessingAsync();
+                return true;
+            }
+            else return false;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected internal void StartBackgroundProcessing()
+        {
+            StartBackgroundProcessingAsync().Wait();
         }
 
         /// <summary>
