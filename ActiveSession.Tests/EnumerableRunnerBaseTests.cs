@@ -877,6 +877,18 @@ namespace ActiveSession.Tests
             Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
         }
 
+
+        //Test group: asynchchronous start of the background processing (in GetRequiredAsync only)
+        //Test case: cancellation during start of the background processing
+        //Test case: exception thrown during start of the background processing
+        //Test case: normal start of background processing, successful asynchronous fetch
+        //Test case: normal start of background processing, successful synchronous fetch
+        //Test case: normal start of background processing, cancellation of asynchronous fetch
+        //Test case: normal start of background processing, exception thrown during asynchronous fetch
+        //Test group: problems starting the background processing 
+        //Test case: canceled asynchchronous start of the background processing
+        //Test case: failed asynchchronous start of the background processing
+
         [Fact]
         //Test group: check parameter passing
         public void Constructor_Params()
@@ -918,8 +930,13 @@ namespace ActiveSession.Tests
         {
 
             Int32 _progress = 0;
-            ManualResetEventSlim _resultEvent = new ManualResetEventSlim(false);
-            ManualResetEventSlim _fetchEvent = new ManualResetEventSlim(true);
+            readonly ManualResetEventSlim _resultEvent = new ManualResetEventSlim(false);
+            readonly ManualResetEventSlim _fetchEvent = new ManualResetEventSlim(true);
+            readonly Boolean _pauseBkgStart=false;
+            readonly ManualResetEventSlim _testEvent = new ManualResetEventSlim(false);
+            readonly ManualResetEventSlim _proceedEvent = new ManualResetEventSlim(false);
+            readonly CancellationTokenSource _cts = new CancellationTokenSource();
+            private Task? _startBkgTask=null;
             Boolean _started = false;
             Boolean _disposing = false;
             volatile Task? _fetchingTask = null;
@@ -932,11 +949,13 @@ namespace ActiveSession.Tests
             List<Int32>? _result;
             CancellationToken _cancellationToken;
             Exception? _fetchException;
+            Boolean _startBkgFaulted=false;
 
-            public TestEnumerableRunner(ILogger? Logger = null,Boolean StartInCostructor=true) 
+            public TestEnumerableRunner(ILogger? Logger = null, Boolean StartInCostructor=true, Boolean PauseBkgStart=false) 
                 : base(null, true, default(RunnerId), Logger, PAGE_SIZE, 1024) 
             {
                 if(StartInCostructor) this.StartRunning();
+                _pauseBkgStart = PauseBkgStart;
             }
 
             public void SimulateBackgroundFetchWithWait(Int32 Advance, Boolean IsTheLast = false, Exception? BackgroundException = null)
@@ -993,6 +1012,28 @@ namespace ActiveSession.Tests
                 }
             }
 
+            public Boolean WaitForStartBkg()
+            {
+                return _startBkgTask==null || _startBkgTask.IsCompleted || _testEvent.Wait(5000);
+            }
+
+            public void ResumeStartBkg()
+            {
+                _testEvent.Reset();
+                _proceedEvent.Set();
+            }
+
+            public void CancelStartBkg()
+            {
+                _cts.Cancel();
+            }
+
+            public void FailStartBkg()
+            {
+                _startBkgFaulted = true;
+                ResumeStartBkg();
+            }
+
             protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
             {
                 _maxAdvance = MaxAdvance;
@@ -1004,8 +1045,12 @@ namespace ActiveSession.Tests
 
             protected internal override Task StartBackgroundProcessingAsync()
             {
-                _started=true;
-                return Task.CompletedTask;
+                Action pause= () => { _proceedEvent.Reset(); _testEvent.Set(); 
+                    _proceedEvent.Wait(_cts.Token); if(_startBkgFaulted) throw new TestException(); };
+
+                _startBkgTask = _pauseBkgStart?Task.Run(pause, _cts.Token) :Task.CompletedTask;
+                _started =true;
+                return _startBkgTask;
             }
 
             protected override async Task DisposeAsyncCore()
@@ -1021,6 +1066,16 @@ namespace ActiveSession.Tests
                     }
                     catch { }
                 _resultEvent.Dispose();
+                _fetchEvent.Dispose();
+                _cts.Cancel();
+                if(_startBkgTask != null)
+                    try {
+                        await _startBkgTask;
+                    }
+                    catch { }
+                _cts.Dispose();
+                _testEvent.Dispose();
+                _proceedEvent.Dispose();
                 await base.DisposeAsyncCore();
                 if(DisposeTaskBody != null) await Task.Run(DisposeTaskBody!);
             }

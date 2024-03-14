@@ -118,55 +118,76 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///<inheritdoc/>
         public ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(Int32 Advance = 0, CancellationToken Token = default, Int32 StartPosition = -1, String? TraceIdentifier = null)
         {
-            RunnerResult<IEnumerable<TItem>> runner_result;
             CheckDisposed();
+            String trace_identifier = TraceIdentifier ?? "<unknown>";
 #if TRACE
 #endif
-            if (!TryAcquirePseudoLock()) {
+            if(!TryAcquirePseudoLock()) {
                 ThrowInvalidParallelism();
             }
-            List<TItem> result = new List<TItem>();
             try {
-#if TRACE
-#endif
+                RunnerResult<IEnumerable<TItem>> runner_result;
+                List<TItem> result = new List<TItem>();
+                Task<RunnerResult<IEnumerable<TItem>>> result_task;
+
                 ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
-                StartRunning();
-                //Try a short, synchrous path first: see if available status and data allows to satisfy the request 
-                if (FetchAvailable(Advance, result)) {
-                    //Short path successfull: set correct Status
-                    runner_result=FinishWithResult(result);
+                Task<Boolean> startup_task=StartRunningAsync();
+                if(startup_task.IsCompleted) {
+                    //Background process initialisation has been already done or completed synchronously
+                    startup_task.GetAwaiter().GetResult(); //Check for a possible cancellation or exception thrown
 #if TRACE
 #endif
-                    return new ValueTask<RunnerResult<IEnumerable<TItem>>>(runner_result);
+                    if(FetchAvailable(Advance, result)) {
+                        //Short path successfull: set correct Status
+                        runner_result = FinishWithResult(result);
+#if TRACE
+#endif
+                        return new ValueTask<RunnerResult<IEnumerable<TItem>>>(runner_result);
+                    }
+                    else {
+                        //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work is needed
+                        _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
+                        result_task = _waitingTaskSource.Task;
+                        AttacFetchResultProcessing(FetchRequiredAsync(Advance, result, Token), 
+                            new Context(result, Advance, trace_identifier, Token));
+                    }
                 }
                 else {
-                    //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work is needed
-                    Task<RunnerResult<IEnumerable<TItem>>> result_task;
-                    _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
-                    result_task = _waitingTaskSource.Task;
-                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
-                        FinishAndMakeResultBody, 
-                        new Context(result), 
-                        TaskContinuationOptions.OnlyOnRanToCompletion);
-                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
-                        CancelResultBody,
-                        new Context(result),
-                        TaskContinuationOptions.OnlyOnCanceled);
-                    FetchRequiredAsync(Advance, result, Token).ContinueWith(
-                        FailResultBody,
-                        new Context(result),
-                        TaskContinuationOptions.OnlyOnFaulted);
+                    //Background process initialisation is required and have not been completed synchronously
 #if TRACE
 #endif
-                    return new ValueTask<RunnerResult<IEnumerable<TItem>>>(result_task);
+                    _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
+                    result_task = _waitingTaskSource.Task;
+                    //TODO Releasepseudo-lock an reset _waitingTaskSource
+                    startup_task.ContinueWith(SetCancelResult, TaskContinuationOptions.OnlyOnCanceled);
+                    startup_task.ContinueWith(SetFailResult, TaskContinuationOptions.OnlyOnFaulted);
+                    startup_task.ContinueWith(ContinueAsyncStartBackgroundProcessing,
+                        new Context(result, Advance, trace_identifier, Token),
+                        TaskContinuationOptions.OnlyOnRanToCompletion);
                 }
+#if TRACE
+#endif
+                return new ValueTask<RunnerResult<IEnumerable<TItem>>>(result_task);
             }
-            catch (Exception) { 
+            catch(Exception) {
 #if TRACE
 #endif
                 ReleasePseudoLock();
                 throw;
             }
+        }
+
+        void ContinueAsyncStartBackgroundProcessing(Task FetchTask, Object? Context)
+        {
+            Context context = (Context as Context) ?? throw new ArgumentException(nameof(Context));
+            if(FetchAvailable(context.Advance, context.Accumulator)) {
+                //Short path successfull: set correct Status
+                FinishAndMakeResultBody(FetchTask, Context);
+            }
+            else {
+                AttacFetchResultProcessing(FetchRequiredAsync(context.Advance, context.Accumulator, context.Token), context);
+            }
+
         }
 
         ///<inheritdoc/>
@@ -261,14 +282,28 @@ namespace MVVrus.AspNetCore.ActiveSession
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
 
+        void AttacFetchResultProcessing(Task FetchTask, Context Context)
+        {
+            FetchTask.ContinueWith(FinishAndMakeResultBody, Context, TaskContinuationOptions.OnlyOnRanToCompletion);
+            FetchTask.ContinueWith(CancelResultBody, Context, TaskContinuationOptions.OnlyOnCanceled);
+            FetchTask.ContinueWith(FailResultBody, Context, TaskContinuationOptions.OnlyOnFaulted);
+        }
+
         void FailResultBody(Task FetchTask, Object? State)
         {
             Context state = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             //TODO LogTrace
             StashOrphannedData(state.Accumulator);
-            _waitingTaskSource?.TrySetException(FetchTask.Exception!.InnerExceptions);
+            SetFailResult(FetchTask);
+        }
+
+        void SetFailResult(Task Antecedent)
+        {
+            //TODO LogTrace
+            TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
+            waitingTaskSource?.TrySetException(Antecedent.Exception!.InnerExceptions);
         }
 
         void CancelResultBody(Task _, Object? State)
@@ -276,9 +311,16 @@ namespace MVVrus.AspNetCore.ActiveSession
             Context state = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             //TODO LogTrace
             StashOrphannedData(state.Accumulator);
-            _waitingTaskSource?.TrySetCanceled();
+            SetCancelResult(_);
+        }
+
+        void SetCancelResult(Task _)
+        {
+            //TODO LogTrace
+            TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
+            waitingTaskSource?.TrySetCanceled();
         }
 
         void FinishAndMakeResultBody(Task FetchTask, Object? State)
@@ -288,9 +330,10 @@ namespace MVVrus.AspNetCore.ActiveSession
             //TODO LogTrace
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(state.Accumulator);
             //TODO LogDebug result
-            _waitingTaskSource?.TrySetResult(result);
+            TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
+            waitingTaskSource?.TrySetResult(result);
             //TODO LogTrace
         }
 
@@ -385,10 +428,15 @@ namespace MVVrus.AspNetCore.ActiveSession
         class Context
         {
             public List<TItem> Accumulator { get; init; }
-
-            public Context(List<TItem> Accumulator)
+            public String TraceIdentifier { get; init; }
+            public Int32 Advance { get; init; }
+            public CancellationToken Token { get; init; }
+            public Context(List<TItem> Accumulator, Int32 Advance, String TraceIdentifier, CancellationToken Token)
             {
-                this.Accumulator=Accumulator;
+                this.Accumulator = Accumulator;
+                this.TraceIdentifier = TraceIdentifier;
+                this.Advance = Advance;
+                this.Token = Token;
             }
         }
 
