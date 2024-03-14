@@ -338,6 +338,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(PAGE_SIZE*2, position);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -370,6 +371,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Complete, status);
                 Assert.Equal(PAGE_SIZE * 2, position);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -403,6 +405,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(PAGE_SIZE * 2, position);
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -448,6 +451,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(PAGE_SIZE*4, position);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -475,6 +479,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Complete, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test outstanding async call state giving more data than requested and complete the background task
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -488,6 +493,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 2*PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -516,6 +522,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Failed, status);
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test outstanding async call state giving more data than requested and fail the background task
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -529,6 +536,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 2 * PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -554,8 +562,8 @@ namespace ActiveSession.Tests
                     Assert.Equal(TaskStatus.Canceled, result_task.AsTask().Status);
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.True(CheckRange(result, 0, PAGE_SIZE));
+                    runner.GetAvailable(); //To check pseudo-lock release
                 }
-
             }
         }
 
@@ -579,6 +587,7 @@ namespace ActiveSession.Tests
                 Assert.Throws<TestException>(() => result_task.GetAwaiter().GetResult());
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -668,6 +677,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test Abort when background fetch is complete
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -679,6 +689,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test Abort when background fetch throwed an error
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -690,6 +701,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -717,6 +729,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -731,7 +744,7 @@ namespace ActiveSession.Tests
             Int32 position;
             Exception? exception;
             ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
-            //Test GetAvailablle while runner has Complete status
+            //Test GetRequiredAsync while runner has Complete status
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3, true);
                 result_task = runner.GetRequiredAsync(PAGE_SIZE*3).Preserve();
@@ -744,8 +757,9 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, PAGE_SIZE * 3, 0));
                 Assert.Equal(RunnerStatus.Complete, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
-            //Test GetAvailablle while runner has Failed status
+            //Test GetRequiredAsync while runner has Failed status
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3, true, new TestException());
                 result_task = runner.GetRequiredAsync(PAGE_SIZE * 3).Preserve();
@@ -759,8 +773,9 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Failed, status);
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
-            //Test GetAvailablle while runner has Aborted status
+            //Test GetRequiredAsync while runner has Aborted status
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.Abort();
                 result_task = runner.GetRequiredAsync(PAGE_SIZE * 3).Preserve();
@@ -769,6 +784,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
@@ -826,10 +842,8 @@ namespace ActiveSession.Tests
             result_task = runner.GetRequiredAsync();
             runner.Dispose();
             Task result_as_task = result_task.AsTask();
-            AggregateException e = Assert.Throws<AggregateException>(()=>result_as_task.Wait(TIMEOUT));
-            Assert.Single(e.InnerExceptions);
-            Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
+            Assert.Equal(nameof(TestEnumerableRunner), 
+                WaitExceptionChecker<ObjectDisposedException>.Check(result_as_task, TIMEOUT).ObjectName);
         }
 
         [Fact]
@@ -871,23 +885,121 @@ namespace ActiveSession.Tests
             dispose_as_task = dispose_task.AsTask();
             Assert.True(dispose_as_task.Wait(TIMEOUT));
             Task result_as_task = result_task.AsTask();
-            AggregateException e = Assert.Throws<AggregateException>(() => result_as_task.Wait(TIMEOUT));
-            Assert.Single(e.InnerExceptions);
-            Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(TestEnumerableRunner), ((ObjectDisposedException)e.InnerExceptions[0]).ObjectName);
+            Assert.Equal(nameof(TestEnumerableRunner),
+                WaitExceptionChecker<ObjectDisposedException>.Check(result_as_task, TIMEOUT).ObjectName);
         }
 
 
+        [Fact]
         //Test group: asynchchronous start of the background processing (in GetRequiredAsync only)
-        //Test case: cancellation during start of the background processing
-        //Test case: exception thrown during start of the background processing
-        //Test case: normal start of background processing, successful asynchronous fetch
-        //Test case: normal start of background processing, successful synchronous fetch
-        //Test case: normal start of background processing, cancellation of asynchronous fetch
-        //Test case: normal start of background processing, exception thrown during asynchronous fetch
-        //Test group: problems starting the background processing 
-        //Test case: canceled asynchchronous start of the background processing
-        //Test case: failed asynchchronous start of the background processing
+        public void GetRequiredAsync_AsyncStartBkgProcessing()
+        {
+            MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
+            MockedLogger logger_mock = logger_factory_mock.MonitorLoggerCategory(nameof(EnumerableRunnerBaseTests));
+            IEnumerable<Int32> result;
+            RunnerStatus status;
+            Int32 position;
+            Exception? exception;
+            Task<RunnerResult<IEnumerable<Int32>>> result_as_task;
+
+            //Test case: synchronously canceled asynchchronous start of the background processing
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false)) {
+                runner.SetCancelStartBkgSync();
+                result_as_task = runner.GetRequiredAsync().AsTask();
+                Assert.True(result_as_task.IsCanceled);
+            }
+            //Test case: exception thrown synchronously during asynchchronous start of the background processing
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false)) {
+                runner.SetFailStartBkgSync();
+                result_as_task = runner.GetRequiredAsync().AsTask();
+                Assert.True(result_as_task.IsFaulted);
+            }
+            //Test case: cancellation during start of the background processing
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                result_as_task = runner.GetRequiredAsync().AsTask();
+                Assert.True(runner.WaitForStartBkg());
+                Assert.False(runner.Started);
+                Assert.False(result_as_task.IsCompleted);
+                runner.CancelStartBkg();
+                WaitExceptionChecker<TaskCanceledException>.Check(result_as_task, TIMEOUT);
+                (result,status,position,exception)=runner.GetAvailable(); //To check pseudo-lock release
+                Assert.Empty(result);
+            }
+            //Test case: exception thrown during start of the background processing
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                result_as_task = runner.GetRequiredAsync().AsTask();
+                Assert.True(runner.WaitForStartBkg());
+                Assert.False(runner.Started);
+                Assert.False(result_as_task.IsCompleted);
+                runner.ResumeAndFailStartBkg();
+                WaitExceptionChecker<TestException>.Check(result_as_task, TIMEOUT);
+                (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
+                Assert.Empty(result);
+            }
+            //Test case: normal start of background processing, successful asynchronous fetch
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                result_as_task = runner.GetRequiredAsync(PAGE_SIZE).AsTask();
+                Assert.True(runner.WaitForStartBkg());
+                Assert.False(runner.Started);
+                Assert.False(result_as_task.IsCompleted);
+                runner.ResumeStartBkg(PAGE_SIZE / 2);
+                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                Assert.Empty(runner.Queue);
+                Assert.False(result_as_task.IsCompleted);
+                runner.SimulateBackgroundFetch(PAGE_SIZE);
+                Assert.True(result_as_task.Wait(TIMEOUT));
+                (result, status, position, exception) = result_as_task.Result;
+                CheckRange(result, 0, PAGE_SIZE);
+                (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
+                CheckRange(result, PAGE_SIZE, PAGE_SIZE/2);
+            }
+            //Test case: normal start of background processing, successful synchronous fetch
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                result_as_task = runner.GetRequiredAsync(PAGE_SIZE).AsTask();
+                Assert.True(runner.WaitForStartBkg());
+                Assert.False(runner.Started);
+                Assert.False(result_as_task.IsCompleted);
+                runner.ResumeStartBkg(PAGE_SIZE * 2);
+                Assert.True(result_as_task.Wait(TIMEOUT));
+                (result, status, position, exception) = result_as_task.Result;
+                CheckRange(result, 0, PAGE_SIZE);
+                (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
+                CheckRange(result, PAGE_SIZE, PAGE_SIZE);
+            }
+            //Test case: normal start of background processing, cancellation of asynchronous fetch
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                using(CancellationTokenSource cts = new CancellationTokenSource()) {
+                    result_as_task = runner.GetRequiredAsync(PAGE_SIZE, cts.Token).AsTask();
+                    Assert.True(runner.WaitForStartBkg());
+                    Assert.False(runner.Started);
+                    Assert.False(result_as_task.IsCompleted);
+                    runner.ResumeStartBkg(PAGE_SIZE / 2);
+                    for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                    Assert.Empty(runner.Queue);
+                    Assert.False(result_as_task.IsCompleted);
+                    cts.Cancel();
+                    WaitExceptionChecker<TaskCanceledException>.Check(result_as_task, TIMEOUT);
+                    (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
+                    CheckRange(result, 0, PAGE_SIZE / 2);
+                }
+            }
+            //Test case: normal start of background processing, exception thrown during asynchronous fetch
+            using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
+                result_as_task = runner.GetRequiredAsync(PAGE_SIZE).AsTask();
+                Assert.True(runner.WaitForStartBkg());
+                Assert.False(runner.Started);
+                Assert.False(result_as_task.IsCompleted);
+                runner.ResumeStartBkg(PAGE_SIZE / 2);
+                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                Assert.Empty(runner.Queue);
+                Assert.False(result_as_task.IsCompleted);
+                runner.SimulateFetchException(new TestException());
+                WaitExceptionChecker<TestException>.Check(result_as_task, TIMEOUT);
+                (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
+                CheckRange(result, 0, PAGE_SIZE / 2);
+            }
+        }
+
 
         [Fact]
         //Test group: check parameter passing
@@ -950,6 +1062,8 @@ namespace ActiveSession.Tests
             CancellationToken _cancellationToken;
             Exception? _fetchException;
             Boolean _startBkgFaulted=false;
+            Boolean _startBkgFaultedSync = false;
+            private Boolean _startBkgCancelededSync=false;
 
             public TestEnumerableRunner(ILogger? Logger = null, Boolean StartInCostructor=true, Boolean PauseBkgStart=false) 
                 : base(null, true, default(RunnerId), Logger, PAGE_SIZE, 1024) 
@@ -1017,8 +1131,9 @@ namespace ActiveSession.Tests
                 return _startBkgTask==null || _startBkgTask.IsCompleted || _testEvent.Wait(5000);
             }
 
-            public void ResumeStartBkg()
+            public void ResumeStartBkg(Int32 PrefechCount=0)
             {
+                if(PrefechCount > 0) SimulateBackgroundFetch(PrefechCount);
                 _testEvent.Reset();
                 _proceedEvent.Set();
             }
@@ -1028,10 +1143,20 @@ namespace ActiveSession.Tests
                 _cts.Cancel();
             }
 
-            public void FailStartBkg()
+            public void ResumeAndFailStartBkg()
             {
                 _startBkgFaulted = true;
                 ResumeStartBkg();
+            }
+
+            public void SetFailStartBkgSync()
+            {
+                _startBkgFaultedSync = true;
+            }
+
+            public void SetCancelStartBkgSync()
+            {
+                _startBkgCancelededSync = true;
             }
 
             protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
@@ -1048,9 +1173,16 @@ namespace ActiveSession.Tests
                 Action pause= () => { _proceedEvent.Reset(); _testEvent.Set(); 
                     _proceedEvent.Wait(_cts.Token); if(_startBkgFaulted) throw new TestException(); };
 
-                _startBkgTask = _pauseBkgStart?Task.Run(pause, _cts.Token) :Task.CompletedTask;
-                _started =true;
+                _startBkgTask = _startBkgFaultedSync?Task.FromException(new TestException()):
+                    _startBkgCancelededSync?Task.FromCanceled(new CancellationToken(true)):
+                        _pauseBkgStart ?Task.Run(pause, _cts.Token) :Task.CompletedTask;
+                _startBkgTask.ContinueWith(SetStarted,TaskContinuationOptions.ExecuteSynchronously);
                 return _startBkgTask;
+            }
+
+            void SetStarted(Task _)
+            {
+                _started = true;
             }
 
             protected override async Task DisposeAsyncCore()
@@ -1068,11 +1200,10 @@ namespace ActiveSession.Tests
                 _resultEvent.Dispose();
                 _fetchEvent.Dispose();
                 _cts.Cancel();
-                if(_startBkgTask != null)
-                    try {
-                        await _startBkgTask;
-                    }
-                    catch { }
+                try {
+                    if(_startBkgTask != null && !_startBkgTask.IsCompleted)   await _startBkgTask;
+                }
+                catch { }
                 _cts.Dispose();
                 _testEvent.Dispose();
                 _proceedEvent.Dispose();
@@ -1128,6 +1259,16 @@ namespace ActiveSession.Tests
                 Int32 count = 0;
                 while(Queue.TryAdd(count, 100)) count++;
                 return count;
+            }
+        }
+
+        static class WaitExceptionChecker<TException> where TException : Exception
+        {
+            public static TException Check(Task Task, TimeSpan Timeout)
+            {
+                AggregateException e = Assert.Throws<AggregateException>(() => Task.Wait(Timeout));
+                Assert.Single(e.InnerExceptions);
+                return Assert.IsType<TException>(e.InnerExceptions[0]);
             }
         }
     }

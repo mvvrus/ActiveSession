@@ -133,8 +133,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                 ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
                 Task<Boolean> startup_task=StartRunningAsync();
                 if(startup_task.IsCompleted) {
-                    //Background process initialisation has been already done or completed synchronously
-                    startup_task.GetAwaiter().GetResult(); //Check for a possible cancellation or exception thrown
+                    //Background process initialization has been already done or completed synchronously
+                    if(startup_task.IsCanceled) 
+                        return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
+                            Task.FromCanceled<RunnerResult<IEnumerable<TItem>>>(new CancellationToken(true)));
+                    if(startup_task.IsFaulted)
+                        return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
+                            Task.FromException<RunnerResult<IEnumerable<TItem>>>(startup_task.Exception!.InnerExceptions[0]));
 #if TRACE
 #endif
                     if(FetchAvailable(Advance, result)) {
