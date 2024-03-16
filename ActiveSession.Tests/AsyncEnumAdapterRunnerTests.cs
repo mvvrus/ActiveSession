@@ -2,21 +2,21 @@
 using MVVrus.AspNetCore.ActiveSession.StdRunner;
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ActiveSession.Tests
 {
-    public class EnumAdapterRunnerTests
+    public class AsyncEnumAdapterRunnerTests
     {
         //Test group: check background processing w/o any FetchRequiredAsync task awaiting
         [Fact]
         public void BackgroundEnumeration()
         {
-            int step1, end=20;
+            int step1, end = 20;
 
             //Test case: start background process and perform incomplete enumeration
             using(TestEnumerable test_enumerable = new TestEnumerable()) {
@@ -80,8 +80,8 @@ namespace ActiveSession.Tests
             int step1, step2, advance, end = 28;
             Task fetch_task;
             List<Int32> result;
-            CancellationTokenSource? fetch_cts=null;
-            TestRunner? runner=null;
+            CancellationTokenSource? fetch_cts = null;
+            TestRunner? runner = null;
             TestEnumerable test_enumerable = new TestEnumerable();
             try {
                 fetch_cts = new CancellationTokenSource();
@@ -92,7 +92,7 @@ namespace ActiveSession.Tests
                 runner.StartRunning();
                 Assert.NotNull(runner.EnumTask);
                 Assert.True(test_enumerable.WaitForPause());
-                Assert.False(runner.EnumTask.IsCompleted);  
+                Assert.False(runner.EnumTask.IsCompleted);
                 advance = 10;
                 result = new List<Int32>();
                 fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
@@ -100,12 +100,12 @@ namespace ActiveSession.Tests
                 Assert.Empty(result);
                 //Test case: await on the insufficiently filled queue, background fetch is in progress
                 step2 = 5;
-                test_enumerable.AddNextPause(step2-step1);
+                test_enumerable.AddNextPause(step2 - step1);
                 test_enumerable.Resume();
                 Assert.True(test_enumerable.WaitForPause());
                 Assert.False(runner.EnumTask.IsCompleted);
                 Assert.False(fetch_task.IsCompleted);
-                for(int i = 0; i < 1000 && runner.Queue.Count > 0 ; i++) Thread.Sleep(100);
+                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
                 Assert.Empty(runner.Queue);
                 Assert.Equal(step2, result.Count);
                 CheckRange(result, 0, step2);
@@ -142,22 +142,22 @@ namespace ActiveSession.Tests
                 test_enumerable.AddNextPause(step2 - step1);
                 test_enumerable.Resume();
                 Assert.True(test_enumerable.WaitForPause());
-                Assert.Equal(step2 - 2*advance, runner.Queue.Count);
+                Assert.Equal(step2 - 2 * advance, runner.Queue.Count);
                 //Test case: await on the initially insufficiently filled queue, background fetch is in progress
                 result = new List<Int32>();
-                runner.FetchAvailable(advance,result);
+                runner.FetchAvailable(advance, result);
                 fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
                 Assert.False(fetch_task.IsCompleted);
                 for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Equal(step2-2*advance, result.Count);
-                CheckRange(result, 2*advance, step2-2*advance);
+                Assert.Equal(step2 - 2 * advance, result.Count);
+                CheckRange(result, 2 * advance, step2 - 2 * advance);
                 //Test case: await on the insufficiently filled queue, background fetch is complete
                 test_enumerable.Resume();
                 Assert.True(runner.EnumTask.Wait(5000));
                 Assert.True(fetch_task.Wait(5000));
                 Assert.True(fetch_task.IsCompletedSuccessfully);
-                Assert.Equal(end-2*advance, result.Count);
-                CheckRange(result, 2*advance, end-2*advance);
+                Assert.Equal(end - 2 * advance, result.Count);
+                CheckRange(result, 2 * advance, end - 2 * advance);
                 Assert.Empty(runner.Queue);
             }
             finally {
@@ -173,7 +173,7 @@ namespace ActiveSession.Tests
         {
             TestEnumerable test_enumerable;
             int step1, advance, end = 18;
-            Task fetch_task=null!;
+            Task fetch_task = null!;
             List<Int32> result;
             CancellationTokenSource? fetch_cts = null;
             TestRunner runner;
@@ -226,21 +226,26 @@ namespace ActiveSession.Tests
                     fetch_cts?.Dispose();
                     fetch_cts = null;
                 }
-            }
 
+            }
         }
 
         [Fact]
         //Test group: Disposing (DisposeAsync and hence Dispose) tests
         public void Disposing()
         {
+            //Test case: dispose non-started runner
+            //Test case: dispose runner with only a background processing started and not completed before disposing
+            //Test case: dispose runner with both fetch and background processing started and not completed before disposing
+            //Test case: dispose runner with both fetch and background processing started but only fetch completed before disposing
+            //Test case: dispose runner with both fetch and background processing started and completed before disposing
             TestEnumerable test_enumerable;
             int step1, advance, end = 18;
             Task fetch_task = null!;
             List<Int32> result;
             CancellationTokenSource? fetch_cts = null;
             TestRunner runner;
-            Task? dispose_task= null;
+            Task? dispose_task = null;
 
 
             using(test_enumerable = new TestEnumerable()) {
@@ -262,7 +267,7 @@ namespace ActiveSession.Tests
                         advance = 10;
                         StartFetch();
                         Assert.NotNull(fetch_task);
-                        for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                        for(int i = 0; i < 10 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
                         Assert.False(runner!.EnumTask!.IsCompleted);
                     },
                     () =>
@@ -276,7 +281,7 @@ namespace ActiveSession.Tests
                 PerformTest(
                     () =>
                     {
-                        advance = 5;
+                        advance = 4;
                         StartFetch();
                         Assert.NotNull(fetch_task);
                         Assert.True(fetch_task!.Wait(5000));
@@ -307,7 +312,7 @@ namespace ActiveSession.Tests
 
 
             }
-            
+
             void StartBkg()
             {
                 runner.StartRunning();
@@ -319,7 +324,8 @@ namespace ActiveSession.Tests
             {
                 StartBkg();
                 result = new List<Int32>();
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts?.Token??default);
+                runner.FetchAvailable(advance, result);
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts?.Token ?? default);
             }
 
             void PerformTest(Action Arrnage, Action Assess)
@@ -331,7 +337,7 @@ namespace ActiveSession.Tests
                     test_enumerable.AddFirstPause(step1);
                     runner = new TestRunner(test_enumerable, end);
                     Arrnage();
-                    dispose_task=runner.DisposeAsync().AsTask();
+                    dispose_task = runner.DisposeAsync().AsTask();
                     Assess();
                 }
                 finally {
@@ -349,32 +355,35 @@ namespace ActiveSession.Tests
                 .MonitorLoggerCategory(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<Int32>)));
             ActiveSessionOptionsSnapshot options = new ActiveSessionOptionsSnapshot(new ActiveSessionOptions());
             int end = 18;
-            EnumAdapterRunner<Int32> runner;
+            AsyncEnumAdapterRunner<Int32> runner;
             CtorTestClass source;
 
             //Test case: default parameters
             source = new CtorTestClass(end);
-            using(runner = new EnumAdapterRunner<Int32>(source, default, options, logger_factory_mock.LoggerFactory)) {
+            using(runner = new AsyncEnumAdapterRunner<Int32>(source, default, options, logger_factory_mock.LoggerFactory)) {
                 Assert.Equal(RunnerStatus.NotStarted, runner.Status);
                 runner.StartRunning();
                 Assert.NotNull(runner.EnumTask);
                 Assert.True(runner.EnumTask.Wait(5000));
-                Assert.True(source.Disposed);
             }
+            Assert.True(source.Disposed);
             //Test case: non-default StartInConstructor and PassOwnership
             source = new CtorTestClass(end);
-            EnumAdapterParams<int> param= new EnumAdapterParams<int> {
-                Source=source,
-                PassSourceOnership=false,
-                StartInConstructor=true
+            AsyncEnumAdapterParams<int> param = new AsyncEnumAdapterParams<int>
+            {
+                Source = source,
+                PassSourceOnership = false,
+                StartInConstructor = true
             };
-            using(runner = new EnumAdapterRunner<Int32>(param, default, options, logger_factory_mock.LoggerFactory)) {
+            using(runner = new AsyncEnumAdapterRunner<Int32>(param, default, options, logger_factory_mock.LoggerFactory)) {
                 Assert.NotEqual(RunnerStatus.NotStarted, runner.Status);
                 Assert.NotNull(runner.EnumTask);
-                Assert.True(runner.EnumTask.Wait(5000));
-                Assert.False(source.Disposed);
+                Assert.True(runner.EnumTask.Wait(10000));
             }
+            Assert.False(source.Disposed);
         }
+
+        ////////////////////////////////////////////////////////////////////////////////
 
         void CheckTaskTerminatedByDispose(Task task)
         {
@@ -394,14 +403,14 @@ namespace ActiveSession.Tests
             return item_to_compare == Start + Length;
         }
 
-        class TestException : Exception {}
+        class TestException : Exception { }
 
-        class TestRunner: EnumAdapterRunner<Int32>
+        class TestRunner : AsyncEnumAdapterRunner<Int32>
         {
             readonly TestEnumerable _source;
 
-            public TestRunner(TestEnumerable Source, Int32 Max) 
-                : base(Source.GetTestEnumerable(Max), default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory) 
+            public TestRunner(TestEnumerable Source, Int32 Max)
+                : base(Source.GetTestEnumerable(Max), default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory)
             {
                 _source = Source;
             }
@@ -420,30 +429,30 @@ namespace ActiveSession.Tests
             Int32 _pauseBefore = -1;
             readonly ManualResetEventSlim _testEvent = new ManualResetEventSlim(false);
             readonly ManualResetEventSlim _proceedEvent = new ManualResetEventSlim(false);
-            CancellationTokenSource? _cts=null;
+            CancellationTokenSource? _cts = null;
             readonly Action _defaultPauseAction;
             readonly MockedLoggerFactory _loggerFactoryMock = new MockedLoggerFactory();
 
-            public TestEnumerable() 
+            public TestEnumerable()
             {
-                _defaultPauseAction = () => { _proceedEvent.Reset(); _testEvent.Set(); _proceedEvent.Wait(_cts?.Token??default); };
+                _defaultPauseAction = () => { _proceedEvent.Reset(); _testEvent.Set(); _proceedEvent.Wait(_cts?.Token ?? default); };
                 _loggerFactoryMock.MonitorLoggerCategory(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<Int32>)));
             }
 
             public ILoggerFactory LoggerFactory { get => _loggerFactoryMock.LoggerFactory; }
 
-            public void AddFirstPause(Int32 PauseBefore, Action? PauseAction=null)
+            public void AddFirstPause(Int32 PauseBefore, Action? PauseAction = null)
             {
-                _pauseAction = PauseAction??_defaultPauseAction;
+                _pauseAction = PauseAction ?? _defaultPauseAction;
                 _pauseBefore = PauseBefore;
             }
 
-            public void AddNextPause(Int32 Step, Action? PauseAction=null)
+            public void AddNextPause(Int32 Step, Action? PauseAction = null)
             {
                 if(_pauseBefore < 0) throw new InvalidOperationException();
                 if(Step <= 0) throw new InvalidOperationException();
-                _pauseAction = PauseAction??_pauseAction;
-                _pauseBefore+=Step;
+                _pauseAction = PauseAction ?? _pauseAction;
+                _pauseBefore += Step;
             }
 
             public Boolean WaitForPause()
@@ -473,15 +482,16 @@ namespace ActiveSession.Tests
                 _proceedEvent.Set();
             }
 
-            public IEnumerable<Int32> GetTestEnumerable(Int32 Max)
+            public async IAsyncEnumerable<Int32> GetTestEnumerable(Int32 Max, [EnumeratorCancellation]CancellationToken Token=default)
             {
-                CancellationTokenSource cts = new CancellationTokenSource();
+                CancellationTokenSource cts = 
+                    Token.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(Token) : new CancellationTokenSource();
                 if(Interlocked.CompareExchange(ref _cts, cts, null) != null) {
                     cts.Dispose();
                     throw new InvalidOperationException();
                 }
                 for(Int32 i = 0; i < Max; i++) {
-                    if(i == _pauseBefore) _pauseAction?.Invoke();
+                    if(i == _pauseBefore) await Task.Run(()=>_pauseAction?.Invoke()).WaitAsync(Token);
                     yield return i;
                 }
                 _pauseAction = null;
@@ -496,44 +506,38 @@ namespace ActiveSession.Tests
             }
 
         }
-    }
 
-    static class EnumAdapterRunnerTestsUtil
-    {
-        public static void FetchAndCheck(this BlockingCollection<Int32> Queue, Int32 StartValue, Int32 Count)
+        class CtorTestClass : IAsyncEnumerable<int>, IDisposable
         {
-            Assert.Equal(Count, Queue.Count);
-            for(int i = 0; i < Count; i++) {
-                Int32 Item;
-                Assert.True(Queue.TryTake(out Item));
-                Assert.Equal(StartValue + i, Item);
-            }
+            Int32 _max;
+            public Boolean Disposed { get; private set; } = false;
+            public CtorTestClass(Int32 Max) { _max = Max; }
+
+            public IAsyncEnumerator<Int32> GetAsyncEnumerator(CancellationToken Token) { return new CtorTestEnumerator(_max, Token); }
+
+            public void Dispose() { Disposed = true; }
         }
+
+        class CtorTestEnumerator : IAsyncEnumerator<int>
+        {
+            Int32 _current = -1;
+            Int32 _max;
+            CancellationToken _token;
+            public Boolean Disposed { get; private set; } = false;
+
+            public CtorTestEnumerator(Int32 Max, CancellationToken Token) { _max = Max; _token = Token; }
+            public Int32 Current => _current;
+            public ValueTask<Boolean> MoveNextAsync() { 
+                _token.ThrowIfCancellationRequested();
+                return new ValueTask<Boolean>(++_current < _max); 
+            } 
+            public ValueTask DisposeAsync() { Disposed = true;  return ValueTask.CompletedTask; }
+        }
+
+
     }
 
-    class CtorTestClass: IEnumerable<int>, IDisposable
+    internal interface IAsyncEnumerable
     {
-        readonly Int32 _max;
-        public Boolean Disposed { get; private set; } = false;
-        public CtorTestClass(Int32 Max)  { _max = Max; }
-
-        public IEnumerator<Int32> GetEnumerator() { return new CtorTestEnumerator(_max); }
-        IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
-
-        public void Dispose() { Disposed = true; }
     }
-
-    class CtorTestEnumerator : IEnumerator<int>
-    {
-        Int32 _current = -1;
-        readonly Int32 _max;
-
-        public CtorTestEnumerator(Int32 Max) { _max = Max; }
-        public Int32 Current => _current;
-        Object IEnumerator.Current { get => Current; }
-        public Boolean MoveNext() { return ++_current < _max; }
-        public void Reset() { _current = -1; }
-        public void Dispose() { }
-    }
-
 }

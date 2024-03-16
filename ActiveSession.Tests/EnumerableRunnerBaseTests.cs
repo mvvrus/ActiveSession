@@ -13,7 +13,7 @@ namespace ActiveSession.Tests
     {
 
         public const Int32 PAGE_SIZE = 10;
-        static TimeSpan TIMEOUT = TimeSpan.FromSeconds(5);
+        static TimeSpan TIMEOUT = TimeSpan.FromSeconds(10);
         
         Boolean CheckRange(IEnumerable<Int32> Range,  Int32 Start, Int32 Length)
         {

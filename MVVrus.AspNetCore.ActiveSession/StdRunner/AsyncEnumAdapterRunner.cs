@@ -22,6 +22,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         volatile Context? _resultContext;
         volatile Task _taskChainTail;
 
+        internal Task EnumTask { get => _taskChainTail; } //For tests only
+
         /// <summary>
         /// TODO
         /// </summary>
@@ -95,6 +97,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
+        protected override void PreDispose()
+        {
+            base.PreDispose();
+            ResetResultContext()?.ResultTaskSource.TrySetException(new ObjectDisposedException(DisposedObjectName()));
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
         /// <returns></returns>
         protected override async Task DisposeAsyncCore()
         {
@@ -120,12 +131,37 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
+        /// <param name="MaxAdvance"></param>
+        /// <param name="Result"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        {
+            Context result_context= new Context(MaxAdvance, Result, Token);
+            //Some possibly unnecessary precautions
+            if(Disposed()) result_context.ResultTaskSource.TrySetException(new ObjectDisposedException(DisposedObjectName()));
+            else if(Token.IsCancellationRequested) {
+                result_context.ResultTaskSource.TrySetCanceled();
+            }
+            else if(Result.Count >= MaxAdvance || Status.IsFinal() || Queue.IsAddingCompleted) {
+                result_context.ResultTaskSource.TrySetResult();
+            }
+            else
+                //The main path, should always come here to await background waork some more 
+                _resultContext = result_context;
+            return result_context.ResultTaskSource.Task;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
         protected internal override void StartBackgroundExecution()
         {
-                //Start _asyncEnumerable enumeration task chain
-                _asyncEnumerator=_asyncSource.GetAsyncEnumerator(CompletionToken);
-                _taskChainTail=_asyncEnumerator.MoveNextAsync().AsTask()
-                    .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
+            //Start _asyncEnumerable enumeration task chain
+            _asyncEnumerator=_asyncSource.GetAsyncEnumerator(CompletionToken);
+            _taskChainTail=_asyncEnumerator.MoveNextAsync().AsTask()
+                .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
         }
 
         void ItemAction(Task<bool> NextStep)
@@ -139,7 +175,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 if (NextStep.IsCanceled) Abort();
                 result_ready = status_is_final = Status.IsFinal();
                 if (NextStep.IsFaulted) {
-                    Exception = NextStep.Exception;
+                    Exception = (NextStep.Exception as AggregateException)?.InnerExceptions.ElementAtOrDefault(0)?? NextStep.Exception;
                     Queue.CompleteAdding();
                 }
                 if (NextStep.IsCompletedSuccessfully)  {
@@ -154,6 +190,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         Queue.CompleteAdding();
                     }
                 }
+                else /*NextStep.IsCanceled*/Queue.CompleteAdding();
             }
             catch (Exception e)
             {
@@ -167,18 +204,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 TItem? item;
 
                 if(result_context.Token.IsCancellationRequested) {
-                    _resultContext = null;
-                    result_context.ResultTaskSource.SetCanceled();
+                    ResetResultContext();
                 }
+                else {
+                    while(result_context.Result.Count < result_context.MaxAdvance && Queue.TryTake(out item)) {
+                        result_context.Result.Add(item);
+                    }
 
-                while(result_context.Result.Count< result_context.MaxAdvance && Queue.TryTake(out item)) {
-                    result_context.Result.Add(item);
-                }
-
-                if(result_context.Result.Count >= result_context.MaxAdvance) {
-                    _resultContext = null;
-                    result_context.ResultTaskSource.SetResult();
-                }
+                    if(Queue.IsAddingCompleted || result_context.Result.Count >= result_context.MaxAdvance) {
+                        ResetResultContext();
+                        result_context.ResultTaskSource.TrySetResult();
+                    }
+                }            
             }
 
             if(proceed && !Disposed()) {
@@ -186,26 +223,20 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             }
         }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="MaxAdvance"></param>
-        /// <param name="Result"></param>
-        /// <param name="Token"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        Context? ResetResultContext()
         {
-            _resultContext = new Context(MaxAdvance, Result, Token);
-            return _resultContext.ResultTaskSource.Task;
+            Context? result_context = Interlocked.Exchange(ref _resultContext, null);
+            result_context?.Dispose();
+            return result_context;
         }
 
-        class Context
+        class Context: IDisposable
         {
             public int MaxAdvance { get; init; }
             public TaskCompletionSource ResultTaskSource { get; init; }
             public List<TItem> Result { get; init; }
             public CancellationToken Token { get; init; }
+            CancellationTokenRegistration? _callback=null;
 
 
             public Context(int MaxAdvance, List<TItem> Result, CancellationToken Token)
@@ -214,6 +245,21 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 this.MaxAdvance = MaxAdvance;
                 this.Result = Result;
                 this.Token = Token;
+                if(Token.CanBeCanceled) _callback=Token.Register(CancelResultTask); 
+            }
+
+            void CancelResultTask()
+            {
+                ResultTaskSource.TrySetCanceled();
+            }
+
+            public void Dispose()
+            {
+                if(_callback!=null) 
+                    lock(this) {
+                        _callback?.Dispose();
+                        _callback = null;
+                    }
             }
 
         }
