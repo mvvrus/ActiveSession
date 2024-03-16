@@ -11,7 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// A class intended to be used as a base for <see cref="IRunner{TResult}"/> implementations
     /// </summary>
-    public class RunnerBase : IRunner, IDisposable
+    public abstract class RunnerBase : IRunner, IDisposable
     {
         Int32 _status;
         readonly CancellationTokenSource _completionTokenSource;
@@ -130,27 +130,53 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected virtual void DoAbort() {}
 
         /// <summary>
+        /// Abstract Method to start background execution synchronously.  Must be overriden in descendent classes.
+        /// </summary>
+        /// <exception cref="Exception">A specific descendant of this class thrown in the case of failure starting the execution</exception>
+        /// <remarks>This base method just throws <see cref="NotImplementedException"/> and should never be called in its overrides</remarks>
+        protected internal abstract void StartBackgroundExecution();
+
+        /// <summary>
+        /// A method intendent to start background execution asynchronously in descendent classes. 
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous starting process and its outcome</returns>
+        /// <remarks> This default implementation is a stub. It just starts the a background execution synchronously and returns a completed task </remarks>
+        protected internal virtual Task StartBackgroundExecutionAsync()
+        {
+            StartBackgroundExecution();
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
         /// Begin (and possibly finish immediatly) background execution of the runner if it is not started, and set Sta
         /// Set the runner's <see cref="Status"/> property accordingly.
         /// </summary>
         /// <param name="NewStatus">The new <see cref="Status"/> property value to be set.</param>
         /// <returns>true the runner status has been really changed, otherwise - false </returns>
         /// <remarks>
-        /// In this base class the method just sets the runner's <see cref="Status"/> property 
-        /// to a running status <paramref name="NewStatus"/> in a thread-safe manner
-        /// (only if the status was <see cref="RunnerStatus.NotStarted"/>).
-        /// Decendent classes may do an additional job to start backgrund processing but only if the base method returns true.
-        /// Otherwise they must just return false.
+        /// Sets the runner's <see cref="Status"/> property  to a running status <paramref name="NewStatus"/> in a 
+        /// thread-safe manner (only if the status was <see cref="RunnerStatus.NotStarted"/>)
+        /// and tries to start a backgrund processing via a <see cref="StartBackgroundExecution"/> virtual method
         /// </remarks>
-        protected internal virtual Boolean StartRunning(RunnerStatus NewStatus=RunnerStatus.Stalled)
+        protected internal Boolean StartRunning(RunnerStatus NewStatus=RunnerStatus.Stalled)
         {
             CheckDisposed();
             RunnerStatus prev_status =
                 (RunnerStatus)Interlocked.CompareExchange(ref _status, (int)NewStatus, (int)RunnerStatus.NotStarted);
             Boolean result = prev_status==RunnerStatus.NotStarted;
             #if TRACE
-            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, Status);
+            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, Status); //TODO if(result)?
             #endif
+            if (result) try 
+                {
+                    StartBackgroundExecution();
+                }
+                catch (Exception exception) {
+                    Logger?.LogErrorStartBkgProcessingFailed(exception, RunnerId);
+                    FailStartRunning(NewStatus);
+                    throw;
+                }
             if (result&&NewStatus.IsFinal()) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
@@ -159,6 +185,51 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
             return result; 
         }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="NewStatus"></param>
+        /// <returns></returns>
+        protected internal async Task<Boolean> StartRunningAsync(RunnerStatus NewStatus = RunnerStatus.Stalled)
+        {
+            CheckDisposed();
+            RunnerStatus prev_status =
+                (RunnerStatus)Interlocked.CompareExchange(ref _status, (int)NewStatus, (int)RunnerStatus.NotStarted);
+            Boolean result = prev_status == RunnerStatus.NotStarted;
+            #if TRACE
+            Logger?.LogTraceRunnerBaseStartedInState(RunnerId, Status);   //TODO Use anover logger method?
+            #endif
+            if(result) try {
+                    await StartBackgroundExecutionAsync();
+                }
+                catch(Exception exception) {
+                    Logger?.LogErrorStartBkgProcessingFailed(exception, RunnerId);
+                    FailStartRunning(NewStatus);
+                    throw;
+                }
+            if(result && NewStatus.IsFinal()) {
+                #if TRACE
+                Logger?.LogTraceRunnerBaseComeToFinalState(RunnerId);
+                #endif
+                _completionTokenSource?.Cancel();
+            }
+            return result;
+
+        }
+
+
+        /// <summary>
+        /// Rollback value of the <see cref="Status"/> property in the case of unsuccessful start of background execution
+        /// </summary>
+        /// <param name="FromNewStatus">Expected value from wich the property to be changed to <see cref="RunnerStatus.NotStarted"/></param>
+        protected internal void FailStartRunning(RunnerStatus FromNewStatus)
+        {
+            RunnerStatus rolled_back = (RunnerStatus)Interlocked.Exchange(ref _status, (int)RunnerStatus.NotStarted);
+            if(rolled_back!=FromNewStatus) Logger?.LogWarningUnexpectedStatusChange(RunnerId, FromNewStatus, rolled_back);
+        }
+
+        //protected inetrnal Boolean SetStartRunningStatus(RunnerStatusExtensions)
 
         /// <summary>
         /// This virtual method will be called from <see cref="SetDisposed"/> method when the object 

@@ -15,6 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Object _lock = new Object();
         Int32 _position = 0;
         PriorityQueue<TaskListItem, Int32> _waitList = new PriorityQueue<TaskListItem, Int32>();
+        readonly Func<IRunnerProgressSetter<TResult>, CancellationToken, Task> _taskToRun;
 
         /// <summary>
         /// TODO
@@ -49,8 +50,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Func<IRunnerProgressSetter<TResult>,CancellationToken,Task> TaskToRun, RunnerId RunnerId, ILogger? Logger) 
             : base(new CancellationTokenSource(), true, RunnerId, Logger)
         {
+            _taskToRun = TaskToRun;
             StartRunning();
-            Task t=TaskToRun(new ProgressSetter(this),CompletionToken).ContinueWith(SessionTaskCompletionHandler);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected internal override void StartBackgroundExecution()
+        {
+            Task t = _taskToRun(new ProgressSetter(this), CompletionToken).ContinueWith(SessionTaskCompletionHandler);
             if(t.Status == TaskStatus.Created) try { t.Start(); } catch(TaskSchedulerException) { }
         }
 

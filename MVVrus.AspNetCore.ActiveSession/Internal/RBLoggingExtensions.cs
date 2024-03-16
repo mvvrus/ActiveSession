@@ -12,6 +12,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_RUNNERBASE, Trace, "RunnerBase:, RunnerId={RunnerId}")]
         */
 
+        [LoggerMessage(E_RUNNERSTARTBKGFAILED, LogLevel.Error, "The exception while starting the runner background execution, RunnerId={RunnerId}.")]
+        public static partial void LogErrorStartBkgProcessingFailed(this ILogger Logger, Exception AnException, RunnerId RunnerId);
+
+        [LoggerMessage(W_RUNNERBASEUNEXPECTEDSTATUS, LogLevel.Warning, "Unexpected runner status detected while rolling back a start of the runner background execution, RunnerId={RunnerId}, expected: {OldStatus}, detected: {RolledBackStatus}.")]
+        public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
+
         [LoggerMessage(T_RUNNERBASECONSENTER, LogLevel.Trace, "RunnerBase: constructor started, RunnerId={RunnerId}")]
         public static partial void LogTraceEnterRunnerBaseConstructor(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASECONSEXIT, LogLevel.Trace, "RunnerBase: constructor complete, RunnerId={RunnerId}")]

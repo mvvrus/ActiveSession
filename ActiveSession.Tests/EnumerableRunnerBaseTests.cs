@@ -907,12 +907,14 @@ namespace ActiveSession.Tests
                 runner.SetCancelStartBkgSync();
                 result_as_task = runner.GetRequiredAsync().AsTask();
                 Assert.True(result_as_task.IsCanceled);
+                Assert.Equal(RunnerStatus.NotStarted, runner.Status);
             }
             //Test case: exception thrown synchronously during asynchchronous start of the background processing
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false)) {
                 runner.SetFailStartBkgSync();
                 result_as_task = runner.GetRequiredAsync().AsTask();
                 Assert.True(result_as_task.IsFaulted);
+                Assert.Equal(RunnerStatus.NotStarted, runner.Status);
             }
             //Test case: cancellation during start of the background processing
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
@@ -924,6 +926,8 @@ namespace ActiveSession.Tests
                 WaitExceptionChecker<TaskCanceledException>.Check(result_as_task, TIMEOUT);
                 (result,status,position,exception)=runner.GetAvailable(); //To check pseudo-lock release
                 Assert.Empty(result);
+                Assert.Equal(RunnerStatus.NotStarted, runner.Status);
+                Assert.Equal(RunnerStatus.NotStarted, status);
             }
             //Test case: exception thrown during start of the background processing
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
@@ -935,6 +939,8 @@ namespace ActiveSession.Tests
                 WaitExceptionChecker<TestException>.Check(result_as_task, TIMEOUT);
                 (result, status, position, exception) = runner.GetAvailable(); //To check pseudo-lock release
                 Assert.Empty(result);
+                Assert.Equal(RunnerStatus.NotStarted, runner.Status);
+                Assert.Equal(RunnerStatus.NotStarted, status);
             }
             //Test case: normal start of background processing, successful asynchronous fetch
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger, false, true)) {
@@ -1168,7 +1174,12 @@ namespace ActiveSession.Tests
                 return _fetchingTask=Task.Run(FetchBody, Token);
             }
 
-            protected internal override Task StartBackgroundProcessingAsync()
+            protected internal override void StartBackgroundExecution()
+            {
+                StartBackgroundExecutionAsync().GetAwaiter().GetResult();
+            }
+
+            protected internal override Task StartBackgroundExecutionAsync()
             {
                 Action pause= () => { _proceedEvent.Reset(); _testEvent.Set(); 
                     _proceedEvent.Wait(_cts.Token); if(_startBkgFaulted) throw new TestException(); };
@@ -1251,14 +1262,16 @@ namespace ActiveSession.Tests
                 throw new NotImplementedException();
             }
 
-            protected internal override Task StartBackgroundProcessingAsync() { return Task.CompletedTask; }
-
             public Int32 FillQueueToCapacity()
             {
                 StartRunning(RunnerStatus.Progressed);
                 Int32 count = 0;
                 while(Queue.TryAdd(count, 100)) count++;
                 return count;
+            }
+
+            protected internal override void StartBackgroundExecution()
+            {
             }
         }
 

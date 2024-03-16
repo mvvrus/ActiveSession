@@ -1673,6 +1673,11 @@ namespace ActiveSession.Tests
             {
                 throw new NotImplementedException();
             }
+
+            protected internal override void StartBackgroundExecution()
+            {
+                throw new NotImplementedException();
+            }
         }
 
 

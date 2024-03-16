@@ -196,11 +196,32 @@ namespace ActiveSession.Tests
 
         }
 
+        //Test group: Exception thrown while starting background execution
+        [Fact]
+        public void FailWhileStartingBackgroundExecution()
+        {
+            RunnerBaseImpl runner = new RunnerBaseImpl(AtStartBkg: () => throw new TestException());
+            //Test case: exception thrown in StartBackgroundExecution
+            Assert.Throws<TestException>(()=>runner.StartRunning());
+            Assert.Equal(RunnerStatus.NotStarted, runner.Status);
+            //Test case: exception thrown in StartBackgroundExecutionAsync
+            Task task = runner.StartRunningAsync();
+            Assert.True(task.IsFaulted);
+            Assert.NotNull(task.Exception);
+            AggregateException aggregate = Assert.IsType<AggregateException>(task.Exception!);
+            Assert.Single(aggregate.InnerExceptions);
+            Assert.IsType<TestException>(aggregate.InnerExceptions[0]);
+            Assert.Equal(RunnerStatus.NotStarted, runner.Status);
+        }
+
+        class TestException : Exception { }
 
         class RunnerBaseImpl : RunnerBase
         {
-            public RunnerBaseImpl(CancellationTokenSource? CompletionTokenSource = null, Boolean PassCtsOwnership = true):
-                base(CompletionTokenSource, PassCtsOwnership, default) { }
+            readonly Action? _atStartBkg;
+
+            public RunnerBaseImpl(CancellationTokenSource? CompletionTokenSource = null, Boolean PassCtsOwnership = true, Action? AtStartBkg=null):
+                base(CompletionTokenSource, PassCtsOwnership, default) { _atStartBkg = AtStartBkg; }
 
             public Boolean DoAbortCalled { get; private set; }
 
@@ -233,6 +254,11 @@ namespace ActiveSession.Tests
             {
                 DoAbortCalled=true;
                 base.DoAbort();
+            }
+
+            protected internal override void StartBackgroundExecution()
+            {
+                _atStartBkg?.Invoke();
             }
         }
 

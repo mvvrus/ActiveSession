@@ -120,13 +120,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected internal override Task StartBackgroundProcessingAsync()
+        protected internal override void StartBackgroundExecution()
         {
                 //Start _asyncEnumerable enumeration task chain
                 _asyncEnumerator=_asyncSource.GetAsyncEnumerator(CompletionToken);
                 _taskChainTail=_asyncEnumerator.MoveNextAsync().AsTask()
                     .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
-            return Task.CompletedTask;
         }
 
         void ItemAction(Task<bool> NextStep)

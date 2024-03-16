@@ -38,7 +38,7 @@ namespace ProbeApp
             Int32 StartPosition = IRunner.CURRENT_POSITION,
             String? TraceIdentifier = null)
         {
-            if(StartRunning()) StartBackground();
+            if(StartRunning()) StartBackgroundExecution();
             if (Advance<=0) Advance=1;
             RunnerResult<int> result=default;
             for (int i=0;i<Advance; i++) {
@@ -54,7 +54,7 @@ namespace ProbeApp
             return result;
         }
 
-        void StartBackground()
+        protected override void StartBackgroundExecution()
         {
             _task_to_continue=Task.Run(() => BackgroundTaskBody());
         }

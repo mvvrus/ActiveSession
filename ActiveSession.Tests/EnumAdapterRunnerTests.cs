@@ -23,7 +23,7 @@ namespace ActiveSession.Tests
                 step1 = 5;
                 test_enumerable.AddFirstPause(step1);
                 using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundProcessing();
+                    runner.StartBackgroundExecution();
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(test_enumerable.WaitForPause());
                     Assert.False(runner.EnumTask.IsCompleted);
@@ -42,7 +42,7 @@ namespace ActiveSession.Tests
                 step1 = 19;
                 test_enumerable.AddFirstPause(step1);
                 using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundProcessing();
+                    runner.StartBackgroundExecution();
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(test_enumerable.WaitForPause());
                     Assert.False(runner.EnumTask.IsCompleted);
@@ -60,7 +60,7 @@ namespace ActiveSession.Tests
                 step1 = 10;
                 test_enumerable.AddFirstPause(step1, () => throw new TestException());
                 using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundProcessing();
+                    runner.StartBackgroundExecution();
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(runner.EnumTask.Wait(5000));
                     Assert.True(runner.EnumTask.IsCompletedSuccessfully);

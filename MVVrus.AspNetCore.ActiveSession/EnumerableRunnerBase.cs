@@ -230,7 +230,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
-        protected internal abstract Task StartBackgroundProcessingAsync();
+        protected internal override Task StartBackgroundExecutionAsync() { throw new NotImplementedException(); }
 
         /// <summary>
         /// TODO
@@ -240,42 +240,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Token"></param>
         /// <returns></returns>
         protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="NewStatus"></param>
-        /// <returns></returns>
-        protected internal override Boolean StartRunning(RunnerStatus NewStatus = RunnerStatus.Stalled)
-        {
-            if(base.StartRunning(NewStatus)) {
-                StartBackgroundProcessing();
-                return true;
-            }
-            else return false;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="NewStatus"></param>
-        /// <returns></returns>
-        protected internal async Task<Boolean> StartRunningAsync(RunnerStatus NewStatus = RunnerStatus.Stalled)
-        {
-            if(base.StartRunning(NewStatus)) {
-                await StartBackgroundProcessingAsync();
-                return true;
-            }
-            else return false;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        protected internal void StartBackgroundProcessing()
-        {
-            StartBackgroundProcessingAsync().Wait();
-        }
 
         /// <summary>
         /// TODO
