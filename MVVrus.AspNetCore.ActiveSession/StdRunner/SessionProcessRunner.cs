@@ -6,7 +6,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// TODO                                                                                     
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>, IRunnerProgress
+    public class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>, IRunnerBackgroundProgress
     {
         //Action<IProgressSetter<TResult>, CancellationToken> _procToRun;
         TResult _result=default!;
