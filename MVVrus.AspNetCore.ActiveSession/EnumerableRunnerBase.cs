@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
+using System.Collections;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
@@ -12,12 +13,13 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// TODO
     /// </summary>
     /// <typeparam name="TItem"></typeparam>
-    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IAsyncDisposable
+    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress ,IAsyncDisposable
     {
         //TODO Implement logging
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
 
         readonly BlockingCollection<TItem> _queue;
+        readonly QueueFacade _queueFacade;
         readonly int _defaultAdvance;
         Task? _disposeTask = null;
         List<TItem>? _stashedFetch=null;
@@ -29,7 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// TODO
         /// </value>
-        protected internal BlockingCollection<TItem> Queue { get => _queue; }
+        protected internal IItemsQueueFacade<TItem> Queue { get => _queueFacade; }
 
         /// <summary>
         /// TODO
@@ -63,6 +65,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             _queue = new BlockingCollection<TItem>(QueueSize);
             _defaultAdvance = DefaultAdvance;
+            _queueFacade = new QueueFacade(this);
         }
 
         ///<inheritdoc/>
@@ -182,17 +185,16 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
         }
 
-        void ContinueAsyncStartBackgroundProcessing(Task FetchTask, Object? Context)
+        ///<inheritdoc/>
+        ///<remarks>
+        ///Retunrs total number of elements already fetched by background process in the Progress result field
+        ///The EstimatedEnd result field will be left null until the runner background execution finishes.
+        ///Otherwise it will contain the same value as Progress field
+        ///</remarks>
+        public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
         {
-            Context context = (Context as Context) ?? throw new ArgumentException(nameof(Context));
-            if(FetchAvailable(context.Advance, context.Accumulator)) {
-                //Short path successfull: set correct Status
-                FinishAndMakeResultBody(FetchTask, Context);
-            }
-            else {
-                AttacFetchResultProcessing(FetchRequiredAsync(context.Advance, context.Accumulator, context.Token), context);
-            }
-
+            Int32 progress = _queueFacade.AddedCount;
+            return (progress, (_queue.IsAddingCompleted ? progress : null));
         }
 
         ///<inheritdoc/>
@@ -230,6 +232,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
+        protected override void DoAbort()
+        {
+            base.DoAbort();
+            if (!Disposed())try {
+                _queue.CompleteAdding();
+            }
+            catch(ObjectDisposedException) { };
+        }
+        /// <summary>
+        /// TODO
+        /// </summary>
         protected internal override Task StartBackgroundExecutionAsync() { throw new NotImplementedException(); }
 
         /// <summary>
@@ -249,6 +262,19 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             //TODO Log error
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
+        }
+
+        void ContinueAsyncStartBackgroundProcessing(Task FetchTask, Object? Context)
+        {
+            Context context = (Context as Context) ?? throw new ArgumentException(nameof(Context));
+            if(FetchAvailable(context.Advance, context.Accumulator)) {
+                //Short path successfull: set correct Status
+                FinishAndMakeResultBody(FetchTask, Context);
+            }
+            else {
+                AttacFetchResultProcessing(FetchRequiredAsync(context.Advance, context.Accumulator, context.Token), context);
+            }
+
         }
 
         void AttacFetchResultProcessing(Task FetchTask, Context Context)
@@ -407,6 +433,24 @@ namespace MVVrus.AspNetCore.ActiveSession
                 this.Advance = Advance;
                 this.Token = Token;
             }
+        }
+
+        class QueueFacade : IItemsQueueFacade<TItem>
+        {
+            EnumerableRunnerBase<TItem> _this;
+            public Int32 AddedCount { get; private set; } = 0;
+
+            public QueueFacade(EnumerableRunnerBase<TItem> This) { _this = This; }
+            public Boolean IsAddingCompleted => _this._queue.IsAddingCompleted;
+            public Int32 Count => _this._queue.Count;
+            public void CompleteAdding() => _this._queue.CompleteAdding();
+            public Boolean TryAdd(TItem Item, Int32 Timeout, CancellationToken Token)
+            {
+                Boolean result = _this._queue.TryAdd(Item, Timeout, Token);
+                if(result) AddedCount= AddedCount + 1;
+                return result;
+            }
+            public Boolean TryTake(out TItem Item) => _this._queue.TryTake(out Item!);
         }
 
     }

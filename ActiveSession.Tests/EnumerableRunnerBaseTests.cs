@@ -80,20 +80,24 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(0, position);
                 Assert.Null(exception);
+                Assert.Equal((0, null), runner.GetProgress());
 
                 runner.SimulateBackgroundFetch(PAGE_SIZE*3);
+                Assert.Equal((PAGE_SIZE * 3, null), runner.GetProgress());
                 //Test partialial available data extraction 
                 (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, null), runner.GetProgress());
                 //Test all available data extraction 
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, PAGE_SIZE, PAGE_SIZE*2));
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(PAGE_SIZE*3, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, null), runner.GetProgress());
             }
         }
 
@@ -109,17 +113,20 @@ namespace ActiveSession.Tests
             Exception? exception;
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3, true);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 //Test partial available data extraction
                 (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 //Test all available data extraction
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, PAGE_SIZE, 2*PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Complete, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
         }
 
@@ -135,18 +142,21 @@ namespace ActiveSession.Tests
             Exception? exception;
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3, true,new TestException());
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 //Test partial available data extraction
                 (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 //Test all available data extraction
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, PAGE_SIZE, 2 * PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Failed, status);
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
         }
 
@@ -168,6 +178,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
             //Test Abort when background fetch is complete
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -177,6 +188,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
             //Test Abort when background fetch throwed an error
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
@@ -186,6 +198,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
         }
 
@@ -246,9 +259,11 @@ namespace ActiveSession.Tests
                     result_task = runner.GetRequiredAsync(3 * PAGE_SIZE, cts.Token).Preserve();
                     Assert.False(result_task.IsCompleted);
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE * 2);
+                    Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
                     Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
+                    Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
 
                     //Test case: more than required stashed data to satisfy request
                     (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
@@ -256,6 +271,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(PAGE_SIZE, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
                     //Test case: not enough stashed data to satisfy request but with more data in the queue it's enough
                     runner.SimulateBackgroundFetch(PAGE_SIZE * 2);
                     (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE * 2);
@@ -263,12 +279,14 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(PAGE_SIZE * 3, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 4, (Int32?)(null)), runner.GetProgress());
                     //Test case: check predictions about data left in the queue
                     (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE * 2);
                     Assert.True(CheckRange(result, PAGE_SIZE * 3, PAGE_SIZE));
                     Assert.Equal(RunnerStatus.Stalled, status);
                     Assert.Equal(PAGE_SIZE * 4, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 4, (Int32?)(null)), runner.GetProgress());
                 }
             }
         }
@@ -330,6 +348,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
                 //Test synchronous call that gets all data from the queue while backgrond work is in progress
                 result_task = runner.GetRequiredAsync(PAGE_SIZE).Preserve();
                 Assert.True(result_task.IsCompletedSuccessfully);
@@ -338,6 +357,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(PAGE_SIZE*2, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -363,6 +383,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 2, (Int32?)(PAGE_SIZE * 2)), runner.GetProgress());
                 //Test synchronous call that gets more data from the queue while backgrond work is already complete
                 result_task = runner.GetRequiredAsync(PAGE_SIZE*2).Preserve();
                 Assert.True(result_task.IsCompletedSuccessfully);
@@ -396,6 +417,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 2, (Int32?)(PAGE_SIZE * 2)), runner.GetProgress());
                 //Test synchronous call that gets more data from the queue while backgrond work has been failed
                 result_task = runner.GetRequiredAsync(PAGE_SIZE * 2).Preserve();
                 Assert.True(result_task.IsCompletedSuccessfully);
@@ -406,6 +428,7 @@ namespace ActiveSession.Tests
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
                 runner.GetAvailable(); //To check pseudo-lock release
+                Assert.Equal((PAGE_SIZE * 2, (Int32?)(PAGE_SIZE * 2)), runner.GetProgress());
             }
         }
 
@@ -428,6 +451,7 @@ namespace ActiveSession.Tests
                 //Test outstanding async call state given insufficient data to complete
                 runner.SimulateBackgroundFetchWithWait(PAGE_SIZE);
                 Assert.False(result_task.IsCompleted);
+                Assert.Equal((PAGE_SIZE, (Int32?)(null)), runner.GetProgress());
                 //Test outstanding async call state given excess data to complete
                 runner.SimulateBackgroundFetchWithWait(PAGE_SIZE*2);
                 result_as_task = result_task.AsTask();
@@ -438,6 +462,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Equal(2*PAGE_SIZE, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(null)), runner.GetProgress());
                 //Test call with insufficient data in the queue
                 result_task = runner.GetRequiredAsync(2 * PAGE_SIZE).Preserve();
                 Assert.False(result_task.IsCompleted);
@@ -451,12 +476,13 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, status);
                 Assert.Equal(PAGE_SIZE*4, position);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 4, (Int32?)(null)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
 
         [Fact]
-        //Test group: GetRequiredAsync asynchronous execution, background work is in progres
+        //Test group: GetRequiredAsync asynchronous execution, background work is completed
         public void GetRequiredAsync_CompletedAsync() 
         {
             MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
@@ -479,6 +505,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Complete, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE, (Int32?)(PAGE_SIZE)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test outstanding async call state giving more data than requested and complete the background task
@@ -493,6 +520,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 2*PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -522,6 +550,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Failed, status);
                 Assert.NotNull(exception);
                 Assert.IsType<TestException>(exception);
+                Assert.Equal((PAGE_SIZE, (Int32?)(PAGE_SIZE)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test outstanding async call state giving more data than requested and fail the background task
@@ -536,6 +565,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 2 * PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Progressed, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -562,6 +592,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(TaskStatus.Canceled, result_task.AsTask().Status);
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.True(CheckRange(result, 0, PAGE_SIZE));
+                    Assert.Equal((PAGE_SIZE, (Int32?)(null)), runner.GetProgress());
                     runner.GetAvailable(); //To check pseudo-lock release
                 }
             }
@@ -587,6 +618,7 @@ namespace ActiveSession.Tests
                 Assert.Throws<TestException>(() => result_task.GetAwaiter().GetResult());
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
+                Assert.Equal((PAGE_SIZE, (Int32?)(null)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -619,6 +651,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(PAGE_SIZE, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 2, (Int32?)(null)), runner.GetProgress());
                     //Test case: not enough stashed data to satisfy request but with more data in the queue it's enough
                     runner.SimulateBackgroundFetch(PAGE_SIZE);
                     result_task = runner.GetRequiredAsync(PAGE_SIZE * 2).Preserve();
@@ -628,6 +661,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Stalled, status);
                     Assert.Equal(PAGE_SIZE * 3, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 3, (Int32?)(null)), runner.GetProgress());
                 }
 
             }
@@ -639,6 +673,7 @@ namespace ActiveSession.Tests
                     runner.SimulateBackgroundFetchWithWait(PAGE_SIZE);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
+                    Assert.Equal((PAGE_SIZE, (Int32?)(null)), runner.GetProgress());
                     Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
                     runner.SimulateBackgroundFetch(PAGE_SIZE);
                     result_task = runner.GetRequiredAsync(PAGE_SIZE * 3).Preserve();
@@ -652,6 +687,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Stalled, status);
                     Assert.Equal(PAGE_SIZE * 3, position);
                     Assert.Null(exception);
+                    Assert.Equal((PAGE_SIZE * 3, (Int32?)(null)), runner.GetProgress());
                 }
             }
         }
@@ -689,6 +725,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
             //Test Abort when background fetch throwed an error
@@ -701,6 +738,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, 0));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -729,6 +767,7 @@ namespace ActiveSession.Tests
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
                 Assert.Equal(RunnerStatus.Aborted, status);
                 Assert.Null(exception);
+                Assert.Equal((PAGE_SIZE, (Int32?)(PAGE_SIZE)), runner.GetProgress());
                 runner.GetAvailable(); //To check pseudo-lock release
             }
         }
@@ -950,7 +989,7 @@ namespace ActiveSession.Tests
                 Assert.False(result_as_task.IsCompleted);
                 runner.ResumeStartBkg(PAGE_SIZE / 2);
                 for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Empty(runner.Queue);
+                Assert.Equal(0, runner.Queue.Count);
                 Assert.False(result_as_task.IsCompleted);
                 runner.SimulateBackgroundFetch(PAGE_SIZE);
                 Assert.True(result_as_task.Wait(TIMEOUT));
@@ -981,7 +1020,7 @@ namespace ActiveSession.Tests
                     Assert.False(result_as_task.IsCompleted);
                     runner.ResumeStartBkg(PAGE_SIZE / 2);
                     for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                    Assert.Empty(runner.Queue);
+                    Assert.Equal(0, runner.Queue.Count);
                     Assert.False(result_as_task.IsCompleted);
                     cts.Cancel();
                     WaitExceptionChecker<TaskCanceledException>.Check(result_as_task, TIMEOUT);
@@ -997,7 +1036,7 @@ namespace ActiveSession.Tests
                 Assert.False(result_as_task.IsCompleted);
                 runner.ResumeStartBkg(PAGE_SIZE / 2);
                 for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Empty(runner.Queue);
+                Assert.Equal(0, runner.Queue.Count);
                 Assert.False(result_as_task.IsCompleted);
                 runner.SimulateFetchException(new TestException());
                 WaitExceptionChecker<TestException>.Check(result_as_task, TIMEOUT);
@@ -1097,7 +1136,7 @@ namespace ActiveSession.Tests
                 if(!Monitor.TryEnter(this,TIMEOUT)) throw new TimeoutException();
                 try {
                     if(Status.IsFinal()) throw new InvalidOperationException("The runner is already completed.");
-                    for(Int32 i = 0; i < Advance; i++) Queue.Add(_progress++);
+                    for(Int32 i = 0; i < Advance; i++) Queue.TryAdd(_progress++,-1,default);
                     if(IsTheLast) {
                         Queue.CompleteAdding();
                         if(BackgroundException != null) Exception = BackgroundException;
@@ -1266,7 +1305,7 @@ namespace ActiveSession.Tests
             {
                 StartRunning(RunnerStatus.Progressed);
                 Int32 count = 0;
-                while(Queue.TryAdd(count, 100)) count++;
+                while(Queue.TryAdd(count, 100, default)) count++;
                 return count;
             }
 

@@ -180,7 +180,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 }
                 if (NextStep.IsCompletedSuccessfully)  {
                     if (NextStep.Result && !status_is_final) {
-                        Queue.Add(_asyncEnumerator.Current);
+                        Queue.TryAdd(_asyncEnumerator.Current, -1, default);
                         proceed = true;
                     }
                     else if (status_is_final) { //The queue may be legally disposed already, if so - eat the exception thrown due to this

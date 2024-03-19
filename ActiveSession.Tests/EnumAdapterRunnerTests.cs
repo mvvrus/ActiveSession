@@ -106,7 +106,7 @@ namespace ActiveSession.Tests
                 Assert.False(runner.EnumTask.IsCompleted);
                 Assert.False(fetch_task.IsCompleted);
                 for(int i = 0; i < 1000 && runner.Queue.Count > 0 ; i++) Thread.Sleep(100);
-                Assert.Empty(runner.Queue);
+                Assert.Equal(0, runner.Queue.Count);
                 Assert.Equal(step2, result.Count);
                 CheckRange(result, 0, step2);
                 //Test case: await on the more than sufficiently filled queue, background fetch is in progress
@@ -136,7 +136,7 @@ namespace ActiveSession.Tests
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(advance, result.Count);
                 CheckRange(result, advance, advance);
-                Assert.Empty(runner.Queue);
+                Assert.Equal(0, runner.Queue.Count);
                 step1 = step2;
                 step2 = 25;
                 test_enumerable.AddNextPause(step2 - step1);
@@ -158,7 +158,7 @@ namespace ActiveSession.Tests
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(end-2*advance, result.Count);
                 CheckRange(result, 2*advance, end-2*advance);
-                Assert.Empty(runner.Queue);
+                Assert.Equal(0, runner.Queue.Count);
             }
             finally {
                 runner?.Dispose();
@@ -500,7 +500,7 @@ namespace ActiveSession.Tests
 
     static class EnumAdapterRunnerTestsUtil
     {
-        public static void FetchAndCheck(this BlockingCollection<Int32> Queue, Int32 StartValue, Int32 Count)
+        public static void FetchAndCheck(this IItemsQueueFacade<Int32> Queue, Int32 StartValue, Int32 Count)
         {
             Assert.Equal(Count, Queue.Count);
             for(int i = 0; i < Count; i++) {
