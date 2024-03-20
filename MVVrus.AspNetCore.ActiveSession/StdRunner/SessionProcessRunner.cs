@@ -59,7 +59,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected internal override void StartBackgroundExecution()
         {
-            Task t = _taskToRun(new ProgressSetter(this), CompletionToken).ContinueWith(SessionTaskCompletionHandler);
+            Task t = _taskToRun(new ProgressSetter(this), CompletionToken);
+            t.ContinueWith(SessionTaskCompletionHandler);
             if(t.Status == TaskStatus.Created) try { t.Start(); } catch(TaskSchedulerException) { }
         }
 
@@ -187,6 +188,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
 
         /// <inheritdoc/>
+        public Boolean IsBackgroundExecutionCompleted { get; private set; } = false;
+
+        /// <inheritdoc/>
         public override Int32 Position { get => _position;} //TODO Volatile.Read?
 
         void CancelATask(object? Item)
@@ -219,6 +223,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         void SessionTaskCompletionHandler(Task Antecedent)
         {
             lock (_lock) {
+                IsBackgroundExecutionCompleted = true;
                 RunnerStatus status = Antecedent.Status switch
                 {
                     TaskStatus.RanToCompletion => RunnerStatus.Complete,

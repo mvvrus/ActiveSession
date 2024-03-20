@@ -13,7 +13,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// TODO
     /// </summary>
     /// <typeparam name="TItem"></typeparam>
-    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress ,IAsyncDisposable
+    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress, IAsyncDisposable
     {
         //TODO Implement logging
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
@@ -22,7 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         readonly QueueFacade _queueFacade;
         readonly int _defaultAdvance;
         Task? _disposeTask = null;
-        List<TItem>? _stashedFetch=null;
+        List<TItem>? _stashedFetch = null;
         volatile TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? _waitingTaskSource = null;
         //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
         //The code using it just exits then the pseudo-lock cannot be acquired,
@@ -46,8 +46,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected EnumerableRunnerBase(
             CancellationTokenSource? Cts, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
             IOptionsSnapshot<ActiveSessionOptions> Options, Int32? DefaultAdvance = null, Int32? QueueSize = null
-        ) : this(Cts, PassCtsOwnership, RunnerId, Logger, 
-                DefaultAdvance??Options.Value.DefaultEnumerableAdvance, QueueSize?? Options.Value.DefaultEnumerableQueueSize) {}
+        ) : this(Cts, PassCtsOwnership, RunnerId, Logger,
+                DefaultAdvance ?? Options.Value.DefaultEnumerableAdvance, QueueSize ?? Options.Value.DefaultEnumerableQueueSize) { }
 
         /// <summary>
         /// TODO
@@ -71,11 +71,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///<inheritdoc/>
         public ValueTask DisposeAsync()
         {
-            if (SetDisposed()) {
+            if(SetDisposed()) {
                 //LogTrace DisposeAsync called
-                _disposeTask=DisposeAsyncCore();
+                _disposeTask = DisposeAsyncCore();
             }
-            return _disposeTask!.IsCompleted?ValueTask.CompletedTask:new ValueTask(_disposeTask!);
+            return _disposeTask!.IsCompleted ? ValueTask.CompletedTask : new ValueTask(_disposeTask!);
         }
 
         /// <inheritdoc/>
@@ -84,7 +84,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             get
             {
                 RunnerStatus status = base.Status;
-                if (!Disposed() && status==Stalled && (_queue.Count>0 || _stashedFetch!=null)) status=Progressed;
+                if(!Disposed() && status == Stalled && (_queue.Count > 0 || _stashedFetch != null)) status = Progressed;
 #if TRACE
 #endif
                 return status;
@@ -193,9 +193,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///</remarks>
         public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
         {
+            CheckDisposed();
             Int32 progress = _queueFacade.AddedCount;
-            return (progress, (_queue.IsAddingCompleted ? progress : null));
+            return (progress, (IsBackgroundExecutionCompleted ? progress : null));
         }
+
+        /// <inheritdoc/>
+        public Boolean IsBackgroundExecutionCompleted { get { CheckDisposed(); return _queue.IsAddingCompleted; } }
 
         ///<inheritdoc/>
         protected override void PreDispose()

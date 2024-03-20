@@ -13,5 +13,9 @@
         ///   <para>EstimatedEnd: estimation of a <see cref="IRunner.Position"/> value to be at a finish of the background execution(if any)</para>
         /// </returns>
         (Int32 Progress, Int32? EstimatedEnd) GetProgress();
+        /// <value>
+        /// Indicate whether the background operation is completed.
+        /// </value>
+        Boolean IsBackgroundExecutionCompleted { get; }
     }
 }
