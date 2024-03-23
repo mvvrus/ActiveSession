@@ -190,10 +190,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void DoAbort()
+        protected override void DoAbort(String TraceIdentifier)
         {
             TryRunAwaitContinuation();
-            base.DoAbort();
+            base.DoAbort(TraceIdentifier);
         }
 
         void EnumerateSource()

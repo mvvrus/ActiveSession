@@ -35,7 +35,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>
         /// Method that terminates the runner execution
         /// </value>
-        public void Abort();
+        public void Abort(String? TraceIdentifier = null);
 
         /// <value>
         /// CancellationToken to be cancelled then runner is completed:

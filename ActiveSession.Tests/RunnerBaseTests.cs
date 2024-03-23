@@ -250,10 +250,10 @@ namespace ActiveSession.Tests
                 base.CheckDisposed();
             }
 
-            protected override void DoAbort()
+            protected override void DoAbort(String TraceIdentifier)
             {
                 DoAbortCalled=true;
-                base.DoAbort();
+                base.DoAbort(TraceIdentifier);
             }
 
             protected internal override void StartBackgroundExecution()

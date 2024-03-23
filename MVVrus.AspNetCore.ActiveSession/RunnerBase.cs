@@ -61,8 +61,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         public virtual Int32 Position { get; protected set; } = 0;
 
         /// <inheritdoc/>
-        public void Abort() { 
-            if(SetStatus(RunnerStatus.Aborted)) DoAbort();
+        public void Abort(String? TraceIdentifier = null) 
+        {
+            if(SetStatus(RunnerStatus.Aborted)) {
+                Logger?.LogTraceRunnerBaseAbortCalled(RunnerId, TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
+                DoAbort(TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
+            }
         }
 
         /// <inheritdoc/>
@@ -127,7 +131,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Semi-abstract method to perform additional work for the <see cref="Abort"/> method in descendent classes. Does nothing in this class
         /// </summary>
-        protected virtual void DoAbort() {}
+        protected virtual void DoAbort(String TraceIdentifier) {}
 
         /// <summary>
         /// Abstract Method to start background execution synchronously.  Must be overriden in descendent classes.

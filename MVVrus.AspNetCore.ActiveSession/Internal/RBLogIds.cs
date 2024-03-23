@@ -23,6 +23,7 @@
         public const Int32 T_RUNNERBASESTATESET = 14006;
         public const Int32 T_RUNNERBASEREACHFINAL = 14007;
         public const Int32 T_RUNNERBASESTARTED = 14008;
+        public const Int32 T_RUNNERBASESABORTCALLED = 14009;
 
         public const Int32 T_ENUMRUNNERBASE = 14100;
         public const Int32 T_ENUMRUNNERBASEPSEUDOLOCKACQUIRED = 14101;

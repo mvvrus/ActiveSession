@@ -190,7 +190,7 @@ namespace ActiveSession.Tests
             manager.Dispose();
         }
 
-        Expression<Action<IRunner>> AbortExpression = s => s.Abort();
+        Expression<Action<IRunner>> AbortExpression = s => s.Abort(null);
         Mock<IRunner> MockRunner()
         {
             Mock<IRunner> result = new Mock<IRunner>();
@@ -470,7 +470,7 @@ namespace ActiveSession.Tests
 
             public Int32 Position => 0;
 
-            public void Abort()
+            public void Abort(String? TraceIdentifier = null)
             {
                 Status=RunnerStatus.Aborted;
                 _completionTokenSource.Cancel();

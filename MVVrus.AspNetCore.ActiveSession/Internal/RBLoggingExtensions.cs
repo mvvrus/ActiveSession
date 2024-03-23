@@ -44,6 +44,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceRunnerBaseComeToFinalState(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASESTARTED, LogLevel.Trace, "RunnerBase: the runner started, RunnerId={RunnerId}, State={State}")]
         public static partial void LogTraceRunnerBaseStartedInState(this ILogger Logger, RunnerId RunnerId, RunnerStatus State);
+        [LoggerMessage(T_RUNNERBASESABORTCALLED, LogLevel.Trace, "RunnerBase.Abort() is called, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier} ")]
+        public static partial void LogTraceRunnerBaseAbortCalled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKACQUIRED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock acquired, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBasePseudoLockAcquired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
@@ -73,8 +75,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEGETREQUIREDRETURNASYNC, LogLevel.Trace, "EnumerableRunnerBase.GetRequiredAsync returned task to complete the operation asynchronously , RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseGetRequiredExitAsync(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_ENUMRUNNERBASEABORTCORE, LogLevel.Trace, "EnumerableRunnerBase: Abort-associated actions to be executed, RunnerId={RunnerId}")]
-        public static partial void LogTraceEnumerableRunnerBaseAbortCore(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMRUNNERBASEABORTCORE, LogLevel.Trace, "EnumerableRunnerBase: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumerableRunnerBaseAbortCore(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEFETCH, LogLevel.Trace, "EnumerableRunnerBase.FetchAvailable entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseFetchAvailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEFETCHFINAL, LogLevel.Trace, "EnumerableRunnerBase.FetchAvailable final stage detected, nothing to fetch any more, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]

@@ -110,7 +110,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         protected override async Task DisposeAsyncCore()
         {
             Task task_chain_tail;
-            DoAbort();
+            DoAbort(UNKNOWN_TRACE_IDENTIFIER);
             do
             {
                 task_chain_tail = _taskChainTail;

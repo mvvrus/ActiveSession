@@ -9,7 +9,7 @@ namespace ActiveSession.Tests
 
         public int Position => throw new NotImplementedException();
 
-        public void Abort()
+        public void Abort(String? TraceIdentifier = null)
         {
             throw new NotImplementedException();
         }

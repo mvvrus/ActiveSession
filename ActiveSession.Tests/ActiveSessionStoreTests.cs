@@ -1197,7 +1197,7 @@ namespace ActiveSession.Tests
 
             public IRunner<TResult> Runner { get =>_fakeRunner.Object; }
             public readonly TRequest Arg;
-            Expression<Action<IRunner<TResult>>> abort_expression= s => s.Abort();
+            Expression<Action<IRunner<TResult>>> abort_expression= s => s.Abort(null);
 
 
             public MockedRunner(CancellationTokenSource Cts, TRequest Arg)

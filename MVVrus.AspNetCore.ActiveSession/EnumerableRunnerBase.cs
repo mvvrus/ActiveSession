@@ -273,16 +273,16 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// TODO
         /// </summary>
-        protected override void DoAbort()
+        protected override void DoAbort(String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAbortCore(RunnerId);
+            _logger?.LogTraceEnumerableRunnerBaseAbortCore(RunnerId, TraceIdentifier);
             #endif
             if(!Disposed()) try {
                     _queue.CompleteAdding();
                 }
             catch(ObjectDisposedException) { };
-            base.DoAbort();
+            base.DoAbort(TraceIdentifier);
         }
 
         /// <summary>
