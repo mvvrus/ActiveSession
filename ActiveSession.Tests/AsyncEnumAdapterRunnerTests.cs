@@ -27,15 +27,15 @@ namespace ActiveSession.Tests
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(test_enumerable.WaitForPause());
                     Assert.False(runner.EnumTask.IsCompleted);
-                    Assert.False(runner.Queue.IsAddingCompleted);
-                    runner.Queue.FetchAndCheck(0, step1);
+                    Assert.False(runner.QueueIsAddingCompleted);
+                    runner.FetchAndCheck(0, step1);
                     //Test case: enumeration to the end
                     test_enumerable.Resume();
                     Assert.True(runner.EnumTask.Wait(5000));
                     Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.Queue.IsAddingCompleted);
+                    Assert.True(runner.QueueIsAddingCompleted);
                     Assert.Null(runner.Exception);
-                    runner.Queue.FetchAndCheck(step1, end - step1);
+                    runner.FetchAndCheck(step1, end - step1);
                 }
                 //Test case Abort call while eumerating
                 test_enumerable.ReleaseTestEnumerable();
@@ -46,14 +46,14 @@ namespace ActiveSession.Tests
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(test_enumerable.WaitForPause());
                     Assert.False(runner.EnumTask.IsCompleted);
-                    Assert.False(runner.Queue.IsAddingCompleted);
+                    Assert.False(runner.QueueIsAddingCompleted);
                     runner.Abort();
                     test_enumerable.Resume();
                     Assert.True(runner.EnumTask.Wait(5000));
                     Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.Queue.IsAddingCompleted);
+                    Assert.True(runner.QueueIsAddingCompleted);
                     Assert.Null(runner.Exception);
-                    runner.Queue.FetchAndCheck(0, step1);
+                    runner.FetchAndCheck(0, step1);
                 }
                 //Test case: exception while enumerating
                 test_enumerable.ReleaseTestEnumerable();
@@ -64,10 +64,10 @@ namespace ActiveSession.Tests
                     Assert.NotNull(runner.EnumTask);
                     Assert.True(runner.EnumTask.Wait(5000));
                     Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.Queue.IsAddingCompleted);
+                    Assert.True(runner.QueueIsAddingCompleted);
                     Assert.NotNull(runner.Exception);
                     Assert.IsType<TestException>(runner.Exception);
-                    runner.Queue.FetchAndCheck(0, step1);
+                    runner.FetchAndCheck(0, step1);
                 }
 
             }
@@ -105,8 +105,8 @@ namespace ActiveSession.Tests
                 Assert.True(test_enumerable.WaitForPause());
                 Assert.False(runner.EnumTask.IsCompleted);
                 Assert.False(fetch_task.IsCompleted);
-                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Equal(0,runner.Queue.Count);
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                Assert.Equal(0,runner.QueueCount);
                 Assert.Equal(step2, result.Count);
                 CheckRange(result, 0, step2);
                 //Test case: await on the more than sufficiently filled queue, background fetch is in progress
@@ -120,7 +120,7 @@ namespace ActiveSession.Tests
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(advance, result.Count);
                 CheckRange(result, 0, advance);
-                Assert.Equal(step2 - advance, runner.Queue.Count);
+                Assert.Equal(step2 - advance, runner.QueueCount);
                 //Test case: await on queue to be filled with just the same amount as requested, background fetch is in progress
                 result = new List<Int32>();
                 runner.FetchAvailable(advance, result);
@@ -136,19 +136,19 @@ namespace ActiveSession.Tests
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(advance, result.Count);
                 CheckRange(result, advance, advance);
-                Assert.Equal(0, runner.Queue.Count);
+                Assert.Equal(0, runner.QueueCount);
                 step1 = step2;
                 step2 = 25;
                 test_enumerable.AddNextPause(step2 - step1);
                 test_enumerable.Resume();
                 Assert.True(test_enumerable.WaitForPause());
-                Assert.Equal(step2 - 2 * advance, runner.Queue.Count);
+                Assert.Equal(step2 - 2 * advance, runner.QueueCount);
                 //Test case: await on the initially insufficiently filled queue, background fetch is in progress
                 result = new List<Int32>();
                 runner.FetchAvailable(advance, result);
                 fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
                 Assert.False(fetch_task.IsCompleted);
-                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
                 Assert.Equal(step2 - 2 * advance, result.Count);
                 CheckRange(result, 2 * advance, step2 - 2 * advance);
                 //Test case: await on the insufficiently filled queue, background fetch is complete
@@ -158,7 +158,7 @@ namespace ActiveSession.Tests
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(end - 2 * advance, result.Count);
                 CheckRange(result, 2 * advance, end - 2 * advance);
-                Assert.Equal(0, runner.Queue.Count);
+                Assert.Equal(0, runner.QueueCount);
             }
             finally {
                 runner?.Dispose();
@@ -262,7 +262,7 @@ namespace ActiveSession.Tests
                         advance = 10;
                         StartFetch();
                         Assert.NotNull(fetch_task);
-                        for(int i = 0; i < 10 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
+                        for(int i = 0; i < 10 && runner.QueueCount > 0; i++) Thread.Sleep(100);
                         Assert.False(runner!.EnumTask!.IsCompleted);
                     },
                     () =>

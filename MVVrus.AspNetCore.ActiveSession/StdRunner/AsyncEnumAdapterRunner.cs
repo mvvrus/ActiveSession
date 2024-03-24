@@ -144,7 +144,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             else if(Token.IsCancellationRequested) {
                 result_context.ResultTaskSource.TrySetCanceled();
             }
-            else if(Result.Count >= MaxAdvance || Status.IsFinal() || Queue.IsAddingCompleted) {
+            else if(Result.Count >= MaxAdvance || Status.IsFinal() || QueueIsAddingCompleted) {
                 result_context.ResultTaskSource.TrySetResult();
             }
             else
@@ -176,26 +176,26 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 result_ready = status_is_final = Status.IsFinal();
                 if (NextStep.IsFaulted) {
                     Exception = (NextStep.Exception as AggregateException)?.InnerExceptions.ElementAtOrDefault(0)?? NextStep.Exception;
-                    Queue.CompleteAdding();
+                    QueueCompleteAdding();
                 }
                 if (NextStep.IsCompletedSuccessfully)  {
                     if (NextStep.Result && !status_is_final) {
-                        Queue.TryAdd(_asyncEnumerator.Current, -1, default);
+                        QueueTryAdd(_asyncEnumerator.Current, -1, default);
                         proceed = true;
                     }
                     else if (status_is_final) { //The queue may be legally disposed already, if so - eat the exception thrown due to this
-                        try { Queue.CompleteAdding(); } catch (ObjectDisposedException) { }
+                        try { QueueCompleteAdding(); } catch (ObjectDisposedException) { }
                     }
                     else {
-                        Queue.CompleteAdding();
+                        QueueCompleteAdding();
                     }
                 }
-                else /*NextStep.IsCanceled*/Queue.CompleteAdding();
+                else /*NextStep.IsCanceled*/QueueCompleteAdding();
             }
             catch (Exception e)
             {
                 Exception = e;
-                Queue.CompleteAdding();
+                QueueCompleteAdding();
             }
 
             Context? result_context = _resultContext;
@@ -207,11 +207,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     ResetResultContext();
                 }
                 else {
-                    while(result_context.Result.Count < result_context.MaxAdvance && Queue.TryTake(out item)) {
+                    while(result_context.Result.Count < result_context.MaxAdvance && QueueTryTake(out item)) {
                         result_context.Result.Add(item);
                     }
 
-                    if(Queue.IsAddingCompleted || result_context.Result.Count >= result_context.MaxAdvance) {
+                    if(QueueIsAddingCompleted || result_context.Result.Count >= result_context.MaxAdvance) {
                         ResetResultContext();
                         result_context.ResultTaskSource.TrySetResult();
                     }

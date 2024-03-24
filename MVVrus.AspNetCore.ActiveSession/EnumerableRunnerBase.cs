@@ -23,7 +23,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
 
         readonly BlockingCollection<TItem> _queue;
-        readonly QueueFacade _queueFacade;
         readonly int _defaultAdvance;
         readonly ILogger? _logger;
         Task? _disposeTask = null;
@@ -33,10 +32,43 @@ namespace MVVrus.AspNetCore.ActiveSession
         //The code using it just exits then the pseudo-lock cannot be acquired,
         int _busy;
 
+        Int32 _queueAddedCount;
+
         /// <value>
         /// TODO
         /// </value>
-        protected internal IItemsQueueFacade<TItem> Queue { get => _queueFacade; }
+        protected internal Boolean QueueIsAddingCompleted { get => _queue.IsAddingCompleted; }
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected internal void QueueCompleteAdding() =>_queue.CompleteAdding();
+        /// <summary>
+        ///  TODO
+        /// </summary>
+        /// <param name="Item"></param>
+        /// <param name="Timeout"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        protected internal Boolean QueueTryAdd(TItem Item, Int32 Timeout, CancellationToken Token) 
+        {
+            Boolean result = _queue.TryAdd(Item, Timeout, Token);
+            if(result) _queueAddedCount++;
+            return result;
+        }
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Item"></param>
+        /// <returns></returns>
+        protected internal Boolean QueueTryTake(out TItem Item)=> _queue.TryTake(out Item!);
+        /// <value>
+        /// TODO
+        /// </value>
+        protected internal Int32 QueueCount => _queue.Count;
+
+
+
 
         /// <summary>
         /// TODO
@@ -70,7 +102,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             _queue = new BlockingCollection<TItem>(QueueSize);
             _defaultAdvance = DefaultAdvance;
-            _queueFacade = new QueueFacade(this);
             _logger = Logger;
         }
 
@@ -223,7 +254,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
         {
             CheckDisposed();
-            Int32 progress = _queueFacade.AddedCount;
+            Int32 progress = _queueAddedCount;
             return (progress, (IsBackgroundExecutionCompleted ? progress : null));
         }
 
@@ -552,24 +583,6 @@ namespace MVVrus.AspNetCore.ActiveSession
                 this.Advance = Advance;
                 this.Token = Token;
             }
-        }
-
-        class QueueFacade : IItemsQueueFacade<TItem>
-        {
-            EnumerableRunnerBase<TItem> _this;
-            public Int32 AddedCount { get; private set; } = 0;
-
-            public QueueFacade(EnumerableRunnerBase<TItem> This) { _this = This; }
-            public Boolean IsAddingCompleted => _this._queue.IsAddingCompleted;
-            public Int32 Count => _this._queue.Count;
-            public void CompleteAdding() => _this._queue.CompleteAdding();
-            public Boolean TryAdd(TItem Item, Int32 Timeout, CancellationToken Token)
-            {
-                Boolean result = _this._queue.TryAdd(Item, Timeout, Token);
-                if(result) AddedCount= AddedCount + 1;
-                return result;
-            }
-            public Boolean TryTake(out TItem Item) => _this._queue.TryTake(out Item!);
         }
 
     }

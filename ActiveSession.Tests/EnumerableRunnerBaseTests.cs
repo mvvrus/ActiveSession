@@ -1010,8 +1010,8 @@ namespace ActiveSession.Tests
                 Assert.False(runner.Started);
                 Assert.False(result_as_task.IsCompleted);
                 runner.ResumeStartBkg(PAGE_SIZE / 2);
-                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Equal(0, runner.Queue.Count);
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                Assert.Equal(0, runner.QueueCount);
                 Assert.False(result_as_task.IsCompleted);
                 runner.SimulateBackgroundFetch(PAGE_SIZE);
                 Assert.True(result_as_task.Wait(TIMEOUT));
@@ -1041,8 +1041,8 @@ namespace ActiveSession.Tests
                     Assert.False(runner.Started);
                     Assert.False(result_as_task.IsCompleted);
                     runner.ResumeStartBkg(PAGE_SIZE / 2);
-                    for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                    Assert.Equal(0, runner.Queue.Count);
+                    for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                    Assert.Equal(0, runner.QueueCount);
                     Assert.False(result_as_task.IsCompleted);
                     cts.Cancel();
                     WaitExceptionChecker<TaskCanceledException>.Check(result_as_task, TIMEOUT);
@@ -1057,8 +1057,8 @@ namespace ActiveSession.Tests
                 Assert.False(runner.Started);
                 Assert.False(result_as_task.IsCompleted);
                 runner.ResumeStartBkg(PAGE_SIZE / 2);
-                for(int i = 0; i < 1000 && runner.Queue.Count > 0; i++) Thread.Sleep(100);
-                Assert.Equal(0, runner.Queue.Count);
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                Assert.Equal(0, runner.QueueCount);
                 Assert.False(result_as_task.IsCompleted);
                 runner.SimulateFetchException(new TestException());
                 WaitExceptionChecker<TestException>.Check(result_as_task, TIMEOUT);
@@ -1158,9 +1158,9 @@ namespace ActiveSession.Tests
                 if(!Monitor.TryEnter(this,TIMEOUT)) throw new TimeoutException();
                 try {
                     if(Status.IsFinal()) throw new InvalidOperationException("The runner is already completed.");
-                    for(Int32 i = 0; i < Advance; i++) Queue.TryAdd(_progress++,-1,default);
+                    for(Int32 i = 0; i < Advance; i++) QueueTryAdd(_progress++,-1,default);
                     if(IsTheLast) {
-                        Queue.CompleteAdding();
+                        QueueCompleteAdding();
                         if(BackgroundException != null) Exception = BackgroundException;
                     }
                     _resultEvent.Set();
@@ -1293,8 +1293,8 @@ namespace ActiveSession.Tests
                         try {
                             if(_fetchException != null) throw _fetchException!;
                             Int32 item;
-                            while(_result!.Count < _maxAdvance && Queue.TryTake(out item)) _result!.Add(item);
-                            if(_result!.Count < _maxAdvance && !Queue.IsAddingCompleted) {
+                            while(_result!.Count < _maxAdvance && QueueTryTake(out item)) _result!.Add(item);
+                            if(_result!.Count < _maxAdvance && !QueueIsAddingCompleted) {
                                 _resultEvent.Reset();
                             }
                             else {
@@ -1327,7 +1327,7 @@ namespace ActiveSession.Tests
             {
                 StartRunning(RunnerStatus.Progressed);
                 Int32 count = 0;
-                while(Queue.TryAdd(count, 100, default)) count++;
+                while(QueueTryAdd(count, 100, default)) count++;
                 return count;
             }
 

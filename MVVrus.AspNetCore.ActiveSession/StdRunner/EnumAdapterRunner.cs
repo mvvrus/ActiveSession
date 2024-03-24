@@ -166,12 +166,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     Token.ThrowIfCancellationRequested();
 
                     TItem? item;
-                    if(Queue.TryTake(out item)) {
+                    if(QueueTryTake(out item)) {
 #if TRACE
 #endif
                         Result.Add(item!);
                     }
-                    else if(Queue.IsAddingCompleted) {
+                    else if(QueueIsAddingCompleted) {
 #if TRACE
 #endif
                         break;
@@ -211,7 +211,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #endif
                         break;
                     }
-                    if (Queue.TryAdd(item, -1, completion_token))
+                    if (QueueTryAdd(item, -1, completion_token))
                     {
 #if TRACE
 #endif
@@ -237,7 +237,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
 #if TRACE
 #endif
-                Queue.CompleteAdding();
+                QueueCompleteAdding();
                 ReleaseSource();
                 TryRunAwaitContinuation();
             }
@@ -258,7 +258,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// TODO
         /// </summary>
-        public bool IsCompleted { get { return Queue.Count > 0; } }
+        public bool IsCompleted { get { return QueueCount > 0; } }
         /// <summary>
         /// TODO
         /// </summary>
@@ -300,7 +300,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 //TODO the reaction for an error
                 throw;
             }
-            if (Queue.IsAddingCompleted)
+            if (QueueIsAddingCompleted)
             {
 #if TRACE
 #endif
