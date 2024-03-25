@@ -13,11 +13,21 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// This class serves as an adapter to return data from an enumerable object implementing IEnumerable&lt;<typeparamref name="TItem"/>&gt;
-    /// The adapter enumerates the enumerable object in background and return parts of resulting sequence 
-    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
+    /// This class contains common logic for sequence-oriented runners. It is an abstract class intended to be a base for descedent classes
     /// </summary>
     /// <typeparam name="TItem">Type of items of <see cref="IEnumerable{T}"/> interface to be enumerated in background.</typeparam>
+    /// <remarks>
+    /// <para anchor="seqrunners">
+    /// Sequence-oriented runners are ones that return a sequence of data records as a result.
+    /// These runners implements  <see cref="IRunner{TResult}"/> interface, with TResult type being an implementation 
+    /// of <see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see> interface.
+    /// </para>
+    /// <para>
+    /// The common logic implemented in this class uses a queue that allows storing data fetched in background 
+    /// and returns parts of resulting sequence in order
+    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
+    /// </para>
+    /// </remarks>
     public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress, IAsyncDisposable
     {
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
@@ -28,82 +38,44 @@ namespace MVVrus.AspNetCore.ActiveSession
         Task? _disposeTask = null;
         List<TItem>? _stashedFetch = null;
         volatile TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? _waitingTaskSource = null;
-        //Pseudo-lock to block parallel execution of GetRequiredAsync/GetAvailable methods,
-        //The code using it just exits then the pseudo-lock cannot be acquired,
+        Int32 _queueAddedCount=0;
+        //A field used to set pseudo-lock on the runner to block parallel execution of its GetRequiredAsync/GetAvailable methods,
+        //The code using this pseudo-lock does not wait but throws an exception then the pseudo-lock cannot be acquired
         int _busy;
 
-        Int32 _queueAddedCount;
-
-        /// <value>
-        /// TODO
-        /// </value>
-        protected internal Boolean QueueIsAddingCompleted { get => _queue.IsAddingCompleted; }
-        /// <summary>
-        /// TODO
-        /// </summary>
-        protected internal void QueueCompleteAdding() =>_queue.CompleteAdding();
-        /// <summary>
-        ///  TODO
-        /// </summary>
-        /// <param name="Item"></param>
-        /// <param name="Timeout"></param>
-        /// <param name="Token"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        protected internal Boolean QueueTryAdd(TItem Item, Int32 Timeout, CancellationToken Token) 
-        {
-            Boolean result = _queue.TryAdd(Item, Timeout, Token);
-            if(result) _queueAddedCount++;
-            return result;
-        }
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="Item"></param>
-        /// <returns></returns>
-        protected internal Boolean QueueTryTake(out TItem Item)=> _queue.TryTake(out Item!);
-        /// <value>
-        /// TODO
-        /// </value>
-        protected internal Int32 QueueCount => _queue.Count;
-
-
-
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Logger"></param>
-        /// <param name="Options"></param>
-        /// <param name="DefaultAdvance"></param>
-        /// <param name="QueueSize"></param>
+#pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
+        /// <param name="Options">Presents access to a configuration object via the options pattern</param>
+        /// <remarks>
+        /// This constructor overload accepts default values for the <paramref name="DefaultAdvance"/> and <paramref name="QueueSize"/> parameters 
+        /// from the configuration <see cref="ActiveSessionOptions"/> object passed via <paramref name="Options"/> using the options pattern
+        /// </remarks>
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, int, int)"/>
         protected EnumerableRunnerBase(
-            CancellationTokenSource? Cts, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
+            CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
             IOptionsSnapshot<ActiveSessionOptions> Options, Int32? DefaultAdvance = null, Int32? QueueSize = null
-        ) : this(Cts, PassCtsOwnership, RunnerId, Logger,
+        ) : this(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger,
                 DefaultAdvance ?? Options.Value.DefaultEnumerableAdvance, QueueSize ?? Options.Value.DefaultEnumerableQueueSize) { }
 
         /// <summary>
-        /// TODO
+        /// Constructor for a runner object to be used in descendent classes
         /// </summary>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Logger"></param>
-        /// <param name="DefaultAdvance"></param>
-        /// <param name="QueueSize"></param>
+        /// <param name="DefaultAdvance">Default value for the 1st parameter (Advance) for <see cref="GetRequiredAsync(int, CancellationToken, int, string?)"/> call</param>
+        /// <param name="QueueSize">Size limit for the queue used to accept data fetched in background </param>
+        /// <remarks>
+        /// This constructor overload does not accept any default values 
+        /// for the <paramref name="DefaultAdvance"/> and <paramref name="QueueSize"/> parameters 
+        /// </remarks>
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)"/>
         protected EnumerableRunnerBase(
-            CancellationTokenSource? Cts, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
+            CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, RunnerId RunnerId, ILogger? Logger,
             Int32 DefaultAdvance, Int32 QueueSize
-        ) : base(Cts, PassCtsOwnership, RunnerId, Logger)
+        ) : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger)
         {
             _queue = new BlockingCollection<TItem>(QueueSize);
             _defaultAdvance = DefaultAdvance;
             _logger = Logger;
         }
+#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 
         ///<inheritdoc/>
         public ValueTask DisposeAsync()
@@ -278,10 +250,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
         }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="Disposing"></param>
+        ///<inheritdoc/>
         protected sealed override void Dispose(bool Disposing)
         {
             DisposeAsyncCore().Wait();
@@ -338,6 +307,39 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
         }
+
+        /// <value>
+        /// TODO
+        /// </value>
+        protected internal Boolean QueueIsAddingCompleted { get => _queue.IsAddingCompleted; }
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected internal void QueueCompleteAdding() => _queue.CompleteAdding();
+        /// <summary>
+        ///  TODO
+        /// </summary>
+        /// <param name="Item"></param>
+        /// <param name="Timeout"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        protected internal Boolean QueueTryAdd(TItem Item, Int32 Timeout, CancellationToken Token)
+        {
+            Boolean result = _queue.TryAdd(Item, Timeout, Token);
+            if(result) _queueAddedCount++;
+            return result;
+        }
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Item"></param>
+        /// <returns></returns>
+        protected internal Boolean QueueTryTake(out TItem Item) => _queue.TryTake(out Item!);
+        /// <value>
+        /// TODO
+        /// </value>
+        protected internal Int32 QueueCount => _queue.Count;
 
         void ContinueAsyncStartBackgroundProcessing(Task FetchTask, Object? Context)
         {

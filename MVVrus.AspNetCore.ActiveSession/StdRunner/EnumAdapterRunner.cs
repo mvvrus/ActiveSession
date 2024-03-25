@@ -9,7 +9,9 @@ using Microsoft.Extensions.Options;
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// This adapter class makes possible to use any class implementing <see cref="IEnumerable{T}"/>interface as an ActiveSession runner
+    /// This class serves as an adapter to return data from an enumerable object implementing IEnumerable&lt;<typeparamref name="TItem"/>&gt; interface
+    /// The adapter enumerates the enumerable the object in background and returns parts of resulting sequence in order
+    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
     /// </summary>
     public class EnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>, ICriticalNotifyCompletion
     {
