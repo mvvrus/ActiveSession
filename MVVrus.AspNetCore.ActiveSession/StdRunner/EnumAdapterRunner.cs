@@ -291,7 +291,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
                 if (Interlocked.CompareExchange(ref _continuation, continuation, null) != null)
                 {
-                    ThrowInvalidParallelism();
+                    throw new InvalidOperationException("The schedule operation failed for unknown reason.");
                 }
             }
             catch

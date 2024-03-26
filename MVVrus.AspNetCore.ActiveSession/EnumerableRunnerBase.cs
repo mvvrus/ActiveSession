@@ -13,7 +13,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// This class contains common logic for sequence-oriented runners. It is an abstract class intended to be a base for descedent classes
+    /// Implements common logic for sequence-oriented runners. It is an abstract class intended to be a base for descedent classes
     /// </summary>
     /// <typeparam name="TItem">Type of items of <see cref="IEnumerable{T}"/> interface to be enumerated in background.</typeparam>
     /// <remarks>
@@ -23,9 +23,18 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// of <see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see> interface.
     /// </para>
     /// <para>
-    /// The common logic implemented in this class uses a queue that allows storing data fetched in background 
-    /// and returns parts of resulting sequence in order
-    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
+    /// The common logic implemented in this class uses a queue that allows storing in it data fetched in background.
+    /// Methods defined by <see cref="IRunner{TResult}"/> interface that returns results
+    /// (namely <see cref="GetAvailable(int, int, string?)">GetAvailable</see> and 
+    /// <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see>)
+    /// returns parts of the queue contents in the same order as those items have been placed into the queue.
+    /// </para>
+    /// <para>
+    /// Methods that returns results
+    /// (namely <see cref="GetAvailable(int, int, string?)">GetAvailable</see> and 
+    /// <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see>) 
+    /// can start fetching data only from the current <see cref="IRunner.Position"/> of the runner 
+    /// overwise <see cref="InvalidOperationException"/> exception will be thrown.
     /// </para>
     /// </remarks>
     public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress, IAsyncDisposable
@@ -75,21 +84,39 @@ namespace MVVrus.AspNetCore.ActiveSession
             _defaultAdvance = DefaultAdvance;
             _logger = Logger;
         }
-#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 
+        ///<summary>
         ///<inheritdoc/>
+        ///This method is a part of implementation of <see cref="IAsyncDisposable"/> interface.
+        ///</summary>
+        /// <returns>
+        /// A <see cref="ValueTask"/> that presents asynchronous process of disposing the runner 
+        /// or a completed ValueTask if the process has been already completed.
+        /// </returns>
         public ValueTask DisposeAsync()
         {
             if(SetDisposed()) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseDisposeAsyncExecuted(RunnerId);
+                _logger?.LogTraceEnumerableRunnerBaseDisposeAsyncExecuted(Id);
                 #endif
                 _disposeTask = DisposeAsyncCore();
             }
             return _disposeTask!.IsCompleted ? ValueTask.CompletedTask : new ValueTask(_disposeTask!);
         }
 
-        /// <inheritdoc/>
+        ///<summary>
+        ///Overrides <see cref="RunnerBase.Status">RunnerBase.Status</see>. 
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///</summary>
+        ///<remarks>
+        ///<inheritdoc path="/remarks/toinherit"/>
+        ///From a base class (<see cref="RunnerBase"/>) perspective the value of the property at any running stages 
+        ///(namely <see cref="RunnerStatus.Stalled"/> or <see cref="RunnerStatus.Progressed"/>) 
+        ///always contains the same value: <see cref="RunnerStatus.Stalled"/>. 
+        ///But this property override takes also in account the presence of items fetched into its queue,
+        ///changing the returned property value to <see cref="RunnerStatus.Progressed"/> if the queue is not empty.
+        ///</remarks>
+        ///<inheritdoc/>
         public override RunnerStatus Status
         {
             get
@@ -100,20 +127,50 @@ namespace MVVrus.AspNetCore.ActiveSession
             }
         }
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// Overrides <see cref="RunnerBase.Position">RunnerBase.Position</see>. <inheritdoc path="/summary/toinherit"/>  
+        /// </summary>
+        /// <remarks> For sequence-oriente runners implemented by descendants of this class Position designates 
+        /// a number of items in sequences returned by all previously completed  
+        /// <see cref="GetAvailable">GetAvailable</see> and <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> calls.
+        /// </remarks>
+        public override Int32 Position { get => base.Position; protected set=>base.Position=value ; }
+
+        /// <summary>
+        /// <inheritdoc path="/summary/toinherit" />
+        /// This is a part of <see cref="IRunner{TResult}">IRunner&lt;IEnumerable&lt;TItem&gt;&gt;</see> implementation.
+        /// </summary>
+        /// <param name="Advance">
+        /// <common>Maximum number of items in the sequience returned in result's <see cref="RunnerResult{TResult}.Result"/> field.</common>
+        /// The default value of the parameter means that all already fetched items should be returned.
+        /// </param>
+        /// <param name="StartPosition">
+        /// <inheritdoc path='/param[@name="StartPosition"]/toinherit' /> 
+        /// Must be equal to the current runner's <see cref="Position"/> or a constant <see cref="CURRENT_POSITION"/>
+        /// </param>
+        /// <inheritdoc path='/param[@name="TraceIdentifier"]' />
+        /// <returns>
+        /// <inheritdoc path='/returns/toinherit'/>
+        /// <common>
+        /// the <see cref="RunnerResult{TResult}.Result">Result</see> field of the returned structure contains sequence 
+        /// of items (of type TItem) already fetched in background, that have not been returned yet by previous 
+        /// <see cref="GetAvailable">GetAvailable</see> and <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> calls 
+        /// </common>
+        /// - all or a part of them according to the <paramref name="Advance"/> value. 
+        /// </returns>
         public RunnerResult<IEnumerable<TItem>> GetAvailable(Int32 Advance = int.MaxValue, Int32 StartPosition = -1, String? TraceIdentifier = null)
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetAvailable(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseGetAvailable(Id, trace_identifier);
             #endif
             if(!TryAcquirePseudoLock()) {
-                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(RunnerId, trace_identifier);
+                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
                 ThrowInvalidParallelism();
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
             #endif
             List<TItem> result = new List<TItem>();
             try {
@@ -121,33 +178,52 @@ namespace MVVrus.AspNetCore.ActiveSession
                 FetchAvailable(Advance, result, trace_identifier);
             }
             catch(Exception exception) {
-                _logger?.LogErrorEnumerableRunnerBaseGetAvailException(exception, RunnerId, trace_identifier);
+                _logger?.LogErrorEnumerableRunnerBaseGetAvailException(exception, Id, trace_identifier);
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, trace_identifier);
+                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
                 #endif
                 throw;
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetAvailableExit(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseGetAvailableExit(Id, trace_identifier);
             #endif
             return FinishWithResult(result, trace_identifier);
         }
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// <inheritdoc path="/summary/toinherit" />
+        /// This is a part of <see cref="IRunner{TResult}">IRunner&lt;IEnumerable&lt;TItem&gt;&gt;</see> implementation.
+        /// </summary>
+        /// <param name="Advance">
+        /// <inheritdoc cref="GetAvailable(int, int, string?)" path='/param[@name="Advance"]/common' />
+        /// The default value of the parameter is substituted by a DefaultAdvance value passed via the constructor.
+        /// </param>
+        /// <inheritdoc path='/param[@name="Token"]' />
+        /// <param name="StartPosition">
+        /// <inheritdoc path='/param[@name="StartPosition"]/toinherit' /> 
+        /// Must be equal to the current runner's <see cref="Position"/> or a constant <see cref="CURRENT_POSITION"/>
+        /// </param>
+        /// <inheritdoc path='/param[@name="TraceIdentifier"]' />
+        /// <returns>
+        /// <inheritdoc path='/returns/toinherit'/>
+        /// <inheritdoc cref="GetAvailable(int, int, string?)" path='/returns/common' />. 
+        ///  A number of items in the sequence cannot be greater than <paramref name="Advance"/> value, 
+        ///  but that number can be less if it is the last part of a sequence produced by a completed background execution. 
+        /// </returns>
         public ValueTask<RunnerResult<IEnumerable<TItem>>> GetRequiredAsync(Int32 Advance = 0, CancellationToken Token = default, Int32 StartPosition = -1, String? TraceIdentifier = null)
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetRequired(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseGetRequired(Id, trace_identifier);
             #endif
             if(!TryAcquirePseudoLock()) {
-                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(RunnerId, trace_identifier);
+                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
                 ThrowInvalidParallelism();
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
             #endif
             try {
                 RunnerResult<IEnumerable<TItem>> runner_result;
@@ -159,7 +235,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 if(startup_task.IsCompleted) {
                     //Background process initialization has been already done or completed synchronously
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredStartupComplete(RunnerId, trace_identifier);
+                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredStartupComplete(Id, trace_identifier);
                     #endif
                     if(startup_task.IsCanceled) 
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
@@ -168,20 +244,20 @@ namespace MVVrus.AspNetCore.ActiveSession
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
                             Task.FromException<RunnerResult<IEnumerable<TItem>>>(startup_task.Exception!.InnerExceptions[0]));
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredTrySyncPath(RunnerId, trace_identifier);
+                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredTrySyncPath(Id, trace_identifier);
                     #endif
                     if(FetchAvailable(Advance, result, trace_identifier)) {
                         //Short path successfull: set correct Status
                         runner_result = FinishWithResult(result, trace_identifier);
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredSyncExit(RunnerId, trace_identifier);
+                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredSyncExit(Id, trace_identifier);
                         #endif
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(runner_result);
                     }
                     else {
                         //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work is needed
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormFetchTask(RunnerId, trace_identifier);
+                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormFetchTask(Id, trace_identifier);
                         #endif
                         _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                         result_task = _waitingTaskSource.Task;
@@ -192,7 +268,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 else {
                     //Background process initialisation is required and have not been completed synchronously
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(RunnerId, trace_identifier);
+                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(Id, trace_identifier);
                     #endif
                     _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                     result_task = _waitingTaskSource.Task;
@@ -203,26 +279,30 @@ namespace MVVrus.AspNetCore.ActiveSession
                         TaskContinuationOptions.OnlyOnRanToCompletion);
                 }
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseGetRequiredExitAsync(RunnerId, trace_identifier);
+                _logger?.LogTraceEnumerableRunnerBaseGetRequiredExitAsync(Id, trace_identifier);
                 #endif
                 return new ValueTask<RunnerResult<IEnumerable<TItem>>>(result_task);
             }
             catch(Exception exception) {
-                _logger?.LogErrorEnumerableRunnerBaseGetRequiredException(exception, RunnerId, trace_identifier);
+                _logger?.LogErrorEnumerableRunnerBaseGetRequiredException(exception, Id, trace_identifier);
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, trace_identifier);
+                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
                 #endif
                 throw;
             }
         }
+#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 
-        ///<inheritdoc/>
+        ///<summary>
+        ///<inheritdoc/> It is a part of <see cref="IRunnerBackgroundProgress"/> interface implementation.
+        ///</summary>
         ///<remarks>
-        ///Retunrs total number of elements already fetched by background process in the Progress result field
+        ///Retunrs total number of elements already fetched by background process in the Progress result field.
         ///The EstimatedEnd result field will be left null until the runner background execution finishes.
-        ///Otherwise it will contain the same value as Progress field
+        ///Otherwise it will contain the same value as Progress field.
         ///</remarks>
+        ///<inheritdoc/>
         public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
         {
             CheckDisposed();
@@ -230,9 +310,25 @@ namespace MVVrus.AspNetCore.ActiveSession
             return (progress, (IsBackgroundExecutionCompleted ? progress : null));
         }
 
+        ///<summary>
+        ///<inheritdoc/> It is a part of <see cref="IRunnerBackgroundProgress"/> interface implementation.
+        ///</summary>
         /// <inheritdoc/>
         public Boolean IsBackgroundExecutionCompleted { get { CheckDisposed(); return _queue.IsAddingCompleted; } }
 
+        ///<summary>
+        ///Protected, overrides <see cref="RunnerBase.PreDispose">RunnerBase.PreDispose()</see>. 
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///</summary>
+        ///<remarks>
+        ///<inheritdoc path="/remarks/toinherit"/>
+        ///This method override terminate (via throwing an <see cref="ObjectDisposedException"/>) a task presenting 
+        ///a result of an  async <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
+        ///call if such task exists.
+        ///Effectively it forces termination of a pending call of the 
+        ///<see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> method 
+        ///with the aforementioned exception.
+        ///</remarks>
         ///<inheritdoc/>
         protected override void PreDispose()
         {
@@ -240,16 +336,26 @@ namespace MVVrus.AspNetCore.ActiveSession
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waiting_task_source = _waitingTaskSource;
             if(waiting_task_source!=null) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePreDispose(RunnerId);
+                _logger?.LogTraceEnumerableRunnerBasePreDispose(Id);
                 #endif
                 waiting_task_source!.TrySetException(new ObjectDisposedException(DisposedObjectName()));
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, UNKNOWN_TRACE_IDENTIFIER);
+                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, UNKNOWN_TRACE_IDENTIFIER);
                 #endif
             }
         }
 
+        ///<summary>
+        ///Protected, overrides <see cref="RunnerBase.Dispose(bool)">RunnerBase.Dispose(bool)</see>, sealed. 
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///</summary>
+        ///<remarks>
+        ///<inheritdoc path="/remarks/toinherit"/>
+        /// In this class and in all descenet classes synchronous disposing is implemented via 
+        /// starting asynchronous disposing and waiting its completion.
+        ///<inheritdoc path="/remarks/nofinalizer"/>
+        ///</remarks>
         ///<inheritdoc/>
         protected sealed override void Dispose(bool Disposing)
         {
@@ -257,26 +363,34 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// TODO
+        /// Protected virtual. <toinherit>This method performs a real work of disposing the object instance asynchronously.</toinherit>
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A <see cref="ValueTask"/> that presents asynchronous process of disposing the runner.</returns>
+        /// <remarks>Disposes the base class stuff synchronously calling its <see cref="RunnerBase.Dispose(bool)"/> method. </remarks>
         protected virtual Task DisposeAsyncCore()
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseDisposeCore(RunnerId);
+            _logger?.LogTraceEnumerableRunnerBaseDisposeCore(Id);
             #endif
             _queue.Dispose();
             base.Dispose(true);
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
+        ///<summary>
+        ///Protected, overrides <see cref="RunnerBase.DoAbort(string)">RunnerBase.DoAbort(string)</see>. 
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///</summary>
+        ///<remarks>
+        ///<inheritdoc path="/remarks/toinherit"/>
+        ///This method override tries to stop an execution a result fetching task via simulating completion of a background task.
+        ///It is safe to be called even if the runner has been disposed already.
+        ///</remarks>
+        ///<inheritdoc/>
         protected override void DoAbort(String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAbortCore(RunnerId, TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAbortCore(Id, TraceIdentifier);
             #endif
             if(!Disposed()) try {
                     _queue.CompleteAdding();
@@ -285,78 +399,99 @@ namespace MVVrus.AspNetCore.ActiveSession
             base.DoAbort(TraceIdentifier);
         }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
+        ///<summary>
+        ///Protected, overrides <see cref="RunnerBase.StartBackgroundExecutionAsync">RunnerBase.StartBackgroundExecutionAsync()</see>. 
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///</summary>
+        ///<remarks>
+        ///<inheritdoc path="/summary/toinherit"/>
+        ///This method override in this particular class is a placeholder, 
+        ///it just throws <see cref="NotImplementedException"/>
+        ///This method MUST be overriden in descendent classes and should never be called from overrides.
+        ///</remarks>
+        ///<inheritdoc/>
         protected internal override Task StartBackgroundExecutionAsync() { throw new NotImplementedException(); }
 
         /// <summary>
-        /// TODO
+        /// Protected abstract. 
+        /// <toinherit>Creates a task controlling an asynchronous fetch of results of a background processing.</toinherit>
         /// </summary>
-        /// <param name="MaxAdvance"></param>
-        /// <param name="Result"></param>
-        /// <param name="Token"></param>
-        /// <returns></returns>
+        /// <param name="MaxAdvance">The maximum number of records to be fetched into the <paramref name="Result"/> list.</param>
+        /// <param name="Result">The list holding the fetched records. May be partially filled before a call of this method.</param>
+        /// <param name="Token">A CancellationToken instance that may be used to cancel the returned task.</param>
+        /// <returns>A task that presents the process of fetching.</returns>
         protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
 
         /// <summary>
-        /// TODO
+        /// Protected. Returns a boolean value indicating whether a background execution (that adds items to the queue) is completed.
         /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        protected void ThrowInvalidParallelism()
-        {
-            throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
-        }
-
-        /// <value>
-        /// TODO
-        /// </value>
         protected internal Boolean QueueIsAddingCompleted { get => _queue.IsAddingCompleted; }
+
         /// <summary>
-        /// TODO
+        /// Protected. Marks the end of the background execution. That means that no more items will be added to the queue.
         /// </summary>
         protected internal void QueueCompleteAdding() => _queue.CompleteAdding();
+
         /// <summary>
-        ///  TODO
+        ///  Protected. Adds an item to the queue.
         /// </summary>
-        /// <param name="Item"></param>
-        /// <param name="Timeout"></param>
-        /// <param name="Token"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
+        /// <param name="Item">The item to be added</param>
+        /// <param name="Timeout"> Time(ms) to wait if the queue is full, -1 means "wait indefinitely" </param>
+        /// <param name="Token">
+        /// A cancellation token used for coordinated cancellation of the queue wait, if such a feature is used.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the item was added within <paramref name="Timeout"/>, <see langword="false"/> overwise.
+        /// </returns>
+        /// <remarks>
+        /// The signature of this method is the same as one of <see cref="BlockingCollection{TItem}.TryAdd(TItem, int, CancellationToken)"/>
+        /// The standard runners of the ActiveSession library always call this method 
+        /// with <paramref name="Timeout"/>=-1 (indefinite wait).
+        /// Therefore the only return value that is acceptable by standard library runners is <see langword="true"/> 
+        /// </remarks>
         protected internal Boolean QueueTryAdd(TItem Item, Int32 Timeout, CancellationToken Token)
         {
             Boolean result = _queue.TryAdd(Item, Timeout, Token);
             if(result) _queueAddedCount++;
             return result;
         }
+
         /// <summary>
-        /// TODO
+        /// Protected. Tries to remove the first item from the queue and return it if such an item exists.
         /// </summary>
-        /// <param name="Item"></param>
-        /// <returns></returns>
+        /// <param name="Item">The variable to which the removed item will be assigned if such an item exists</param>
+        /// <returns><see langword="true"/> if the item was removed and assigned, <see langword="false"/> overwise.</returns>
+        /// <remarks>
+        /// The signature of this method is the same as one of <see cref="BlockingCollection{TItem}.TryTake(out TItem)"/>
+        /// </remarks>
         protected internal Boolean QueueTryTake(out TItem Item) => _queue.TryTake(out Item!);
-        /// <value>
-        /// TODO
-        /// </value>
+
+        /// <summary>
+        /// Protected. Returns a number of itmes left in the queue.
+        /// </summary>
         protected internal Int32 QueueCount => _queue.Count;
+
+        void ThrowInvalidParallelism()
+        {
+            throw new InvalidOperationException(PARALLELISM_NOT_ALLOWED);
+        }
 
         void ContinueAsyncStartBackgroundProcessing(Task FetchTask, Object? Context)
         {
             Context context = (Context as Context) ?? throw new ArgumentException(nameof(Context));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncStartBkgSuccess(RunnerId,context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncStartBkgSuccess(Id,context.TraceIdentifier);
             #endif
             if(FetchAvailable(context.Advance, context.Accumulator, context.TraceIdentifier)) {
                 //Short path successfull: set correct Status
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncEnoughDataOnStartBkg(RunnerId, context.TraceIdentifier);
+                _logger?.LogTraceEnumerableRunnerBaseAsyncEnoughDataOnStartBkg(Id, context.TraceIdentifier);
                 #endif
                 FinishAndMakeResultBody(FetchTask, Context);
             }
             else {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncInsuffDataOnStartBkg(RunnerId, context.TraceIdentifier);
+                _logger?.LogTraceEnumerableRunnerBaseAsyncInsuffDataOnStartBkg(Id, context.TraceIdentifier);
                 #endif
                 AttacFetchResultProcessing(FetchRequiredAsync(context.Advance, context.Accumulator, context.Token), context);
             }
@@ -369,7 +504,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             FetchTask.ContinueWith(CancelResultBody, Context, TaskContinuationOptions.OnlyOnCanceled);
             FetchTask.ContinueWith(FailResultBody, Context, TaskContinuationOptions.OnlyOnFaulted);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchContinuations(RunnerId, Context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchContinuations(Id, Context.TraceIdentifier);
             #endif
         }
 
@@ -377,7 +512,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchFailed(RunnerId, context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchFailed(Id, context.TraceIdentifier);
             #endif
             StashOrphannedData(context.Accumulator, context.TraceIdentifier);
             SetFailResult(FetchTask, context.TraceIdentifier);
@@ -387,17 +522,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             String trace_identifier = (String?)TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSetFailResult(Antecedent.Exception?.InnerExceptions[0], RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncSetFailResult(Antecedent.Exception?.InnerExceptions[0], Id, trace_identifier);
             #endif
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
             waitingTaskSource?.TrySetException(Antecedent.Exception!.InnerExceptions);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFailResultSet(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncFailResultSet(Id, trace_identifier);
             #endif
         }
 
@@ -405,7 +540,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCanceled(RunnerId, context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCanceled(Id, context.TraceIdentifier);
             #endif
             StashOrphannedData(context.Accumulator, context.TraceIdentifier);
             SetCancelResult(_, context.TraceIdentifier);
@@ -415,17 +550,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             String trace_identifier = (String?)TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSetCancelResult(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncSetCancelResult(Id, trace_identifier);
             #endif
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
             waitingTaskSource?.TrySetCanceled();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncCancelResultSet(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncCancelResultSet(Id, trace_identifier);
             #endif
         }
 
@@ -434,39 +569,39 @@ namespace MVVrus.AspNetCore.ActiveSession
             //We come here only if FetchTask is completed successfully
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(RunnerId, context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(Id, context.TraceIdentifier);
             #endif
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(context.Accumulator, context.TraceIdentifier);
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
             #endif
             waitingTaskSource?.TrySetResult(result);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(RunnerId, context.TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
             #endif
         }
 
         void StashOrphannedData(List<TItem> Data, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncStashOrphanedFetched(RunnerId, TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncStashOrphanedFetched(Id, TraceIdentifier);
             #endif
-            //TODO Where to check: Debug.Assert(_stashedFetch==null);
+            Debug.Assert(_stashedFetch==null);
             _stashedFetch = Data;
         }
 
         RunnerResult<IEnumerable<TItem>> FinishWithResult(List<TItem> ResultList, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseMakeSyncResult(RunnerId, TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseMakeSyncResult(Id, TraceIdentifier);
             #endif
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(ResultList, TraceIdentifier);
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(RunnerId, TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, TraceIdentifier);
             #endif
             return result;
         }
@@ -474,18 +609,18 @@ namespace MVVrus.AspNetCore.ActiveSession
         RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(RunnerId, TraceIdentifier);
+            _logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(Id, TraceIdentifier);
             #endif
             Position = Position+ResultList.Count;
             if (_queue.Count==0 && _queue.IsAddingCompleted) {
                 RunnerStatus new_status = Exception==null ? Complete : Failed;
                 SetStatus(new_status);
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(RunnerId, TraceIdentifier);
+                _logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
                 #endif
             }
             RunnerResult<IEnumerable<TItem>> result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
-            _logger?.LogDebugRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, RunnerId, TraceIdentifier);
+            _logger?.LogDebugRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
             return result;
         }
 
@@ -528,11 +663,11 @@ namespace MVVrus.AspNetCore.ActiveSession
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
 
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseFetchAvailable(RunnerId, trace_identifier);
+            _logger?.LogTraceEnumerableRunnerBaseFetchAvailable(Id, trace_identifier);
             #endif
             if(Status.IsFinal()) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFinal(RunnerId, trace_identifier);
+                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFinal(Id, trace_identifier);
                 result = true;
                 #endif
 
@@ -544,7 +679,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     int orphanned_count = _stashedFetch.Count;
                     if(orphanned_count <= MaxAdvance - fetched_count) {
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedAll(RunnerId, trace_identifier);
+                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedAll(Id, trace_identifier);
                         #endif
                         Result.AddRange(_stashedFetch);
                         fetched_count += orphanned_count;
@@ -552,7 +687,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     }
                     else {
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedPartial(RunnerId, trace_identifier);
+                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedPartial(Id, trace_identifier);
                         #endif
                         Result.AddRange(_stashedFetch!.GetRange(0, MaxAdvance - fetched_count));
                         _stashedFetch.RemoveRange(0, MaxAdvance - fetched_count);
@@ -561,13 +696,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                 }
                 //Fetch from current queue
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFromQueue(RunnerId, trace_identifier);
+                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFromQueue(Id, trace_identifier);
                 #endif
                 for(; fetched_count < MaxAdvance && _queue.TryTake(out item); fetched_count++) Result.Add(item);
                 result=fetched_count >= MaxAdvance || _queue.IsAddingCompleted && _queue.Count == 0;
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseFetchAvailableExit(RunnerId, trace_identifier, result);
+            _logger?.LogTraceEnumerableRunnerBaseFetchAvailableExit(Id, trace_identifier, result);
 #           endif
             return result;
         }

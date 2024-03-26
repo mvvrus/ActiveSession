@@ -8,56 +8,60 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </summary>
     public interface IRunner
     {
-        /// <value>
-        /// Constant indicating the use of current <see cref="IRunner.Position"/>, as a fetch start position
-        /// </value>
+        /// <summary>
+        /// Constant indicating the use of current <see cref="IRunner.Position"/>, as a fetch start position.
+        /// </summary>
         public const Int32 CURRENT_POSITION = -1;
-        /// <value>
-        /// Constant indicating the use of default value as a desired advance of a <see cref="IRunner.Position"></see>.
-        /// </value>
+        /// <summary>
+        /// Constant indicating the use of default value as a desired advance of a <see cref="IRunner.Position"/>.
+        /// </summary>
         public const Int32 DEFAULT_ADVANCE = 0;
 
-        /// <value>
-        /// Constant indicating the use of maximum available value as a desired advance of a <see cref="IRunner.Position"></see>.
-        /// </value>
+        /// <summary>
+        /// Constant indicating the use of maximum available value as a desired advance of a <see cref="IRunner.Position"/>.
+        /// </summary>
         public const Int32 MAXIMUM_ADVANCE = Int32.MaxValue;
 
-        /// <value>
-        /// Current status of the runner object
-        /// </value>
+        /// <summary>
+        /// Current status of the runner object.
+        /// </summary>
         public RunnerStatus Status { get; }
 
-        /// <value>
-        /// Current position of the runner object
-        /// </value>
+        /// <summary>
+        /// Current position of the runner object.
+        /// </summary>
+        /// <remarks>Precise meaning of this property is determined by specific runners</remarks>
         public Int32 Position { get; }
 
-        /// <value>
-        /// Method that terminates the runner execution
-        /// </value>
+        /// <summary>
+        /// Method that terminates the runner execution.
+        /// </summary>
+        /// <param name="TraceIdentifier">Sting that can be used for tracing.</param>
+        /// <remarks>If this string is specified it is placed to log records emitted from a runner.</remarks>
         public void Abort(String? TraceIdentifier = null);
 
-        /// <value>
-        /// CancellationToken to be cancelled then runner is completed:
-        /// fetched all data and passed it to a caller, aborted or failed with an exception
-        /// </value>
+        /// <summary>
+        /// The CancellationToken that will be cancelled then the runner execution is completed.
+        /// </summary>
+        /// <remarks>Used by ActiveSession library infrastructure and possibly by an application.</remarks>
         public CancellationToken CompletionToken { get; }
 
-        /// <value>
-        /// The exception that cause the <see cref="Status"/> to change to <see cref="RunnerStatus.Failed"/>, otherwise - null
-        /// </value>
+        /// <summary>
+        /// The exception that causes the runner to come to the <see cref="RunnerStatus.Failed"/> status, otherwise - null.
+        /// </summary>
         public Exception? Exception { get; }
 
-        /// <value>
-        /// Runnner identifier (see <see cref="RunnerId"/>) if exposed by the runner and assigned, otherwise - default(RunnerId)
-        /// </value>
+        /// <summary>
+        /// The runner identifier. 
+        /// </summary>
+        /// <remarks>Contains the default value of <see cref="RunnerId"/> type if not exposed by the runner or assigned in a constructor.</remarks>
         public RunnerId Id { get=>default; }
     }
 
     /// <summary>
-    /// Generic ActiveSession runner interface
+    /// A generic interface that must be implemented by an ActiveSession runner.
     /// </summary>
-    /// <typeparam name="TResult">The type of the result returned by the interface methods</typeparam>
+    /// <typeparam name="TResult">The type of the result returned by the interface methods.</typeparam>
     /// <remarks>
     /// Inherited from non-generic <see cref="IRunner"></see> interface 
     /// that contains properties and methosds independent of the type of the result.
@@ -65,27 +69,22 @@ namespace MVVrus.AspNetCore.ActiveSession
     public interface IRunner<TResult>:IRunner
     {
         /// <summary>
-        /// Asynchronously fetch the next (or first) results from the runner 
+        /// <toinherit>Asynchronously fetch result from the runner up to the specified point.</toinherit>
         /// </summary>
-        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
-        /// <param name="StartPosition">
-        /// Position value from which the fetching of the results should begin
-        /// <remarks> 
-        /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
-        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
-        /// </remarks>
+        /// <param name="Advance">Desired maximum increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop.
+        /// Interpretaion of the default parameter value <see cref="IRunner.DEFAULT_ADVANCE">DEFAULT_ADVANCE</see> depends on a type of the runner.
         /// </param>
-        /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
+        /// <param name="StartPosition"><inheritdoc cref="GetAvailable(int, int, string?)" path='/param[@name="StartPosition"]/node()'/></param>
+        /// <param name="TraceIdentifier"><inheritdoc cref="GetAvailable(int, int, string?)" path='/param[@name="TraceIdentifier"]'/></param>
         /// <param name="Token">
-        /// <see cref="CancellationToken"/> that may be used to break the method execution.
-        /// <remarks>
-        /// Breaking the method execution means that the method stops at the point of break 
-        /// and return a result taken up to the point
-        /// </remarks>
+        /// A CancellationToken that may be used to cancel the returned ValueTask.
+        /// Cancellation typically does not affect a background runner execution.
         /// </param>
-        /// <returns> 
-        /// A task returning an <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner at the point of completion 
-        /// and the result (of type <typeparamref name="TResult"/>) if any
+        /// <returns>
+        /// <toinherit>
+        /// A ValueTask that has a result of type <see cref="RunnerResult{TResult}"/>. 
+        /// </toinherit>
+        /// <inheritdoc cref="GetAvailable(int, int, string?)" path='/returns/*'/>
         /// </returns>
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
             Int32 Advance = DEFAULT_ADVANCE,
@@ -95,20 +94,25 @@ namespace MVVrus.AspNetCore.ActiveSession
         );
 
         /// <summary>
-        /// Returns the result available at the moment of call starting from <see paramref="StartPosition"/>
+        /// <toinherit>Returns a result of the runner available at the moment of the method call.</toinherit>
         /// </summary>
-        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop</param>
-        /// <param name="StartPosition">
-        /// Position value from which the fetching of the results should begin
-        /// <remarks> 
-        /// <para>Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch results from the last position fetched.</para>
-        /// <para>For implementers: it's recomended not to fetch anything if this value differs from the current runner's <see cref="IRunner.Position">Position property</see>value</para>
-        /// </remarks>
+        /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop.
+        /// If the backgound process did not get so far, this method returns the result for the last Position reached.
         /// </param>
-        /// <param name="TraceIdentifier">Control flow identifier used for tracing</param>
+        /// <param name="StartPosition">
+        /// <toinherit>Position value from which a fetch of the result should begin. </toinherit>
+        /// Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch result from the last position fetched.
+        /// </param>
+        /// <param name="TraceIdentifier"> <inheritdoc cref="IRunner.Abort" path='/param[@name="TraceIdentifier"]'/>
+        /// </param>
         /// <returns>
-        /// An <see cref="RunnerResult{TResult}"/> value containing the status, the position of the runner 
-        /// at the point of completion and the result (of type <typeparamref name="TResult"/>) if any
+        /// <toinherit>
+        /// Fields in the structure returned as a result contains values of the properties 
+        /// <see cref="IRunner.Status"/> and <see cref="IRunner.Position"/>
+        /// at the point of completion in fields with the same names 
+        /// and a runner-specific result in a <see cref="RunnerResult{TResult}.Result"/> field,
+        /// </toinherit>
+        /// the field Result type being TResult).
         /// </returns>
         public RunnerResult<TResult> GetAvailable(Int32 Advance = MAXIMUM_ADVANCE, Int32 StartPosition = CURRENT_POSITION, String? TraceIdentifier = null);
     }
