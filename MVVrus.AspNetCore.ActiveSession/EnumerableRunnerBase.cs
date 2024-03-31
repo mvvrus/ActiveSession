@@ -399,19 +399,6 @@ namespace MVVrus.AspNetCore.ActiveSession
             base.DoAbort(TraceIdentifier);
         }
 
-        ///<summary>
-        ///Protected, overrides <see cref="RunnerBase.StartBackgroundExecutionAsync">RunnerBase.StartBackgroundExecutionAsync()</see>. 
-        ///<inheritdoc path="/summary/toinherit"/>
-        ///</summary>
-        ///<remarks>
-        ///<inheritdoc path="/summary/toinherit"/>
-        ///This method override in this particular class is a placeholder, 
-        ///it just throws <see cref="NotImplementedException"/>
-        ///This method MUST be overriden in descendent classes and should never be called from overrides.
-        ///</remarks>
-        ///<inheritdoc/>
-        protected internal override Task StartBackgroundExecutionAsync() { throw new NotImplementedException(); }
-
         /// <summary>
         /// Protected abstract. 
         /// <toinherit>Creates a task controlling an asynchronous fetch of results of a background processing.</toinherit>
