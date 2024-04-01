@@ -29,9 +29,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogDebugRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_RUNNERBASECONSENTER, LogLevel.Trace, "RunnerBase: constructor started, RunnerId={RunnerId}")]
-        public static partial void LogTraceEnterRunnerBaseConstructor(this ILogger Logger, RunnerId RunnerId);
+        public static partial void LogTraceRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASECONSEXIT, LogLevel.Trace, "RunnerBase: constructor complete, RunnerId={RunnerId}")]
-        public static partial void LogTraceEnterRunnerBaseConstructorExit(this ILogger Logger, RunnerId RunnerId);
+        public static partial void LogTraceRunnerBaseConstructorExit(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASEDISPOSE, LogLevel.Trace, "RunnerBase: Dispose() called, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseDisposing(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASESESTATENOTSTARTED, LogLevel.Trace, "RunnerBase: attempt to return State to NotStarted ignored, RunnerId={RunnerId}")]
@@ -47,6 +47,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_RUNNERBASESABORTCALLED, LogLevel.Trace, "RunnerBase.Abort() is called, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier} ")]
         public static partial void LogTraceRunnerBaseAbortCalled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
+        [LoggerMessage(T_ENUMRUNNERBASECONSENTER, LogLevel.Trace, "EnumerableRunnerBase: constructor started, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumerableRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMRUNNERBASECONSEXIT, LogLevel.Trace, "EnumerableRunnerBase: constructor complete, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumerableRunnerBaseConstructorExit(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKACQUIRED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock acquired, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBasePseudoLockAcquired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKRLEASED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock released, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -121,5 +125,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASERESULTTOMAKE, LogLevel.Trace, "EnumerableRunnerBase result: make the result for a return, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseMakeSyncResult(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+
+        [LoggerMessage(T_ENUMADAPTERRUNNERCONSENTER, LogLevel.Trace, "EnumAdapterRunner: constructor started, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterConstructorEnter(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERCONSEXIT, LogLevel.Trace, "EnumAdapterRunner: constructor complete, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterConstructorExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERABORTCORE, LogLevel.Trace, "EnumAdapterRunner: Abort-associated actions to be executed, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerDisposeCore(this ILogger Logger, RunnerId RunnerId);
     }
 }

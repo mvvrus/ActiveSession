@@ -43,14 +43,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             this.Logger=Logger;
             this.Id=RunnerId;
             #if TRACE
-            this.Logger?.LogTraceEnterRunnerBaseConstructor(RunnerId);
+            this.Logger?.LogTraceRunnerBaseConstructorEnter(RunnerId);
             #endif
             _status=(Int32)RunnerStatus.NotStarted;
             _passCtsOwnership=PassCtsOwnership || CompletionTokenSource==null;
             _completionTokenSource=CompletionTokenSource??new CancellationTokenSource();
             CompletionToken = _completionTokenSource.Token;
             #if TRACE
-            this.Logger?.LogTraceEnterRunnerBaseConstructorExit(RunnerId);
+            this.Logger?.LogTraceRunnerBaseConstructorExit(RunnerId);
             #endif
         }
 

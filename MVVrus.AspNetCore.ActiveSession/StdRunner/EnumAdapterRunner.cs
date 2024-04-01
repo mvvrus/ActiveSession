@@ -5,12 +5,13 @@ using static MVVrus.AspNetCore.ActiveSession.RunnerStatus;
 using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MVVrus.AspNetCore.ActiveSession.Internal;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
     /// This class serves as an adapter to return data from an enumerable object implementing IEnumerable&lt;<typeparamref name="TItem"/>&gt; interface
-    /// The adapter enumerates the enumerable the object in background and returns parts of resulting sequence in order
+    /// The adapter enumerates the enumerable object in background and returns parts of resulting sequence in order
     /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
     /// </summary>
     public class EnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>, ICriticalNotifyCompletion
@@ -80,15 +81,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
             _passSourceOwnership = PassSourceOnership;
-#if TRACE
-#endif
-            //TODO LogDebug parameters passed
-
+            #if TRACE
+            Logger?.LogTraceEnumAdapterConstructorEnter(Id);
+            #endif
             _runAwaitContinuationDelegate = RunAwaitContinuation;
             _tryRunAwaitContinuationDelegate = TryRunAwaitContinuation;
             if (StartInConstructor) this.StartRunning();
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterConstructorExit(Id);
+            #endif
         }
 
         /// <summary>
@@ -97,6 +98,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <returns></returns>
         protected async override Task DisposeAsyncCore()
         {
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerDisposeCore(Id);
+            #endif
             if(_fetchTask != null) try {
                     await _fetchTask!;
                 }

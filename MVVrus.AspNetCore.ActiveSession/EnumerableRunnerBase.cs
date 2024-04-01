@@ -43,7 +43,6 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         readonly BlockingCollection<TItem> _queue;
         readonly int _defaultAdvance;
-        readonly ILogger? _logger;
         Task? _disposeTask = null;
         List<TItem>? _stashedFetch = null;
         volatile TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? _waitingTaskSource = null;
@@ -80,9 +79,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             Int32 DefaultAdvance, Int32 QueueSize
         ) : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger)
         {
+            #if TRACE
+            Logger?.LogTraceEnumerableRunnerBaseConstructorEnter(Id);
+            #endif
             _queue = new BlockingCollection<TItem>(QueueSize);
             _defaultAdvance = DefaultAdvance;
-            _logger = Logger;
+            #if TRACE
+            Logger?.LogTraceEnumerableRunnerBaseConstructorExit(Id);
+            #endif
         }
 
         ///<summary>
@@ -97,7 +101,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             if(SetDisposed()) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseDisposeAsyncExecuted(Id);
+                Logger?.LogTraceEnumerableRunnerBaseDisposeAsyncExecuted(Id);
                 #endif
                 _disposeTask = DisposeAsyncCore();
             }
@@ -163,14 +167,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             CheckDisposed();
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetAvailable(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseGetAvailable(Id, trace_identifier);
             #endif
             if(!TryAcquirePseudoLock()) {
-                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
+                Logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
                 ThrowInvalidParallelism();
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
             #endif
             List<TItem> result = new List<TItem>();
             try {
@@ -178,15 +182,15 @@ namespace MVVrus.AspNetCore.ActiveSession
                 FetchAvailable(Advance, result, trace_identifier);
             }
             catch(Exception exception) {
-                _logger?.LogErrorEnumerableRunnerBaseGetAvailException(exception, Id, trace_identifier);
+                Logger?.LogErrorEnumerableRunnerBaseGetAvailException(exception, Id, trace_identifier);
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
+                Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
                 #endif
                 throw;
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetAvailableExit(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseGetAvailableExit(Id, trace_identifier);
             #endif
             return FinishWithResult(result, trace_identifier);
         }
@@ -216,14 +220,14 @@ namespace MVVrus.AspNetCore.ActiveSession
             CheckDisposed();
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseGetRequired(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseGetRequired(Id, trace_identifier);
             #endif
             if(!TryAcquirePseudoLock()) {
-                _logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
+                Logger?.LogWarningEnumerableRunnerBaseParallelAttempt(Id, trace_identifier);
                 ThrowInvalidParallelism();
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockAcquired(Id, trace_identifier);
             #endif
             try {
                 RunnerResult<IEnumerable<TItem>> runner_result;
@@ -235,7 +239,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 if(startup_task.IsCompleted) {
                     //Background process initialization has been already done or completed synchronously
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredStartupComplete(Id, trace_identifier);
+                    Logger?.LogTraceEnumerableRunnerBaseGetRequiredStartupComplete(Id, trace_identifier);
                     #endif
                     if(startup_task.IsCanceled) 
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
@@ -244,20 +248,20 @@ namespace MVVrus.AspNetCore.ActiveSession
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(
                             Task.FromException<RunnerResult<IEnumerable<TItem>>>(startup_task.Exception!.InnerExceptions[0]));
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredTrySyncPath(Id, trace_identifier);
+                    Logger?.LogTraceEnumerableRunnerBaseGetRequiredTrySyncPath(Id, trace_identifier);
                     #endif
                     if(FetchAvailable(Advance, result, trace_identifier)) {
                         //Short path successfull: set correct Status
                         runner_result = FinishWithResult(result, trace_identifier);
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredSyncExit(Id, trace_identifier);
+                        Logger?.LogTraceEnumerableRunnerBaseGetRequiredSyncExit(Id, trace_identifier);
                         #endif
                         return new ValueTask<RunnerResult<IEnumerable<TItem>>>(runner_result);
                     }
                     else {
                         //Come here if the short path failed: available data at current status cannot satisfy the request, so some async work is needed
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormFetchTask(Id, trace_identifier);
+                        Logger?.LogTraceEnumerableRunnerBaseGetRequiredFormFetchTask(Id, trace_identifier);
                         #endif
                         _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                         result_task = _waitingTaskSource.Task;
@@ -268,7 +272,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 else {
                     //Background process initialisation is required and have not been completed synchronously
                     #if TRACE
-                    _logger?.LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(Id, trace_identifier);
+                    Logger?.LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(Id, trace_identifier);
                     #endif
                     _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                     result_task = _waitingTaskSource.Task;
@@ -279,15 +283,15 @@ namespace MVVrus.AspNetCore.ActiveSession
                         TaskContinuationOptions.OnlyOnRanToCompletion);
                 }
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseGetRequiredExitAsync(Id, trace_identifier);
+                Logger?.LogTraceEnumerableRunnerBaseGetRequiredExitAsync(Id, trace_identifier);
                 #endif
                 return new ValueTask<RunnerResult<IEnumerable<TItem>>>(result_task);
             }
             catch(Exception exception) {
-                _logger?.LogErrorEnumerableRunnerBaseGetRequiredException(exception, Id, trace_identifier);
+                Logger?.LogErrorEnumerableRunnerBaseGetRequiredException(exception, Id, trace_identifier);
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
+                Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
                 #endif
                 throw;
             }
@@ -336,12 +340,12 @@ namespace MVVrus.AspNetCore.ActiveSession
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waiting_task_source = _waitingTaskSource;
             if(waiting_task_source!=null) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePreDispose(Id);
+                Logger?.LogTraceEnumerableRunnerBasePreDispose(Id);
                 #endif
                 waiting_task_source!.TrySetException(new ObjectDisposedException(DisposedObjectName()));
                 ReleasePseudoLock();
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, UNKNOWN_TRACE_IDENTIFIER);
+                Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, UNKNOWN_TRACE_IDENTIFIER);
                 #endif
             }
         }
@@ -370,7 +374,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected virtual Task DisposeAsyncCore()
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseDisposeCore(Id);
+            Logger?.LogTraceEnumerableRunnerBaseDisposeCore(Id);
             #endif
             _queue.Dispose();
             base.Dispose(true);
@@ -390,7 +394,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected override void DoAbort(String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAbortCore(Id, TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAbortCore(Id, TraceIdentifier);
             #endif
             if(!Disposed()) try {
                     _queue.CompleteAdding();
@@ -467,18 +471,18 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             Context context = (Context as Context) ?? throw new ArgumentException(nameof(Context));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncStartBkgSuccess(Id,context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncStartBkgSuccess(Id,context.TraceIdentifier);
             #endif
             if(FetchAvailable(context.Advance, context.Accumulator, context.TraceIdentifier)) {
                 //Short path successfull: set correct Status
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncEnoughDataOnStartBkg(Id, context.TraceIdentifier);
+                Logger?.LogTraceEnumerableRunnerBaseAsyncEnoughDataOnStartBkg(Id, context.TraceIdentifier);
                 #endif
                 FinishAndMakeResultBody(FetchTask, Context);
             }
             else {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncInsuffDataOnStartBkg(Id, context.TraceIdentifier);
+                Logger?.LogTraceEnumerableRunnerBaseAsyncInsuffDataOnStartBkg(Id, context.TraceIdentifier);
                 #endif
                 AttacFetchResultProcessing(FetchRequiredAsync(context.Advance, context.Accumulator, context.Token), context);
             }
@@ -491,7 +495,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             FetchTask.ContinueWith(CancelResultBody, Context, TaskContinuationOptions.OnlyOnCanceled);
             FetchTask.ContinueWith(FailResultBody, Context, TaskContinuationOptions.OnlyOnFaulted);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchContinuations(Id, Context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncFetchContinuations(Id, Context.TraceIdentifier);
             #endif
         }
 
@@ -499,7 +503,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchFailed(Id, context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncFetchFailed(Id, context.TraceIdentifier);
             #endif
             StashOrphannedData(context.Accumulator, context.TraceIdentifier);
             SetFailResult(FetchTask, context.TraceIdentifier);
@@ -509,17 +513,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             String trace_identifier = (String?)TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSetFailResult(Antecedent.Exception?.InnerExceptions[0], Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncSetFailResult(Antecedent.Exception?.InnerExceptions[0], Id, trace_identifier);
             #endif
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
             waitingTaskSource?.TrySetException(Antecedent.Exception!.InnerExceptions);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFailResultSet(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncFailResultSet(Id, trace_identifier);
             #endif
         }
 
@@ -527,7 +531,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCanceled(Id, context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncFetchCanceled(Id, context.TraceIdentifier);
             #endif
             StashOrphannedData(context.Accumulator, context.TraceIdentifier);
             SetCancelResult(_, context.TraceIdentifier);
@@ -537,17 +541,17 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             String trace_identifier = (String?)TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSetCancelResult(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncSetCancelResult(Id, trace_identifier);
             #endif
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
             waitingTaskSource?.TrySetCanceled();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncCancelResultSet(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncCancelResultSet(Id, trace_identifier);
             #endif
         }
 
@@ -556,25 +560,25 @@ namespace MVVrus.AspNetCore.ActiveSession
             //We come here only if FetchTask is completed successfully
             Context context = (Context)(State ?? throw new ArgumentNullException(nameof(State)));
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(Id, context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(Id, context.TraceIdentifier);
             #endif
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(context.Accumulator, context.TraceIdentifier);
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
             #endif
             waitingTaskSource?.TrySetResult(result);
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
             #endif
         }
 
         void StashOrphannedData(List<TItem> Data, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncStashOrphanedFetched(Id, TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncStashOrphanedFetched(Id, TraceIdentifier);
             #endif
             Debug.Assert(_stashedFetch==null);
             _stashedFetch = Data;
@@ -583,12 +587,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         RunnerResult<IEnumerable<TItem>> FinishWithResult(List<TItem> ResultList, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseMakeSyncResult(Id, TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseMakeSyncResult(Id, TraceIdentifier);
             #endif
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(ResultList, TraceIdentifier);
             ReleasePseudoLock();
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, TraceIdentifier);
             #endif
             return result;
         }
@@ -596,18 +600,18 @@ namespace MVVrus.AspNetCore.ActiveSession
         RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier)
         {
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(Id, TraceIdentifier);
+            Logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(Id, TraceIdentifier);
             #endif
             Position = Position+ResultList.Count;
             if (_queue.Count==0 && _queue.IsAddingCompleted) {
                 RunnerStatus new_status = Exception==null ? Complete : Failed;
                 SetStatus(new_status);
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
+                Logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
                 #endif
             }
             RunnerResult<IEnumerable<TItem>> result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
-            _logger?.LogDebugRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
+            Logger?.LogDebugRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
             return result;
         }
 
@@ -650,11 +654,11 @@ namespace MVVrus.AspNetCore.ActiveSession
             String trace_identifier = TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER;
 
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseFetchAvailable(Id, trace_identifier);
+            Logger?.LogTraceEnumerableRunnerBaseFetchAvailable(Id, trace_identifier);
             #endif
             if(Status.IsFinal()) {
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFinal(Id, trace_identifier);
+                Logger?.LogTraceEnumerableRunnerBaseFetchAvailableFinal(Id, trace_identifier);
                 result = true;
                 #endif
 
@@ -666,7 +670,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     int orphanned_count = _stashedFetch.Count;
                     if(orphanned_count <= MaxAdvance - fetched_count) {
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedAll(Id, trace_identifier);
+                        Logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedAll(Id, trace_identifier);
                         #endif
                         Result.AddRange(_stashedFetch);
                         fetched_count += orphanned_count;
@@ -674,7 +678,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     }
                     else {
                         #if TRACE
-                        _logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedPartial(Id, trace_identifier);
+                        Logger?.LogTraceEnumerableRunnerBaseFetchAvailableStashedPartial(Id, trace_identifier);
                         #endif
                         Result.AddRange(_stashedFetch!.GetRange(0, MaxAdvance - fetched_count));
                         _stashedFetch.RemoveRange(0, MaxAdvance - fetched_count);
@@ -683,13 +687,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                 }
                 //Fetch from current queue
                 #if TRACE
-                _logger?.LogTraceEnumerableRunnerBaseFetchAvailableFromQueue(Id, trace_identifier);
+                Logger?.LogTraceEnumerableRunnerBaseFetchAvailableFromQueue(Id, trace_identifier);
                 #endif
                 for(; fetched_count < MaxAdvance && _queue.TryTake(out item); fetched_count++) Result.Add(item);
                 result=fetched_count >= MaxAdvance || _queue.IsAddingCompleted && _queue.Count == 0;
             }
             #if TRACE
-            _logger?.LogTraceEnumerableRunnerBaseFetchAvailableExit(Id, trace_identifier, result);
+            Logger?.LogTraceEnumerableRunnerBaseFetchAvailableExit(Id, trace_identifier, result);
 #           endif
             return result;
         }
