@@ -51,16 +51,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumerableRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMRUNNERBASECONSEXIT, LogLevel.Trace, "EnumerableRunnerBase: constructor complete, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumerableRunnerBaseConstructorExit(this ILogger Logger, RunnerId RunnerId);
-        [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKACQUIRED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock acquired, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceEnumerableRunnerBasePseudoLockAcquired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKRLEASED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock released, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceEnumerableRunnerBasePseudoLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEDISPOSEASYNC, LogLevel.Trace, "EnumerableRunnerBase: DisposeAsync to be executed, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumerableRunnerBaseDisposeAsyncExecuted(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMRUNNERBASEPREDISPOSE, LogLevel.Trace, "EnumerableRunnerBase: pre-Dispose actions to be executed, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumerableRunnerBasePreDispose(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMRUNNERBASEDISPOSECORE, LogLevel.Trace, "EnumerableRunnerBase: Dispose actions to be executed, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumerableRunnerBaseDisposeCore(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKACQUIRED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock acquired, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumerableRunnerBasePseudoLockAcquired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMRUNNERBASEPSEUDOLOCKRLEASED, LogLevel.Trace, "EnumerableRunnerBase: pseudo-lock released, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumerableRunnerBasePseudoLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMRUNNERBASEABORTCORE, LogLevel.Trace, "EnumerableRunnerBase: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumerableRunnerBaseAbortCore(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEGETAVAILABLE, LogLevel.Trace, "Enetring EnumerableRunnerBase.GetAvailable, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseGetAvailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEGETAVAILABLEEXIT, LogLevel.Trace, "Exiting EnumerableRunnerBase.GetAvailable, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -79,8 +81,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumerableRunnerBaseGetRequiredFormStartupAndfetchTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEGETREQUIREDRETURNASYNC, LogLevel.Trace, "EnumerableRunnerBase.GetRequiredAsync returned task to complete the operation asynchronously , RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseGetRequiredExitAsync(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_ENUMRUNNERBASEABORTCORE, LogLevel.Trace, "EnumerableRunnerBase: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceEnumerableRunnerBaseAbortCore(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEFETCH, LogLevel.Trace, "EnumerableRunnerBase.FetchAvailable entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseFetchAvailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEFETCHFINAL, LogLevel.Trace, "EnumerableRunnerBase.FetchAvailable final stage detected, nothing to fetch any more, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -130,7 +130,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumAdapterConstructorEnter(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMADAPTERRUNNERCONSEXIT, LogLevel.Trace, "EnumAdapterRunner: constructor complete, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumAdapterConstructorExit(this ILogger Logger, RunnerId RunnerId);
-        [LoggerMessage(T_ENUMADAPTERRUNNERABORTCORE, LogLevel.Trace, "EnumAdapterRunner: Abort-associated actions to be executed, RunnerId={RunnerId}")]
+        [LoggerMessage(T_ENUMADAPTERRUNNERDISPOSECORE, LogLevel.Trace, "EnumAdapterRunner: Dispose actions to be executed, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumAdapterRunnerDisposeCore(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERPREDISPOSE, LogLevel.Trace, "EnumAdapterRunner: Starting pre-dispose actions, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerPreDispose(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERPREDISPOSEEXIT, LogLevel.Trace, "EnumAdapterRunner: Ending pre-dispose actions, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerPreDisposeExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERRELEASESOURCE, LogLevel.Trace, "EnumAdapterRunner: Releasing source enumerable, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerReleaseSource(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERSOURCEDISPOSED, LogLevel.Trace, "EnumAdapterRunner: Source enumerable disposed, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerSourceDisposed(this ILogger Logger, RunnerId RunnerId);
     }
 }

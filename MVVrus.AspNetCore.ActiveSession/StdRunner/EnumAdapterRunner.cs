@@ -126,17 +126,28 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         protected override void PreDispose()
         {
             base.PreDispose();
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerPreDispose(Id);
+            #endif
             TryRunAwaitContinuation();
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerPreDisposeExit(Id);
+            #endif
         }
 
 
         void ReleaseSource()
         {
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerReleaseSource(Id);
+            #endif
             IDisposable? base_disposable = _passSourceOwnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
             base_disposable?.Dispose();
-            //TODO
+            if(base_disposable != null) {
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerSourceDisposed(Id);
+                #endif
+            }
         }
 
         /// <summary>
@@ -167,7 +178,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
         async Task FetchRequiredAsyncImpl(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
         {
+#if TRACE
+#endif
             using(Token.Register(_tryRunAwaitContinuationDelegate)) {
+#if TRACE
+#endif
                 while(!Disposed() && Result.Count < MaxAdvance && Status.IsRunning() ){
                     Token.ThrowIfCancellationRequested();
 
@@ -191,6 +206,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 }
 
             }
+#if TRACE
+#endif
         }
 
         /// <summary>
@@ -198,6 +215,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected override void DoAbort(String TraceIdentifier)
         {
+#if TRACE
+#endif
             TryRunAwaitContinuation();
             base.DoAbort(TraceIdentifier);
         }
@@ -206,8 +225,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             CancellationToken completion_token = CompletionToken;
             if (_source == null) return;
-            try
-            {
+#if TRACE
+#endif
+            try {
                 foreach(TItem item in _source!) {
 #if TRACE
 #endif              
@@ -236,7 +256,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             }
             catch (Exception e)
             {
-                //LogError
+                //TODO LogError
                 Exception = e;
             }
             finally
