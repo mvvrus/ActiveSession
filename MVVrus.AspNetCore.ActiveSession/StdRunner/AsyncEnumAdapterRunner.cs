@@ -134,9 +134,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="MaxAdvance"></param>
         /// <param name="Result"></param>
         /// <param name="Token"></param>
+        /// <param name="TraceIdentifier"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier)
         {
             Context result_context= new Context(MaxAdvance, Result, Token);
             //Some possibly unnecessary precautions

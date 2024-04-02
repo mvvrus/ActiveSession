@@ -1226,7 +1226,7 @@ namespace ActiveSession.Tests
                 _startBkgCancelededSync = true;
             }
 
-            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
+            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token, String TraceIdentifier)
             {
                 _maxAdvance = MaxAdvance;
                 _result = Result;
@@ -1318,7 +1318,7 @@ namespace ActiveSession.Tests
             public TestEnumerableParamRunner(ActiveSessionOptions Options, Int32? DefaultAdvance, Int32? QueueSize) 
                 : base(null, true, default, null, new ActiveSessionOptionsSnapshot(Options), DefaultAdvance, QueueSize) { }
 
-            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token)
+            protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<Int32> Result, CancellationToken Token, String TraceIdentifier)
             {
                 throw new NotImplementedException();
             }

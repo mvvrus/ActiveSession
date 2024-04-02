@@ -95,7 +95,7 @@ namespace ActiveSession.Tests
                 Assert.False(runner.EnumTask.IsCompleted);  
                 advance = 10;
                 result = new List<Int32>();
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
                 Assert.Empty(result);
                 //Test case: await on the insufficiently filled queue, background fetch is in progress
@@ -124,7 +124,7 @@ namespace ActiveSession.Tests
                 //Test case: await on queue to be filled with just the same amount as requested, background fetch is in progress
                 result = new List<Int32>();
                 runner.FetchAvailable(advance, result);
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
                 step1 = step2;
                 step2 = 20;
@@ -146,7 +146,7 @@ namespace ActiveSession.Tests
                 //Test case: await on the initially insufficiently filled queue, background fetch is in progress
                 result = new List<Int32>();
                 runner.FetchAvailable(advance,result);
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
                 for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
                 Assert.Equal(step2-2*advance, result.Count);
@@ -217,7 +217,7 @@ namespace ActiveSession.Tests
                         Assert.True(test_enumerable.WaitForPause());
                         advance = 10;
                         result = new List<Int32>();
-                        fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token);
+                        fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
                         Act();
                         Assess();
                     }
@@ -319,7 +319,7 @@ namespace ActiveSession.Tests
             {
                 StartBkg();
                 result = new List<Int32>();
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts?.Token??default);
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts?.Token??default, "<unknown>");
             }
 
             void PerformTest(Action Arrnage, Action Assess)
