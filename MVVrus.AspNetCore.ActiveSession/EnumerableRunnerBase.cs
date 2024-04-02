@@ -265,7 +265,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                         #endif
                         _waitingTaskSource = new TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>();
                         result_task = _waitingTaskSource.Task;
-                        AttacFetchResultProcessing(FetchRequiredAsync(Advance, result, Token), 
+                        AttacFetchResultProcessing(FetchRequiredAsync(Advance, result, Token/*, trace_identifier*/), 
                             new Context(result, Advance, trace_identifier, Token));
                     }
                 }
@@ -403,6 +403,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             base.DoAbort(TraceIdentifier);
         }
 
+        // <param name="TraceIdentifier"></param>
         /// <summary>
         /// Protected abstract. 
         /// <toinherit>Creates a task controlling an asynchronous fetch of results of a background processing.</toinherit>
@@ -411,7 +412,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Result">The list holding the fetched records. May be partially filled before a call of this method.</param>
         /// <param name="Token">A CancellationToken instance that may be used to cancel the returned task.</param>
         /// <returns>A task that presents the process of fetching.</returns>
-        protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token);
+        protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token/*, String TraceIdentifier*/);
 
         /// <summary>
         /// Protected. Returns a boolean value indicating whether a background execution (that adds items to the queue) is completed.

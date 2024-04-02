@@ -176,6 +176,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <toinherit>This method performs and additional work for implementing the <see cref="Abort"/> method. </toinherit>
         /// It is intended to be overriden in descendent classes.
         /// </summary>
+        /// <param name="TraceIdentifier">
+        /// <inheritdoc cref="IRunner.Abort(string?)"/>
+        /// </param>
         /// <remarks> This method in this particular class is semi-abstract, i.e it  does nothing.</remarks>
         protected virtual void DoAbort(String TraceIdentifier) {}
 

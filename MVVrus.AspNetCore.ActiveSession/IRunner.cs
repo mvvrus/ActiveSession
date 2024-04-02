@@ -36,8 +36,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Method that terminates the runner execution.
         /// </summary>
-        /// <param name="TraceIdentifier">Sting that can be used for tracing.</param>
-        /// <remarks>If this string is specified it is placed to log records emitted from a runner.</remarks>
+        /// <param name="TraceIdentifier">String that can be used for tracing.</param>
+        /// <remarks>If TraceIdentifier is specified it is placed to log records emitted from a runner.</remarks>
         public void Abort(String? TraceIdentifier = null);
 
         /// <summary>
