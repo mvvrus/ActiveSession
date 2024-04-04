@@ -7,18 +7,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal static partial class RBLoggingExtensions
     {
-        /*
-        [LoggerMessage(E_MIDDLEWARE, Error, "The exception occured while creating the ActiveSession middleware.")]
-        public static partial void LogErrorMiddlewareCannotBeCreated(this ILogger Logger, Exception AnException);
-        [LoggerMessage(T_RUNNERBASE, Trace, "RunnerBase:, RunnerId={RunnerId}")]
-        */
-
         [LoggerMessage(E_RUNNERSTARTBKGFAILED, LogLevel.Error, "An exception occured while starting the runner background execution, RunnerId={RunnerId}.")]
         public static partial void LogErrorStartBkgProcessingFailed(this ILogger Logger, Exception AnException, RunnerId RunnerId);
-        [LoggerMessage(E_ENUMERABLERUNNERBASEGETAVAILEXCEPTION, LogLevel.Warning, "An exception occured while calling Enetring EnumerableRunnerBase.GetAvailableMethod, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        [LoggerMessage(E_ENUMERABLERUNNERBASEGETAVAILEXCEPTION, LogLevel.Error, "An exception occured while calling EnumerableRunnerBase.GetAvailable method, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogErrorEnumerableRunnerBaseGetAvailException(this ILogger Logger, Exception AnException, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(E_ENUMERABLERUNNERBASEGETREQUIREDEXCEPTION, LogLevel.Warning, "An exception occured while calling Enetring EnumerableRunnerBase.GetAvailableMethod, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        [LoggerMessage(E_ENUMERABLERUNNERBASEGETREQUIREDEXCEPTION, LogLevel.Error, "An exception occured while calling EnumerableRunnerBase.GetRequiredAsync method, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogErrorEnumerableRunnerBaseGetRequiredException(this ILogger Logger, Exception AnException, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(E_ENUMADAPTERRUNNERDISPOSEEXCEPTION, LogLevel.Error, "An exception occured during disposing EnumAdapterRunner, RunnerId={RunnerId}.")]
+        public static partial void LogErrorEnumAdapterRunnerDisposeException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
+        [LoggerMessage(E_ENUMADAPTERRUNNERSOURCEENUMERATIONEXCEPTION, LogLevel.Error, "An exception occured during the source enumeration in EnumAdapterRunner, RunnerId={RunnerId}.")]
+        public static partial void LogErrorEnumAdapterRunnerSourceEnumerationException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
+        [LoggerMessage(E_ENUMADAPTERRUNNERAWAITCONTINUATIONEXCEPTION, LogLevel.Error, "An exception occured during scheduling a continuation in EnumAdapterRunner, RunnerId={RunnerId}.")]
+        public static partial void LogErrorEnumAdapterRunnerContinuationException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
 
         [LoggerMessage(W_RUNNERBASEUNEXPECTEDSTATUS, LogLevel.Warning, "Unexpected runner status detected while rolling back a start of the runner background execution, RunnerId={RunnerId}, expected: {OldStatus}, detected: {RolledBackStatus}.")]
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
@@ -27,6 +27,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(D_ENUMADAPTERRUNNERPARAMS, LogLevel.Debug, 
+            "New EnumAdapterRunner created, RunnerId={RunnerId} parameters:(" +
+            "PassSourceOnership={PassSourceOnership}, CompletionTokenSourcePresent={CompletionTokenSourcePresent}, " +
+            "PassCtsOwnership={PassCtsOwnership}, EffectiveDefaultAdvance={EffectiveDefaultAdvance}, " +
+            "EffectiveEnumAheadLimit={EffectiveEnumAheadLimit}, StartInConstructor={StartInConstructor} )"
+            )]
+        public static partial void LogDebugEnumAdapterRunnerConstructor(this ILogger Logger,
+                    RunnerId RunnerId,
+                    Boolean PassSourceOnership,
+                    Boolean  CompletionTokenSourcePresent,
+                    Boolean PassCtsOwnership,
+                    Int32 EffectiveDefaultAdvance,
+                    Int32 EffectiveEnumAheadLimit,
+                    Boolean StartInConstructor);
 
         [LoggerMessage(T_RUNNERBASECONSENTER, LogLevel.Trace, "RunnerBase: constructor started, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
@@ -140,5 +154,56 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumAdapterRunnerReleaseSource(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMADAPTERRUNNERSOURCEDISPOSED, LogLevel.Trace, "EnumAdapterRunner: Source enumerable disposed, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumAdapterRunnerSourceDisposed(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERSTARTBKGENTER, LogLevel.Trace, "EnumAdapterRunner: StartBackgroundExecution entered, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerStartBackgroundEnter(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERSTARTBKGEXIT, LogLevel.Trace, "EnumAdapterRunner: StartBackgroundExecution exited, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerStartBackgroundExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCSTART, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: Start an enumeration of the source, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceStart(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCNEWITERATION, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: A new item acquired in the enumeration loop, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceNewIteration(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCLOOPBREAK, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: Break the enumeration loop, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceIterationBreak(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCITEMADDED, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: The item is added to the queue, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceItemAdded(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCCANCELAFTERADD, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: Cancellation after the addition, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceCanceledAfterIteration(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCLOOPENDED, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: The enumeration loop ended, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceIterationExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCFINALIZE, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: Performing final operations, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceFinalize(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERENUMSRCEXIT, LogLevel.Trace, "EnumAdapterRunner.EnumerateSource: The enumeration task is done, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateSourceExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITSCHEDULE, LogLevel.Trace, "EnumAdapterRunner awaiter: schedule a continuation, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateScheduleContinuation(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITSCHEDULELASTCHANCEQUEUE, LogLevel.Trace, "EnumAdapterRunner awaiter: run scheduled continuation because it may be the last chance, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerSheduleQueueContnuationToRunAsLastChancePossible(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITSCHEDULEEXIT, LogLevel.Trace, "EnumAdapterRunner awaiter: scheduling the continuation done, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerEnumerateScheduleContinuationDone(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITQUEUE, LogLevel.Trace, "EnumAdapterRunner awaiter: queue a previosly scheduled continuation (if any) to run, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerQueueContnuationToRun(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITQUEUEREALLY, LogLevel.Trace, "EnumAdapterRunner awaiter: queue a previosly scheduled continuation (if any) to run, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerQueueContnuationToRunReally(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ENUMADAPTERRUNNERAWAITQUEUEEXIT, LogLevel.Trace, "EnumAdapterRunner awaiter: queueing a possible continuation to run finished, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumAdapterRunnerQueueContnuationToRunExit(this ILogger Logger, RunnerId RunnerId);
+
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDENTER, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncEnter(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDLOOPSTART, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: an item extraction loop started, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDLOOPNEXT, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: the next loop iteration, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDITEMTAKEN, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: a new item is taken from the queue, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncItemTaken(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDNOMOREITEMS, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: no more items to extract, break the loop, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncNoMoreItems(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDBEFOREAWAITING, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: awaiting background enumeration , RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncBeforeAwaiting(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDAFTERAWAITING, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: continue the loop after awaiting , RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncAfterAwaiting(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDEXIT, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync exited, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMADAPTERRUNNERDOABORT, LogLevel.Trace, "EnumAdapterRunner: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceEnumAdapterRunnerDoAbort(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
     }
 }

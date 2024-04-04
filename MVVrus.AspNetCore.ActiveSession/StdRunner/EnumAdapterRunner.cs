@@ -21,8 +21,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         IEnumerable<TItem>? _source;
         Boolean _passSourceOwnership;
         Task? _enumTask;
-        readonly Action _tryRunAwaitContinuationDelegate;
-
+        readonly Action _queueAwaitContinuationDelegate;
         internal Task? EnumTask { get => _enumTask; }
         Task? _fetchTask;
 
@@ -84,8 +83,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterConstructorEnter(Id);
             #endif
+            if(Logger?.IsEnabled(LogLevel.Debug)??false) {
+                Logger!.LogDebugEnumAdapterRunnerConstructor(
+                    Id,
+                    PassSourceOnership,
+                    CompletionTokenSource!=null,
+                    PassCtsOwnership, 
+                    DefaultAdvance ?? Options.Value.DefaultEnumerableAdvance,
+                    EnumAheadLimit ?? Options.Value.DefaultEnumerableQueueSize,
+                    StartInConstructor);
+            }
             _runAwaitContinuationDelegate = RunAwaitContinuation;
-            _tryRunAwaitContinuationDelegate = TryRunAwaitContinuation;
+            _queueAwaitContinuationDelegate = QueueAwaitContinuationForRunning;
             if (StartInConstructor) this.StartRunning();
             #if TRACE
             Logger?.LogTraceEnumAdapterConstructorExit(Id);
@@ -106,7 +115,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 }
                 catch(Exception e) {
                     if(!(e is TaskCanceledException) && !(e is ObjectDisposedException)) {
-                        //TODO Log exception
+                        Logger?.LogErrorEnumAdapterRunnerDisposeException(e,Id);
                     }
                 }
             if(_enumTask != null) try {
@@ -114,7 +123,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 }
                 catch(Exception e) {
                     if(!(e is TaskCanceledException) && !(e is ObjectDisposedException)) {
-                        //TODO Log exception
+                        Logger?.LogErrorEnumAdapterRunnerDisposeException(e,Id);
                     }
                 }
             await base.DisposeAsyncCore();
@@ -129,7 +138,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDispose(Id);
             #endif
-            TryRunAwaitContinuation();
+            QueueAwaitContinuationForRunning();
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDisposeExit(Id);
             #endif
@@ -155,11 +164,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected internal override void StartBackgroundExecution()
         {
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerStartBackgroundEnter(Id);
+            #endif
             _enumTask = Task.Run(EnumerateSource);
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerStartBackgroundExit(Id);
+            #endif
         }
 
         /// <summary>
@@ -173,42 +184,54 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <exception cref="NullReferenceException"></exception>
         protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier)
         {
-            _fetchTask=FetchRequiredAsyncImpl(MaxAdvance,Result,Token);
+            _fetchTask=FetchRequiredAsyncImpl(MaxAdvance,Result,Token, TraceIdentifier);
             return _fetchTask;
         }
 
-        async Task FetchRequiredAsyncImpl(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token)
+        async Task FetchRequiredAsyncImpl(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier)
         {
-#if TRACE
-#endif
-            using(Token.Register(_tryRunAwaitContinuationDelegate)) {
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncEnter(Id, TraceIdentifier);
+            #endif
+            using(Token.Register(_queueAwaitContinuationDelegate)) {
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(Id, TraceIdentifier);
+                #endif
                 while(!Disposed() && Result.Count < MaxAdvance && Status.IsRunning() ){
+                    #if TRACE
+                    Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(Id, TraceIdentifier);
+                    #endif
                     Token.ThrowIfCancellationRequested();
 
                     TItem? item;
                     if(QueueTryTake(out item)) {
-#if TRACE
-#endif
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncItemTaken(Id, TraceIdentifier);
+                        #endif
                         Result.Add(item!);
                     }
                     else if(QueueIsAddingCompleted) {
-#if TRACE
-#endif
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncNoMoreItems(Id, TraceIdentifier);
+                        #endif
                         break;
                     }
                     else {
-#if TRACE
-#endif
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncBeforeAwaiting(Id, TraceIdentifier);
+                        #endif
                         await this;
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncAfterAwaiting(Id, TraceIdentifier);
+                        #endif
                         CheckDisposed();
                     }
                 }
 
             }
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncExit(Id, TraceIdentifier);
+            #endif
         }
 
         /// <summary>
@@ -216,9 +239,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected override void DoAbort(String TraceIdentifier)
         {
-#if TRACE
-#endif
-            TryRunAwaitContinuation();
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerDoAbort(Id, TraceIdentifier);
+            #endif
+            QueueAwaitContinuationForRunning();
             base.DoAbort(TraceIdentifier);
         }
 
@@ -226,50 +250,59 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             CancellationToken completion_token = CompletionToken;
             if (_source == null) return;
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerEnumerateSourceStart(Id);
+            #endif
             try {
                 foreach(TItem item in _source!) {
-#if TRACE
-#endif              
-                    if (completion_token.IsCancellationRequested || Status.IsFinal()) {
+                    #if TRACE
+                    Logger?.LogTraceEnumAdapterRunnerEnumerateSourceNewIteration(Id);
+                    #endif              
+                    if(completion_token.IsCancellationRequested || Status.IsFinal()) {
                         //No need to proceed.
-#if TRACE
-#endif
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerEnumerateSourceIterationBreak(Id);
+                        #endif
                         break;
                     }
                     if (QueueTryAdd(item, -1, completion_token))
                     {
-#if TRACE
-#endif
-                        TryRunAwaitContinuation();
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerEnumerateSourceItemAdded(Id);
+                        #endif
+                        QueueAwaitContinuationForRunning();
                     }
-                    else if (completion_token.IsCancellationRequested) { 
+                    else if (completion_token.IsCancellationRequested) {
                         //Apparently somewhat excessive check. It's intended to sped up a cancellation
                         //by avoiding one more (possibly long) enumeration at the start of the cycle
-#if TRACE
-#endif
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerEnumerateSourceCanceledAfterIteration(Id);
+                        #endif
                         break;
                     }
                 }
-#if TRACE
-#endif
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerEnumerateSourceIterationExit(Id);
+                #endif
             }
             catch (Exception e)
             {
-                //TODO LogError
+                Logger?.LogErrorEnumAdapterRunnerSourceEnumerationException(e, Id);
+
                 Exception = e;
             }
             finally
             {
-#if TRACE
-#endif
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerEnumerateSourceFinalize(Id);
+                #endif
                 QueueCompleteAdding();
                 ReleaseSource();
-                TryRunAwaitContinuation();
+                QueueAwaitContinuationForRunning();
             }
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerEnumerateSourceExit(Id);
+            #endif
         }
 
         #region Await stuff
@@ -311,6 +344,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
         private void Schedule(Action continuation)
         {
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerEnumerateScheduleContinuation(Id);
+            #endif
             _complete_event.Reset();
             try
             {
@@ -319,37 +355,40 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     throw new InvalidOperationException("The schedule operation failed for unknown reason.");
                 }
             }
-            catch
+            catch(Exception e)
             {
-#if TRACE
-#endif
                 _complete_event.Set();
-                //TODO the reaction for an error
+                Logger?.LogErrorEnumAdapterRunnerContinuationException(e, Id);
                 throw;
             }
             if (QueueIsAddingCompleted)
             {
-#if TRACE
-#endif
-                TryRunAwaitContinuation();
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerSheduleQueueContnuationToRunAsLastChancePossible(Id);
+                #endif
+                QueueAwaitContinuationForRunning();
             }
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerEnumerateScheduleContinuationDone(Id);
+            #endif
         }
 
-        void TryRunAwaitContinuation()
+        void QueueAwaitContinuationForRunning()
         {
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRun(Id);
+            #endif
             Action? continuation = Interlocked.Exchange(ref _continuation, null);
             if (continuation != null)
             {
-#if TRACE
-#endif
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRunReally(Id);
+                #endif
                 ThreadPool.QueueUserWorkItem(_runAwaitContinuationDelegate, continuation, false);
             }
-#if TRACE
-#endif
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRunExit(Id);
+            #endif
         }
 
         void RunAwaitContinuation(Action Continuation)
@@ -358,6 +397,5 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Continuation();
         }
         #endregion
-
     }
 }
