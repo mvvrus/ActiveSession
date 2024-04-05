@@ -19,6 +19,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogErrorEnumAdapterRunnerSourceEnumerationException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
         [LoggerMessage(E_ENUMADAPTERRUNNERAWAITCONTINUATIONEXCEPTION, LogLevel.Error, "An exception occured during scheduling a continuation in EnumAdapterRunner, RunnerId={RunnerId}.")]
         public static partial void LogErrorEnumAdapterRunnerContinuationException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
+        [LoggerMessage(E_ASYNCENUMADAPTERRUNNERSOURCEENUMERATIONEXCEPTION, LogLevel.Error, "An exception occured during the source enumeration in AsyncEnumAdapterRunner, RunnerId={RunnerId}.")]
+        public static partial void LogErrorAsyncEnumAdapterRunnerSourceEnumerationException(this ILogger Logger, Exception? AnException, RunnerId RunnerId);
+
 
         [LoggerMessage(W_RUNNERBASEUNEXPECTEDSTATUS, LogLevel.Warning, "Unexpected runner status detected while rolling back a start of the runner background execution, RunnerId={RunnerId}, expected: {OldStatus}, detected: {RolledBackStatus}.")]
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
@@ -37,6 +40,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     RunnerId RunnerId,
                     Boolean PassSourceOnership,
                     Boolean  CompletionTokenSourcePresent,
+                    Boolean PassCtsOwnership,
+                    Int32 EffectiveDefaultAdvance,
+                    Int32 EffectiveEnumAheadLimit,
+                    Boolean StartInConstructor);
+        [LoggerMessage(D_ASYNCENUMADAPTERRUNNERPARAMS, LogLevel.Debug,
+            "New EnumAdapterRunner created, RunnerId={RunnerId} parameters:(" +
+            "PassSourceOnership={PassSourceOnership}, CompletionTokenSourcePresent={CompletionTokenSourcePresent}, " +
+            "PassCtsOwnership={PassCtsOwnership}, EffectiveDefaultAdvance={EffectiveDefaultAdvance}, " +
+            "EffectiveEnumAheadLimit={EffectiveEnumAheadLimit}, StartInConstructor={StartInConstructor} )"
+            )]
+        public static partial void LogDebugAsyncEnumAdapterRunnerConstructor(this ILogger Logger,
+                    RunnerId RunnerId,
+                    Boolean PassSourceOnership,
+                    Boolean CompletionTokenSourcePresent,
                     Boolean PassCtsOwnership,
                     Int32 EffectiveDefaultAdvance,
                     Int32 EffectiveEnumAheadLimit,
@@ -186,7 +203,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumAdapterRunnerQueueContnuationToRunReally(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMADAPTERRUNNERAWAITQUEUEEXIT, LogLevel.Trace, "EnumAdapterRunner awaiter: queueing a possible continuation to run finished, RunnerId={RunnerId}")]
         public static partial void LogTraceEnumAdapterRunnerQueueContnuationToRunExit(this ILogger Logger, RunnerId RunnerId);
-
         [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDENTER, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncEnter(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMADAPTERRUNNERFETCHREQUIREDLOOPSTART, LogLevel.Trace, "EnumAdapterRunner.FetchRequiredAsync: an item extraction loop started, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -205,5 +221,56 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumAdapterRunnerFetchRequiredAsyncExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMADAPTERRUNNERDOABORT, LogLevel.Trace, "EnumAdapterRunner: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumAdapterRunnerDoAbort(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERCONSENTER, LogLevel.Trace, "AsyncEnumAdapterRunner: constructor started, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterConstructorEnter(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERCONSEXIT, LogLevel.Trace, "AsyncEnumAdapterRunner: constructor complete, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterConstructorExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERDISPOSECORE, LogLevel.Trace, "AsyncEnumAdapterRunner: Dispose actions to be executed, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerDisposeCore(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERPREDISPOSE, LogLevel.Trace, "AsyncEnumAdapterRunner: Starting pre-dispose actions, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterPreDispose(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERPREDISPOSEEXIT, LogLevel.Trace, "AsyncEnumAdapterRunner: Ending pre-dispose actions, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerPreDisposeExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERSOURCEDISPOSED, LogLevel.Trace, "AsyncEnumAdapterRunner: Source enumerable disposed, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerSourceDisposed(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERSTARTBKGENTER, LogLevel.Trace, "AsyncEnumAdapterRunner: StartBackgroundExecution entered, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerStartBackgroundEnter(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERSTARTBKGEXIT, LogLevel.Trace, "AsyncEnumAdapterRunner: StartBackgroundExecution exited, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerStartBackgroundExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCSTEPCOMPLETE, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: A task for the next enumeration step in the chain complete, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceStepComplete(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCSTEPCANCELED, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: a step was canceled, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceStepCanceled(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCCHAINBREAK, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: Break the enumeration chain, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceChainBreak(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCITEMADDED, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: The item is added to the queue, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceItemAdded(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCMOVENEXT, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: start the next step of the enumeration chain, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceIterationContnue(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCDONE, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: enumeration chain done, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceIterationDone(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERENUMSRCSTEPENDED, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: This step of the enumeration chain complete, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceIterationExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERTRYRELESECONTEXT, LogLevel.Trace, "AsyncEnumAdapterRunner: Try to release a current fetch context, RunnerId={RunnerId}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerTryReleaseFetchContext(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHPENDING, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: a fetch task is pending, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceFetchTaskActive(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHCANCELED, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: canceling the fetch task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceCancelFetchTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHCOPIED, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: copy items from the queue to a fetch result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceCopyFetchedItems(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHCOMPLETE, LogLevel.Trace, "AsyncEnumAdapterRunner source enumeration: completing the fetch task successfully, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerEnumerateSourceCompleteFetchTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHCONTEXTRELESED, LogLevel.Trace, "AsyncEnumAdapterRunner: The current fetch context released, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerFetchContextReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHENTER, LogLevel.Trace, "AsyncEnumAdapterRunner.FetchRequiredAsync entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncEnter(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHFAILASDISPOSED, LogLevel.Trace, "EnumAdapterRunner: make fetch task failed because of disposing, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncFailAsDisposed(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHSONTEXTSTORED, LogLevel.Trace, "AsyncEnumAdapterRunner: fetch context is stored for future, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncStoreContext(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHEXIT, LogLevel.Trace, "AsyncEnumAdapterRunner.FetchRequiredAsync exited, the task returned, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
     }
 }
