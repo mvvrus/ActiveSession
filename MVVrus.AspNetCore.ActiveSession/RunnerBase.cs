@@ -25,14 +25,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Protected. A RunnerBase instance constructor intended to be used by decendent classes constructors. 
         /// </summary>
         /// <param name="CompletionTokenSource">
-        /// External source for a value of the <see cref="CompletionToken"/> property. 
-        /// If it is null (default value), a new <see cref="CancellationTokenSource"/> will be used as the source.
+        /// External source for a value of the <see cref="RunnerBase.CompletionToken"/> property. If it is null (default value), 
+        /// a new <see cref="CancellationTokenSource"/> will be used as the source in the instance to be created.
         /// </param>
         /// <param name="PassCtsOwnership">
-        /// This value indicates should this instance be responsible for disposing an external <see cref="CompletionToken"/> source passed by <paramref name="CompletionTokenSource"/>.
+        /// This value indicates will the instance to be created be responsible for disposing an external <see cref="CompletionToken"/> source if it was passed by <paramref name="CompletionTokenSource"/>.
         /// </param>
-        /// <param name="RunnerId">The identidier to be assigned to a runner to be created.</param>
-        /// <param name="Logger">The <see cref="ILogger"/> instance used to write log messages from a runner.</param>
+        /// <param name="RunnerId">The identifier to be assigned to the instance to be created.</param>
+        /// <param name="Logger">The <see cref="ILogger"/> instance used to write log messages from the instance to be created.</param>
         /// <remarks>
         /// Because the class is intendend to be used as a base for deescendent classes, 
         /// it's constructor has access level protected, not public.

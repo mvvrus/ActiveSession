@@ -10,14 +10,16 @@ using MVVrus.AspNetCore.ActiveSession.Internal;
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// This class serves as an adapter to return data from an enumerable object implementing IEnumerable&lt;<typeparamref name="TItem"/>&gt; interface
-    /// The adapter enumerates the enumerable object in background and returns parts of resulting sequence in order
-    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}"/>
+    /// This class implements a sequence-oriented runner that is an adapter for an object 
+    /// implementing the IEnumerable&lt;<typeparamref name="TItem"/>&gt; interface
+    /// The adapter enumerates this enumerable object in background and returns parts of resulting sequence in order
+    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}">IEnumerable&lt;TItem&gt;</see>
     /// </summary>
+    /// <remarks>
+    /// <inheritdoc path="/remarks/seqrunner"/>
+    /// </remarks>
     public class EnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>, ICriticalNotifyCompletion
     {
-        //TODO Implement logging
-
         IEnumerable<TItem>? _source;
         Boolean _passSourceOwnership;
         Task? _enumTask;
@@ -26,42 +28,75 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Task? _fetchTask;
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary/common' />
+        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
-        /// <param name="Source"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Source">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Source"]' />
+        /// </param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]' />
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]' />
+        /// </param>
+        /// <param name="LoggerFactory">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]' />
+        /// </param>
+        /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory) :
             this(Source,true,null,true,null,null,false,RunnerId, Options, LoggerFactory) { }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary/common' />
+        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
-        /// <param name="Params"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Params">A structure that contains a refernce to the source enumerable and additional parameters.</param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]' />
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]' />
+        /// </param>
+        /// <param name="LoggerFactory">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]' />
+        /// </param>
+        /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
                 Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) {}
 
         /// <summary>
-        /// TODO
+        /// <common>A constructor that creates EnumAdapterRunner instance.</common>
+        /// This constructor has protected access level and is intended for use in other constructors of this and descendent classes.
         /// </summary>
-        /// <param name="Source"></param>
-        /// <param name="PassSourceOnership"></param>
-        /// <param name="CompletionTokenSource"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <param name="DefaultAdvance"></param>
-        /// <param name="EnumAheadLimit"></param>
-        /// <param name="StartInConstructor"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Source">An enumerable for which the instance to be created will serve as an adapter.</param>
+        /// <param name="PassSourceOnership">
+        /// Flag showing that the instance to be created will be responsible for disposing the <paramref name="Source"/> value passed to it.
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <param name="DefaultAdvance">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="DefaultAdvance"]'/>
+        /// </param>
+        /// <param name="EnumAheadLimit">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="QueueSize"]'/>
+        /// </param>
+        /// <param name="StartInConstructor">Set to <see langword="true"/> to start background processing in the constructor.</param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="RunnerId"]'/>
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
+        /// </param>
+        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
         /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
             IEnumerable<TItem> Source,
@@ -102,9 +137,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.DisposeAsyncCore">EnumerableRunnerBase.DisposeAsyncCore</see>.
+        /// <inheritdoc path="/summary/toinherit"/>
         /// </summary>
-        /// <returns></returns>
+        /// <returns><inheritdoc/></returns>
+        /// <remarks>
+        /// This override first awaits completion of the fetch task used by the implementation of  
+        /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
+        /// method, if such a task is running.
+        /// Then it awaits completion of the background task enumerating the enumerable for which this instance serves an an adapter.
+        /// And at last it calls its base method.
+        /// </remarks>
         protected async override Task DisposeAsyncCore()
         {
             #if TRACE
@@ -130,8 +173,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.PreDispose">EnumerableRunnerBase.PreDispose</see>.
+        /// <inheritdoc path="/summary/toinherit/text()"/>
         /// </summary>
+        /// <remarks>
+        /// This override first calls its base method.
+        /// Then it resumes the fetch task used by the implementation of <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
+        /// method, if such a task is awaiting continuation, so the task terminates itself due to <see cref="ObjectDisposedException"/> 
+        /// thrown (the exception usually not being revealed to a caller).
+        /// </remarks>
         protected override void PreDispose()
         {
             base.PreDispose();
@@ -145,23 +195,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
 
-        void ReleaseSource()
-        {
-            #if TRACE
-            Logger?.LogTraceEnumAdapterRunnerReleaseSource(Id);
-            #endif
-            IDisposable? base_disposable = _passSourceOwnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
-            base_disposable?.Dispose();
-            if(base_disposable != null) {
-                #if TRACE
-                Logger?.LogTraceEnumAdapterRunnerSourceDisposed(Id);
-                #endif
-            }
-        }
-
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="RunnerBase.StartBackgroundExecution">RunnerBase.StartBackgroundExecution</see> abstract method.
+        /// <inheritdoc path='/summary/toinherit'/>
         /// </summary>
+        /// <remarks>Starts a background task enumerating the source enumerable for which this instance serves as an adapter.</remarks>
         protected internal override void StartBackgroundExecution()
         {
             #if TRACE
@@ -174,13 +212,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.FetchRequiredAsync(int, List{TItem}, CancellationToken, string)">
+        /// EnumerableRunnerBase.FetchRequiredAsync</see> abstract method.
+        /// <inheritdoc path='/summary/toinherit'/>
         /// </summary>
-        /// <param name="MaxAdvance"></param>
-        /// <param name="Result"></param>
-        /// <param name="Token"></param>
-        /// <param name="TraceIdentifier"></param>
-        /// <returns></returns>
+        /// <param name="MaxAdvance"><inheritdoc path='/param[@name="MaxAdvance"]/node()'/></param>
+        /// <param name="Result"><inheritdoc path='/param[@name="Result"]/node()'/></param>
+        /// <param name="Token"><inheritdoc path='/param[@name="Token"]/node()'/></param>
+        /// <param name="TraceIdentifier"><inheritdoc path='/param[@name="TraceIdentifier"]/node()'/></param>
+        /// <returns><inheritdoc/></returns>
         /// <exception cref="NullReferenceException"></exception>
         protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier)
         {
@@ -235,8 +275,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.DoAbort(string)"> EnumerableRunnerBase.DoAbort</see> method.
+        /// <inheritdoc path='/summary/toinherit/node()'/>
         /// </summary>
+        /// <remarks>
+        /// This method override first resumes a result fetching task if it is awaiting the background task result
+        /// and then it calls the base class method. 
+        /// <inheritdoc path='/remarks/toinherit/node()'/>
+        /// </remarks>
+        /// <inheritdoc/>
         protected override void DoAbort(String TraceIdentifier)
         {
             #if TRACE
@@ -305,42 +352,32 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #endif
         }
 
+        void ReleaseSource()
+        {
+            #if TRACE
+            Logger?.LogTraceEnumAdapterRunnerReleaseSource(Id);
+            #endif
+            IDisposable? base_disposable = _passSourceOwnership ? Interlocked.Exchange(ref _source, null) as IDisposable : null;
+            base_disposable?.Dispose();
+            if(base_disposable != null) {
+                #if TRACE
+                Logger?.LogTraceEnumAdapterRunnerSourceDisposed(Id);
+                #endif
+            }
+        }
+
         #region Await stuff
+#pragma warning disable IDE0051 // Remove unused private members. These methods are realy used by an await operator implementation.
+        EnumAdapterRunner<TItem> GetAwaiter() { return this; }
+        bool IsCompleted { get { return QueueCount > 0; } }
+        void GetResult() { _complete_event.Wait(); }
+#pragma warning restore IDE0051 // Remove unused private members
+        void ICriticalNotifyCompletion.UnsafeOnCompleted(Action Continuation) { Schedule(Continuation);}
+        void INotifyCompletion.OnCompleted(Action Continuation) {Schedule(Continuation);}
+
         readonly Action<Action> _runAwaitContinuationDelegate;
         Action? _continuation;
         readonly ManualResetEventSlim _complete_event = new ManualResetEventSlim(true);
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <returns></returns>
-        public EnumAdapterRunner<TItem> GetAwaiter() { return this; }
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public bool IsCompleted { get { return QueueCount > 0; } }
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public void GetResult() { _complete_event.Wait(); }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="continuation"></param>
-        public void OnCompleted(Action continuation)
-        {
-            Schedule(continuation);
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="continuation"></param>
-        public void UnsafeOnCompleted(Action continuation)
-        {
-            Schedule(continuation);
-        }
 
         private void Schedule(Action continuation)
         {
@@ -396,6 +433,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _complete_event.Set();
             Continuation();
         }
+
         #endregion
     }
 }

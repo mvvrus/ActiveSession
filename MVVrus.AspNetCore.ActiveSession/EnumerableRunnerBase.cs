@@ -13,15 +13,27 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// Implements common logic for sequence-oriented runners. It is an abstract class intended to be a base for descedent classes
+    /// This class is a base class for sequence-oriented runner classes (see Remarks section).
+    /// It is an abstract class intended to be a base for specific sequence-oriented runner classes.
+    /// It implements a common logic for those runners. 
     /// </summary>
     /// <typeparam name="TItem">Type of items of <see cref="IEnumerable{T}"/> interface to be enumerated in background.</typeparam>
     /// <remarks>
-    /// <para anchor="seqrunners">
+    /// <seqrunner>
+    /// <para>
     /// Sequence-oriented runners are ones that return a sequence of data records as a result.
     /// These runners implements  <see cref="IRunner{TResult}"/> interface, with TResult type being an implementation 
     /// of <see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see> interface.
     /// </para>
+    /// <para>
+    /// Sequence-oriented runners returns parts of a sequence produced in a background by some process.
+    /// The parts are returned via calls of 
+    /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> and/or 
+    /// <see cref="EnumerableRunnerBase{TItem}.GetAvailable(int, int, string?)">GetAvailable </see> methods. 
+    /// These parts may be obtained during processing of different HTTP requests belonging to one <see cref="IActiveSession">Active Session</see>.
+    /// All calls to these methods must be made in order and calls of these methods must not be made in parallel.
+    /// </para>
+    /// </seqrunner>
     /// <para>
     /// The common logic implemented in this class uses a queue that allows storing in it data fetched in background.
     /// Methods defined by <see cref="IRunner{TResult}"/> interface that returns results
@@ -67,8 +79,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Constructor for a runner object to be used in descendent classes
         /// </summary>
-        /// <param name="DefaultAdvance">Default value for the 1st parameter (Advance) for <see cref="GetRequiredAsync(int, CancellationToken, int, string?)"/> call</param>
-        /// <param name="QueueSize">Size limit for the queue used to accept data fetched in background </param>
+        /// <param name="DefaultAdvance">
+        /// Default value for the first parameter (Advance) for 
+        /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see>
+        /// method of the instance to be created.
+        /// </param>
+        /// <param name="QueueSize">Maximum number of items fetched in background ahead of time in the instance to be created.
+        /// </param>
         /// <remarks>
         /// This constructor overload does not accept any default values 
         /// for the <paramref name="DefaultAdvance"/> and <paramref name="QueueSize"/> parameters 
@@ -109,11 +126,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         ///<summary>
-        ///Overrides <see cref="RunnerBase.Status">RunnerBase.Status</see>. 
-        ///<inheritdoc path="/summary/toinherit"/>
+        ///<inheritdoc path="/summary/toinherit/node()"/>
+        ///Overrides <see cref="RunnerBase.Status">RunnerBase.Status</see>.
         ///</summary>
         ///<remarks>
-        ///<inheritdoc path="/remarks/toinherit"/>
+        ///<inheritdoc path="/remarks/toinherit/node()"/>
         ///From a base class (<see cref="RunnerBase"/>) perspective the value of the property at any running stages 
         ///(namely <see cref="RunnerStatus.Stalled"/> or <see cref="RunnerStatus.Progressed"/>) 
         ///always contains the same value: <see cref="RunnerStatus.Stalled"/>. 
@@ -132,7 +149,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// Overrides <see cref="RunnerBase.Position">RunnerBase.Position</see>. <inheritdoc path="/summary/toinherit"/>  
+        /// <inheritdoc path="/summary/toinherit/node()"/>  
+        /// Overrides <see cref="RunnerBase.Position">RunnerBase.Position</see>. 
         /// </summary>
         /// <remarks> For sequence-oriente runners implemented by descendants of this class Position designates 
         /// a number of items in sequences returned by all previously completed  
@@ -322,11 +340,10 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         ///<summary>
         ///Protected, overrides <see cref="RunnerBase.PreDispose">RunnerBase.PreDispose()</see>. 
-        ///<inheritdoc path="/summary/toinherit"/>
+        ///<inheritdoc path="/summary/toinherit/node()"/>
         ///</summary>
         ///<remarks>
-        ///<inheritdoc path="/remarks/toinherit"/>
-        ///This method override terminate (via throwing an <see cref="ObjectDisposedException"/>) a task presenting 
+        ///This method override terminates (via throwing an <see cref="ObjectDisposedException"/>) a task presenting 
         ///a result of an  async <see cref="GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
         ///call if such task exists.
         ///Effectively it forces termination of a pending call of the 
@@ -383,12 +400,11 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         ///<summary>
         ///Protected, overrides <see cref="RunnerBase.DoAbort(string)">RunnerBase.DoAbort(string)</see>. 
-        ///<inheritdoc path="/summary/toinherit"/>
+        ///<inheritdoc path="/summary/toinherit/node()"/>
         ///</summary>
         ///<remarks>
-        ///<inheritdoc path="/remarks/toinherit"/>
+        ///<inheritdoc path="/remarks/toinherit/node()"/>
         ///This method override tries to stop an execution a result fetching task via simulating completion of a background task.
-        ///It is safe to be called even if the runner has been disposed already.
         ///</remarks>
         ///<inheritdoc/>
         protected override void DoAbort(String TraceIdentifier)
@@ -413,7 +429,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="TraceIdentifier">
         /// <inheritdoc cref="GetRequiredAsync(int, CancellationToken, int, string?)" path = '/param[@name="TraceIdentifier"]' />
         /// </param>
-        /// <returns>A task that presents the process of fetching.</returns>
+        /// <returns>A task that represents the process of fetching.</returns>
         protected internal abstract Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier);
 
         /// <summary>
