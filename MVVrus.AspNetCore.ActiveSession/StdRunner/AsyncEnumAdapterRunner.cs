@@ -10,9 +10,14 @@ using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// TODO
+    /// This class implements a sequence-oriented runner that is an adapter for an object 
+    /// implementing the <see cref="IAsyncEnumerable{T}">IAsyncEnumerable&lt;<typeparamref name="TItem"/>&gt;</see> interface.
+    /// The adapter enumerates this async-enumerable object in background and returns parts of resulting sequence in order
+    /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}">IEnumerable&lt;TItem&gt;</see>
     /// </summary>
-    /// <typeparam name="TItem"></typeparam>
+    /// <remarks>
+    /// <inheritdoc path="/remarks/seqrunner"/>
+    /// </remarks>
     public class AsyncEnumAdapterRunner<TItem> : EnumerableRunnerBase<TItem>
     {
         readonly Action<Task<bool>> _itemActionDelegate;
@@ -27,30 +32,44 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         internal Task EnumTask { get => _taskChainTail; } //For tests only
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
+        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
-        /// <param name="AsyncSource"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Source">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Source"]' />
+        /// </param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]' />
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
+        /// </param>
+        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> AsyncSource, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
-            this(AsyncSource, true, null, true, null, null, false, RunnerId, Options, LoggerFactory) { }
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
+            this(Source, true, null, true, null, null, false, RunnerId, Options, LoggerFactory) { }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
+        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
-        /// <param name="Params"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Params">A structure that contains a refernce to the source enumerable and additional parameters.</param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]' />
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
+        /// </param>
+        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory): 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
                 Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) { }
 
         AsyncEnumAdapterRunner(
-            IAsyncEnumerable<TItem> AsyncSource,
+            IAsyncEnumerable<TItem> Source,
             Boolean PassSourceOnership,
             CancellationTokenSource? CompletionTokenSource,
             Boolean PassCtsOwnership,
@@ -60,25 +79,41 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             RunnerId RunnerId,
             IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory):
-            this(AsyncSource,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
+            this(Source,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
                 StartInConstructor, RunnerId, Options,
                 LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(AsyncEnumAdapterRunner<TItem>))))  { }
 
         /// <summary>
-        /// TODO
+        /// <common>A constructor that creates AsyncEnumAdapterRunner instance.</common>
+        /// This constructor has protected access level and is intended for use in other constructors of this and descendent classes.
         /// </summary>
-        /// <param name="AsyncSource"></param>
-        /// <param name="PassSourceOnership"></param>
-        /// <param name="CompletionTokenSource"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <param name="DefaultAdvance"></param>
-        /// <param name="EnumAheadLimit"></param>
-        /// <param name="StartInConstructor"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Options"></param>
-        /// <param name="Logger"></param>
+        /// <param name="Source">An async-enumerable for which the instance to be created will serve as an adapter.</param>
+        /// <param name="PassSourceOnership">
+        /// Flag showing that the instance to be created will be responsible for disposing the <paramref name="Source"/> value passed to it.
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <param name="DefaultAdvance">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="DefaultAdvance"]'/>
+        /// </param>
+        /// <param name="EnumAheadLimit">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="QueueSize"]'/>
+        /// </param>
+        /// <param name="StartInConstructor">Set to <see langword="true"/> to start background processing in the constructor.</param>
+        /// <param name="RunnerId">
+        /// <inheritdoc cref="RunnerBase.RunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?)" path='/param[@name="RunnerId"]'/>
+        /// </param>
+        /// <param name="Options">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
+        /// </param>
+        /// <param name="Logger">A logger for the instance to be created.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         protected AsyncEnumAdapterRunner(
-            IAsyncEnumerable<TItem> AsyncSource,
+            IAsyncEnumerable<TItem> Source,
             Boolean PassSourceOnership,
             CancellationTokenSource? CompletionTokenSource,
             Boolean PassCtsOwnership,
@@ -102,7 +137,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     EnumAheadLimit ?? Options.Value.DefaultEnumerableQueueSize,
                     StartInConstructor);
             }
-            _asyncSource = AsyncSource;
+            _asyncSource = Source;
             _taskChainTail = Task.CompletedTask;
             _itemActionDelegate = ItemAction;
             _asyncEnumerableOwned=PassSourceOnership;
@@ -113,8 +148,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.PreDispose">EnumerableRunnerBase.PreDispose</see>.
+        /// <inheritdoc path="/summary/toinherit/text()"/>
         /// </summary>
+        /// <remarks>
+        /// This override first calls its base method.
+        /// Then it looks if a context for a pending fetch task used by the implementation of 
+        /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
+        /// method exists. If such a context exists the method will attempt to fail the fetch task (referenced by the context object)
+        /// with an <see cref="ObjectDisposedException"/> thrown (the exception usually not being revealed to a caller) 
+        /// and then releases the context.
+        /// </remarks>
         protected override void PreDispose()
         {
             base.PreDispose();
@@ -134,9 +178,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.DisposeAsyncCore">EnumerableRunnerBase.DisposeAsyncCore</see>.
+        /// <inheritdoc path="/summary/toinherit/node()"/>
         /// </summary>
-        /// <returns></returns>
+        /// <returns><inheritdoc/></returns>
+        /// <remarks>
+        /// This override first awaits completion of a step enumeration task created by 
+        /// a <see cref="IAsyncEnumerator{T}.MoveNextAsync"/> method of the background asynchronous enumerator 
+        /// in the process of background enumeration.
+        /// Then this override disposes the background asynchronous enumerator and source async-enumerable 
+        /// if its disposal is requested by constructor parameter and if it implements an interface for disposal.
+        /// And at last this override awaits its base method.
+        /// </remarks>
         protected override async Task DisposeAsyncCore()
         {
             Task task_chain_tail;
@@ -164,14 +217,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.FetchRequiredAsync(int, List{TItem}, CancellationToken, string)">
+        /// EnumerableRunnerBase.FetchRequiredAsync</see> abstract method.
+        /// <inheritdoc path='/summary/toinherit'/>
         /// </summary>
-        /// <param name="MaxAdvance"></param>
-        /// <param name="Result"></param>
-        /// <param name="Token"></param>
-        /// <param name="TraceIdentifier"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
+        /// <param name="MaxAdvance"><inheritdoc path='/param[@name="MaxAdvance"]/node()'/></param>
+        /// <param name="Result"><inheritdoc path='/param[@name="Result"]/node()'/></param>
+        /// <param name="Token"><inheritdoc path='/param[@name="Token"]/node()'/></param>
+        /// <param name="TraceIdentifier"><inheritdoc path='/param[@name="TraceIdentifier"]/node()'/></param>
+        /// <returns><inheritdoc/></returns>
+        /// <exception cref="NullReferenceException"></exception>
         protected internal override Task FetchRequiredAsync(Int32 MaxAdvance, List<TItem> Result, CancellationToken Token, String TraceIdentifier)
         {
             #if TRACE
@@ -224,8 +279,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// TODO
+        /// Protected, overrides <see cref="RunnerBase.StartBackgroundExecution">RunnerBase.StartBackgroundExecution</see> abstract method.
+        /// <inheritdoc path='/summary/toinherit'/>
         /// </summary>
+        /// <remarks>
+        /// Creates an asynchronous enumerator for the source async-enumerable 
+        /// and starts background process of its asynchronous enumeration via 
+        /// a chain of enumeration steps using its <see cref="IAsyncEnumerator{T}.MoveNextAsync">MoveNextAsync</see> method.
+        /// </remarks>
         protected internal override void StartBackgroundExecution()
         {
             #if TRACE

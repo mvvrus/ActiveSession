@@ -1,27 +1,34 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession.StdRunner
+﻿namespace MVVrus.AspNetCore.ActiveSession.StdRunner 
 {
     /// <summary>
-    /// Class containg parametrs to pass to a <see cref="AsyncEnumAdapterRunner{TResult}"/> constructor
+    /// Class containg parameters that are to be passed to the 
+    /// <see cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)"> 
+    /// AsyncEnumAdapterRunner class constructor</see> while creating it via 
+    /// <see cref="IActiveSession.CreateRunner{TRequest, TItem}(TRequest, HttpContext)">IActiveSession.CreateRunner</see> method.
     /// </summary>
-    /// <typeparam name="TResult">Type specializing the runner's <see cref="IRunner{TResult}"/> interface</typeparam>
-    /// <param name="Source">The base object implementing <see cref="IAsyncEnumerable{T}"/> for which the adapter to be created</param>
+    /// <typeparam name="TItem">Type specializing the runner's <see cref="IRunner{TItem}"/> interface</typeparam>
+    /// <param name="Source">
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Source"]'/>
+    /// </param>
     /// <param name="DefaultAdvance">
-    /// Default maximum number of elements acquired from the <paramref name="Source"/> 
-    /// to be returned to the caller in one call(currently defaults to 20)
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="DefaultAdvance"]'/>
     /// </param>
     /// <param name="CompletionTokenSource">
-    /// An external <see cref="CancellationTokenSource"/> instance used to obtain a completion token for the runner, 
-    /// null(default) means use a newly created instance
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="CompletionTokenSource"]'/>
     /// </param>
-    /// <param name="EnumAheadLimit">Size of a queue of items enumerated ahead but not fetched yet</param>
+    /// <param name="EnumAheadLimit">
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="EnumAheadLimit"]'/>
+    /// </param>
     /// <param name="PassSourceOnership">
-    /// Flag showing that this  <see cref="AsyncEnumAdapterRunner{TResult}" /> is responsible for disposing the <paramref name="Source"/> value passed to it (defaults to true)
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="PassSourceOnership"]'/>
+    /// The default value is <see langword="true"/>
     /// </param>
     /// <param name="PassCtsOwnership">
-    /// Flag showing that this  <see cref="AsyncEnumAdapterRunner{TResult}" /> is responsible for disposing 
-    /// the <paramref name="CompletionTokenSource"/> value passed to it, if any (defaults to true)
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="PassCtsOwnership"]'/>
     /// </param>
-    /// <param name="StartInConstructor">Set to true to start fecthing data from a constructor</param>
+    /// <param name="StartInConstructor">
+    /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="StartInConstructor"]'/>
+    /// </param>
     public record struct AsyncEnumAdapterParams<TResult>
     (
         IAsyncEnumerable<TResult> Source,

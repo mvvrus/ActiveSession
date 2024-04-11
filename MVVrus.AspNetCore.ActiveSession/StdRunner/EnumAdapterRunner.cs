@@ -11,7 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
     /// This class implements a sequence-oriented runner that is an adapter for an object 
-    /// implementing the IEnumerable&lt;<typeparamref name="TItem"/>&gt; interface
+    /// implementing the <see cref="IEnumerable{T}">IEnumerable&lt;<typeparamref name="TItem"/>&gt;</see> interface.
     /// The adapter enumerates this enumerable object in background and returns parts of resulting sequence in order
     /// via <see cref="IRunner{TResult}"/> interface with TResult being <see cref="IEnumerable{TItem}">IEnumerable&lt;TItem&gt;</see>
     /// </summary>

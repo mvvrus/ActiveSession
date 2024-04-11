@@ -386,7 +386,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Protected virtual. <toinherit>This method performs a real work of disposing the object instance asynchronously.</toinherit>
         /// </summary>
-        /// <returns>A <see cref="ValueTask"/> that presents asynchronous process of disposing the runner.</returns>
+        /// <returns>A task that presents asynchronous process of disposing the runner.</returns>
         /// <remarks>Disposes the base class stuff synchronously calling its <see cref="RunnerBase.Dispose(bool)"/> method. </remarks>
         protected virtual Task DisposeAsyncCore()
         {
@@ -421,7 +421,9 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         /// <summary>
         /// Protected abstract. 
-        /// <toinherit>Creates a task controlling an asynchronous fetch of results of a background processing.</toinherit>
+        /// <toinherit>Creates a task representing an asynchronous fetch of results of the background processing to be returned by 
+        /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> method.
+        /// </toinherit>
         /// </summary>
         /// <param name="MaxAdvance">The maximum number of records to be fetched into the <paramref name="Result"/> list.</param>
         /// <param name="Result">The list holding the fetched records. May be partially filled before a call of this method.</param>
