@@ -28,46 +28,44 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Task? _fetchTask;
 
         /// <summary>
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary/common' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
         /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
         /// <param name="Source">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Source"]' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Source"]' />
         /// </param>
         /// <param name="RunnerId">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]' />
         /// </param>
         /// <param name="Options">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
         /// </param>
-        /// <param name="LoggerFactory">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]' />
-        /// </param>
+        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(IEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options,
             ILoggerFactory? LoggerFactory) :
-            this(Source,true,null,true,null,null,false,RunnerId, Options, LoggerFactory) { }
+            this(Source,true,null,true,null,null,false,RunnerId, Options,
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>)))) { }
 
         /// <summary>
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary/common' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
         /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
         /// <param name="Params">A structure that contains a refernce to the source enumerable and additional parameters.</param>
         /// <param name="RunnerId">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]' />
         /// </param>
         /// <param name="Options">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]' />
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
         /// </param>
-        /// <param name="LoggerFactory">
-        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]' />
-        /// </param>
+        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public EnumAdapterRunner(EnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
             this(Params.Source, Params.PassSourceOnership, Params.CompletionTokenSource, Params.PassCtsOwnership, 
-                Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) {}
+                Params.DefaultAdvance, Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options,
+                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>)))) {}
 
         /// <summary>
         /// <common>A constructor that creates EnumAdapterRunner instance.</common>
@@ -96,7 +94,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options">
         /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <param name="Logger">A logger for the instance to be created.</param>
         /// <exception cref="ArgumentNullException"></exception>
         protected EnumAdapterRunner(
             IEnumerable<TItem> Source,
@@ -108,10 +106,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean StartInConstructor,
             RunnerId RunnerId,
             IOptionsSnapshot<ActiveSessionOptions> Options,
-            ILoggerFactory? LoggerFactory) :
+            ILogger? Logger) :
             base(CompletionTokenSource, PassCtsOwnership, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<TItem>))),
-                Options, DefaultAdvance, EnumAheadLimit)
+                Logger, Options, DefaultAdvance, EnumAheadLimit)
         {
             _source = Source ?? throw new ArgumentNullException(nameof(Source));
             _passSourceOwnership = PassSourceOnership;
@@ -146,7 +143,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <see cref="EnumerableRunnerBase{TItem}.GetRequiredAsync(int, CancellationToken, int, string?)">GetRequiredAsync</see> 
         /// method, if such a task is running.
         /// Then it awaits completion of the background task enumerating the enumerable for which this instance serves an an adapter.
-        /// And at last it calls its base method.
+        /// And at last it awaits its base method.
         /// </remarks>
         protected async override Task DisposeAsyncCore()
         {
@@ -214,7 +211,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <summary>
         /// Protected, overrides <see cref="EnumerableRunnerBase{TItem}.FetchRequiredAsync(int, List{TItem}, CancellationToken, string)">
         /// EnumerableRunnerBase.FetchRequiredAsync</see> abstract method.
-        /// <inheritdoc path='/summary/toinherit'/>
+        /// <inheritdoc path='/summary/toinherit/node()'/>
         /// </summary>
         /// <param name="MaxAdvance"><inheritdoc path='/param[@name="MaxAdvance"]/node()'/></param>
         /// <param name="Result"><inheritdoc path='/param[@name="Result"]/node()'/></param>
