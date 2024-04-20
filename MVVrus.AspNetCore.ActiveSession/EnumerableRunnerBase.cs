@@ -9,7 +9,6 @@ using System.Collections;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
-
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
@@ -654,7 +653,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             String TraceIdentifier,
             ILogger? Logger = null)
         {
-            String classname = GetType().FullName??"<unknown type>";
+            String classname = Utilities.MakeClassCategoryName(GetType());
             if (StartPosition==CURRENT_POSITION)
                 StartPosition=Position;
             if (StartPosition!=Position) {
