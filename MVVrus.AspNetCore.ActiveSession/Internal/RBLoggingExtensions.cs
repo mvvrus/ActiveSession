@@ -27,6 +27,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
         [LoggerMessage(W_ENUMERABLERUNNERBASEPARALLELGET, LogLevel.Warning, "Invalid attempt of getting data in parallel, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningEnumerableRunnerBaseParallelAttempt(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(W_ENUMERABLERUNNERBASEBADPARAM, LogLevel.Warning, "Invalid parameter value, MethodName={MethodName}, ParamName={ParamName}, Value={ParamValue}, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningBadParam(this ILogger Logger, String MethodName, String ParamName, Int32 ParamValue, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);

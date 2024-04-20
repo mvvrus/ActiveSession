@@ -14,6 +14,7 @@
         public const Int32 W_RUNNERBASE = 11000;
         public const Int32 W_RUNNERBASEUNEXPECTEDSTATUS = 11001;
         public const Int32 W_ENUMERABLERUNNERBASEPARALLELGET = 11101;
+        public const Int32 W_ENUMERABLERUNNERBASEBADPARAM = 11102;
 
         public const Int32 D_RUNNERBASE = 12000;
         public const Int32 D_ENUMERABLERUNNERBASERESULT = 12100;

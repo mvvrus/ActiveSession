@@ -196,7 +196,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #endif
             List<TItem> result = new List<TItem>();
             try {
-                ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetAvailable), Logger);
+                ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetAvailable), trace_identifier, Logger);
                 FetchAvailable(Advance, result, trace_identifier);
             }
             catch(Exception exception) {
@@ -252,7 +252,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 List<TItem> result = new List<TItem>();
                 Task<RunnerResult<IEnumerable<TItem>>> result_task;
 
-                ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), Logger);
+                ProcessEnumParmeters(ref StartPosition, ref Advance, _defaultAdvance, nameof(GetRequiredAsync), trace_identifier, Logger);
                 Task<Boolean> startup_task=StartRunningAsync();
                 if(startup_task.IsCompleted) {
                     //Background process initialization has been already done or completed synchronously
@@ -651,17 +651,19 @@ namespace MVVrus.AspNetCore.ActiveSession
             ref Int32 Advance,
             Int32 DefaultAdvance,
             String MethodName,
+            String TraceIdentifier,
             ILogger? Logger = null)
         {
             String classname = GetType().FullName??"<unknown type>";
             if (StartPosition==CURRENT_POSITION)
                 StartPosition=Position;
             if (StartPosition!=Position) {
+                Logger?.LogWarningBadParam(MethodName, nameof(StartPosition), StartPosition, Id, TraceIdentifier);
                 throw new ArgumentException(nameof(StartPosition),$"{classname}.{MethodName}: A start position requested ({StartPosition}) differs from the current one({Position})");
             }
-            if (Advance==DEFAULT_ADVANCE)
-                Advance=DefaultAdvance;
+            if (Advance==DEFAULT_ADVANCE) Advance=DefaultAdvance;
             if (Advance<=0) {
+                Logger?.LogWarningBadParam(MethodName, nameof(Advance), Advance, Id, TraceIdentifier);
                 throw new ArgumentException(nameof(Advance), $"{classname}.{MethodName}: Invalid advance value: {Advance}");
             }
 
