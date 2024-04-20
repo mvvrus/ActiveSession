@@ -29,9 +29,9 @@
     /// <param name="StartInConstructor">
     /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="StartInConstructor"]'/>
     /// </param>
-    public record struct AsyncEnumAdapterParams<TResult>
+    public record struct AsyncEnumAdapterParams<TItem>
     (
-        IAsyncEnumerable<TResult> Source,
+        IAsyncEnumerable<TItem> Source,
         int? DefaultAdvance = null,
         CancellationTokenSource? CompletionTokenSource = null,
         Int32? EnumAheadLimit = null,

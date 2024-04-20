@@ -657,12 +657,12 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (StartPosition==CURRENT_POSITION)
                 StartPosition=Position;
             if (StartPosition!=Position) {
-                throw new InvalidOperationException($"{classname}.{MethodName}: A start position requested ({StartPosition}) differs from the current one({Position})");
+                throw new ArgumentException(nameof(StartPosition),$"{classname}.{MethodName}: A start position requested ({StartPosition}) differs from the current one({Position})");
             }
             if (Advance==DEFAULT_ADVANCE)
                 Advance=DefaultAdvance;
             if (Advance<=0) {
-                throw new InvalidOperationException($"{classname}.{MethodName}: Invalid advance value: {Advance}");
+                throw new ArgumentException(nameof(Advance), $"{classname}.{MethodName}: Invalid advance value: {Advance}");
             }
 
         }

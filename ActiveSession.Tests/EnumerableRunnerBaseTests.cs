@@ -41,7 +41,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.Stalled, runner.Status);
 
                 //Invalid Advance test
-                Assert.Throws<InvalidOperationException>(()=>runner.GetAvailable(-1));
+                Assert.Throws<ArgumentException>(()=>runner.GetAvailable(-1));
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3);
                 //Test interpretation of of Advance==DEFAULT_ADVANCE parameter value
                 (result, status, position, exception) = runner.GetAvailable(IRunner.DEFAULT_ADVANCE);
@@ -56,7 +56,7 @@ namespace ActiveSession.Tests
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3);
                 (result, status, position, exception) = runner.GetAvailable(PAGE_SIZE);
                 //Test invalid explicit StartPosition value
-                Assert.Throws<InvalidOperationException>(() => runner.GetAvailable(StartPosition:PAGE_SIZE*2));
+                Assert.Throws<ArgumentException>(() => runner.GetAvailable(StartPosition:PAGE_SIZE*2));
                 //Test valid explicit StartPosition value
                 (result, status, position, exception) = runner.GetAvailable(StartPosition:PAGE_SIZE);
                 Assert.True(CheckRange(result, PAGE_SIZE, PAGE_SIZE * 2));
@@ -313,7 +313,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(RunnerStatus.NotStarted, runner.Status);
 
                 //Invalid Advance test
-                Assert.Throws<InvalidOperationException>(() => runner.GetRequiredAsync(-1));
+                Assert.Throws<ArgumentException>(() => runner.GetRequiredAsync(-1));
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3);
                 //Test default value for Advance parameter
                 (result, status, position, exception) = runner.GetRequiredAsync().Result;
@@ -327,7 +327,7 @@ namespace ActiveSession.Tests
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3);
                 (result, status, position, exception) = runner.GetRequiredAsync(PAGE_SIZE).Result;
                 //Test invalid explicit StartPosition value
-                Assert.Throws<InvalidOperationException>(() => runner.GetRequiredAsync(StartPosition: PAGE_SIZE * 2));
+                Assert.Throws<ArgumentException>(() => runner.GetRequiredAsync(StartPosition: PAGE_SIZE * 2));
                 //Test valid explicit StartPosition value
                 (result, status, position, exception) = runner.GetRequiredAsync(StartPosition: PAGE_SIZE).Result;
                 Assert.True(CheckRange(result, PAGE_SIZE, PAGE_SIZE));
