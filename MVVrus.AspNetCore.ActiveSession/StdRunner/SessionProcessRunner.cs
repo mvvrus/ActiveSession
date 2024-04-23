@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MVVrus.AspNetCore.ActiveSession.Internal;
+using System;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -6,16 +7,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// TODO                                                                                     
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>, IRunnerBackgroundProgress
+    public sealed class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>, IRunnerBackgroundProgress
     {
-        //Action<IProgressSetter<TResult>, CancellationToken> _procToRun;
         TResult _result=default!;
         Int32 _progress = 0;
         Int32? _estimatedEnd=null;
         Object _lock = new Object();
         Int32 _position = 0;
         PriorityQueue<TaskListItem, Int32> _waitList = new PriorityQueue<TaskListItem, Int32>();
-        readonly Func<IRunnerProgressSetter<TResult>, CancellationToken, Task> _taskToRun;
+        readonly Func<Action<TResult, Int32?>, CancellationToken, Task> _taskToRun;
 
         /// <summary>
         /// TODO
@@ -25,7 +25,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Logger"></param>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
-            Func<IRunnerProgressSetter<TResult>, CancellationToken, TResult> TaskBody, RunnerId RunnerId, ILogger? Logger) :
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> TaskBody, RunnerId RunnerId, ILogger? Logger) :
             this(MakeTaskToRun(TaskBody), RunnerId, Logger) {}
 
 
@@ -37,17 +37,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Logger"></param>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
-            Action<IRunnerProgressSetter<TResult>, CancellationToken> TaskBody, RunnerId RunnerId, ILogger? Logger):
+            Action<Action<TResult, Int32?>, CancellationToken> TaskBody, RunnerId RunnerId, ILogger? Logger):
             this(MakeTaskToRun(TaskBody), RunnerId,Logger) {}
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="TaskToRun"></param>
-        /// <param name="RunnerId"></param>
-        /// <param name="Logger"></param>
-        protected SessionProcessRunner(
-            Func<IRunnerProgressSetter<TResult>,CancellationToken,Task> TaskToRun, RunnerId RunnerId, ILogger? Logger) 
+        SessionProcessRunner(
+            Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRun, RunnerId RunnerId, ILogger? Logger) 
             : base(new CancellationTokenSource(), true, RunnerId, Logger)
         {
             _taskToRun = TaskToRun;
@@ -59,43 +53,31 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected internal override void StartBackgroundExecution()
         {
-            Task t = _taskToRun(new ProgressSetter(this), CompletionToken);
+            Task t = _taskToRun(SetProgress, CompletionToken);
             t.ContinueWith(SessionTaskCompletionHandler);
             if(t.Status == TaskStatus.Created) try { t.Start(); } catch(TaskSchedulerException) { }
         }
 
-        static Action<Object?> MakeTaskToRunBody(
-            Action<IRunnerProgressSetter<TResult>, CancellationToken> TaskBody)
+        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRun(
+            Action<Action<TResult, Int32?>, CancellationToken> TaskBody)
         {
-            return State=>TaskBody(
-                ((ValueTuple<IRunnerProgressSetter<TResult>, CancellationToken>)State!).Item1,
-                ((ValueTuple<IRunnerProgressSetter<TResult>, CancellationToken>)State!).Item2);
-        } 
-
-        static Func<IRunnerProgressSetter<TResult>, CancellationToken, Task> MakeTaskToRun(
-            Action<IRunnerProgressSetter<TResult>, CancellationToken> TaskBody)
-        {
-            return (ProgressSetter,Token)=>new Task(MakeTaskToRunBody(TaskBody),(ProgressSetter, Token),Token);
+            return (ProgressSetter,Token)=>new Task(
+                State => TaskBody(
+                    ((ValueTuple<Action<TResult, Int32?>, CancellationToken>)State!).Item1,
+                    ((ValueTuple<Action<TResult, Int32?>, CancellationToken>)State!).Item2),
+                (ProgressSetter, Token),Token);
         }
 
-        static Action<Object?> MakeTaskToRunBody(
-            Func<IRunnerProgressSetter<TResult>, CancellationToken, TResult> TaskBody)
+        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRun(
+            Func<Action<TResult, Int32?>, CancellationToken,TResult> TaskBody)
         {
-            return State =>
-            {
-                TResult result = TaskBody(
-                    ((ValueTuple<IRunnerProgressSetter<TResult>, CancellationToken>)State!).Item1,
-                    ((ValueTuple<IRunnerProgressSetter<TResult>, CancellationToken>)State!).Item2);
-                ((ValueTuple<IRunnerProgressSetter<TResult>, CancellationToken>)State!).Item1.SetResult(result);
-            };
+            return (ProgressSetter, Token) => new Task<TResult>(
+                State => TaskBody(
+                    ((ValueTuple<Action<TResult, Int32?>, CancellationToken>)State!).Item1,
+                    ((ValueTuple<Action<TResult, Int32?>, CancellationToken>)State!).Item2)
+                , (ProgressSetter, Token), Token)
+            ;
         }
-
-        static Func<IRunnerProgressSetter<TResult>, CancellationToken, Task> MakeTaskToRun(
-            Func<IRunnerProgressSetter<TResult>, CancellationToken,TResult> TaskBody)
-        {
-            return (ProgressSetter, Token) => new Task(MakeTaskToRunBody(TaskBody), (ProgressSetter, Token), Token);
-        }
-
 
         // <inheritdoc/>: Invalid cref value "!:TResult" found in triple-slash-comments for GetAvailable 
         /// <summary>
@@ -109,21 +91,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         public RunnerResult<TResult> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, String? TraceIdentifier = null)
         {
             lock (_lock) {
-                if (StartPosition==IRunner.CURRENT_POSITION)  StartPosition=_position;
-                if (StartPosition<_position) {
-                    String classname = GetType().FullName??"<unknown type>";
-                    throw new InvalidOperationException(
-                            $"{classname}.{nameof(GetAvailable)}:Start positionfor the operation ({StartPosition}) is behind current runner Position({Position})");
-                }
+                CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetAvailable));
                 Int32 max_advance = _progress-StartPosition;
                 RunnerStatus new_status;
-                if(max_advance<Advance) {
+                if(max_advance<=Advance) {
                     new_status=RunnerStatus.Stalled;
                     _position=_progress;
                 }
                 else {
                     new_status=RunnerStatus.Progressed;
-                    _position+=Advance;
+                    _position=StartPosition+Advance;
                 }
                 SetStatus(new_status); //Just an attempt. If current status is a final one alredy, it'll never be changed
                 return new RunnerResult<TResult>(_result, Status, _position, Status == RunnerStatus.Failed ? Exception : null);
@@ -148,17 +125,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             lock(_lock) {
                 int new_position;
-                if(StartPosition == IRunner.CURRENT_POSITION) {
-                    new_position = Position + Advance == IRunner.DEFAULT_ADVANCE ? 1 : Advance;
-                }
-                else {
-                    new_position = StartPosition + Advance == IRunner.DEFAULT_ADVANCE ? 0 : Advance;
-                }
-                if(new_position <= _position) {
-                    String classname = GetType().FullName ?? "<unknown type>";
-                    throw new InvalidOperationException(
-                            $"{classname}.{nameof(GetRequiredAsync)}:End position for the operation ({new_position}) is behind current runner Position({Position})");
-                }
+                CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetRequiredAsync));
+                new_position = Position + Advance;
                 if(Status.IsFinal() || new_position <= _progress) {
                     if(!Status.IsFinal()) _position = Math.Max(new_position, _position);
                     return new ValueTask<RunnerResult<TResult>>(
@@ -178,7 +146,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
                 }
 
-            }        }
+            }
+        }
 
         /// <inheritdoc/>
         public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
@@ -192,6 +161,23 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 
         /// <inheritdoc/>
         public override Int32 Position { get => _position;} //TODO Volatile.Read?
+
+        void CheckAndNormalizeParams(ref Int32 Advance,ref Int32 StartPosition, String MethodName)
+        {
+            if(StartPosition == IRunner.CURRENT_POSITION) StartPosition = _position;
+            if(StartPosition < _position) {
+                String classname = Utilities.MakeClassCategoryName(GetType());
+                throw new ArgumentException(nameof(Advance),
+                        $"{classname}.{MethodName}:StartPosition value ({StartPosition}) is behind current runner Position({Position})");
+            }
+            if(Advance<0) {
+                String classname = Utilities.MakeClassCategoryName(GetType());
+                throw new ArgumentException(nameof(Advance),
+                        $"{classname}.{MethodName}:Advance value ({Advance}) is negative");
+
+            }
+            if(StartPosition==_position && Advance == IRunner.DEFAULT_ADVANCE) Advance = 1;
+        }
 
         void CancelATask(object? Item)
         {
@@ -224,47 +210,35 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
             lock (_lock) {
                 IsBackgroundExecutionCompleted = true;
-                RunnerStatus status = Antecedent.Status switch
-                {
-                    TaskStatus.RanToCompletion => RunnerStatus.Complete,
-                    TaskStatus.Faulted => RunnerStatus.Failed,
-                    TaskStatus.Canceled => RunnerStatus.Aborted,
-                    _ => throw new InvalidOperationException()
-                };
-                if(SetStatus(status) && status == RunnerStatus.Failed) Exception = Antecedent.Exception;
+                switch(Antecedent.Status) {
+                    case TaskStatus.RanToCompletion:
+                        SetStatus(RunnerStatus.Complete);
+                        _progress++;
+                        if(Antecedent is Task<TResult> task_with_result) _result = task_with_result.Result;
+                        break;
+                    case TaskStatus.Faulted:
+                        Exception? exception = Antecedent.Exception;
+                        if(exception != null && exception is AggregateException aggregate_exception)
+                            if(aggregate_exception.InnerExceptions.Count == 1) exception = aggregate_exception.InnerExceptions[0];
+                        if(SetStatus(RunnerStatus.Failed)) Exception = exception;
+                        break;
+                    case TaskStatus:
+                        SetStatus(RunnerStatus.Aborted);
+                        break;
+                    default:
+                        //TODO Something went wrong
+                }
                 CompleteWaitingTasks();
             }
         }
 
-        class ProgressSetter : IRunnerProgressSetter<TResult>
+        void SetProgress(TResult Result, Int32? EstimatedEnd)
         {
-            SessionProcessRunner<TResult> _host;
-
-            public ProgressSetter(SessionProcessRunner<TResult> Host)
-            {
-                _host=Host;
+            lock(_lock) {
+                _result = Result;
+                _estimatedEnd = EstimatedEnd;
+                AdvanceProgress();
             }
-
-            public void SetProgress(TResult Result, Int32? EstimatedEnd)
-            {
-                lock(_host._lock) {
-                    _host._result=Result;
-                    _host._estimatedEnd=EstimatedEnd;
-                    _host.AdvanceProgress();
-                }
-            }
-
-            public void SetResult(TResult Result)
-            {
-                lock(_host._lock) {
-                    _host._result = Result;
-                    _host._estimatedEnd = _host._position+1;
-                    _host.AdvanceProgress();
-                }
-
-            }
-
-
         }
 
         record TaskListItem
