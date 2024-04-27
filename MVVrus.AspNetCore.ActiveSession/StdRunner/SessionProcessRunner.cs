@@ -13,9 +13,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Int32 _progress = 0;
         Int32? _estimatedEnd=null;
         Object _lock = new Object();
-        Int32 _position = 0;
         PriorityQueue<TaskListItem, Int32> _waitList = new PriorityQueue<TaskListItem, Int32>();
         readonly Func<Action<TResult, Int32?>, CancellationToken, Task> _taskToRun;
+        RunnerStatus _backgroundStatus = RunnerStatus.Stalled;
+        Exception? _backgroundException = null;
+        internal Task? _bkgCompletionTask;  //internal asccess modifier is for test project access
 
         /// <summary>
         /// TODO
@@ -54,7 +56,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         protected internal override void StartBackgroundExecution()
         {
             Task t = _taskToRun(SetProgress, CompletionToken);
-            t.ContinueWith(SessionTaskCompletionHandler);
+            _bkgCompletionTask=t.ContinueWith(SessionTaskCompletionHandler,TaskContinuationOptions.ExecuteSynchronously);
             if(t.Status == TaskStatus.Created) try { t.Start(); } catch(TaskSchedulerException) { }
         }
 
@@ -95,15 +97,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 Int32 max_advance = _progress-StartPosition;
                 RunnerStatus new_status;
                 if(max_advance<=Advance) {
-                    new_status=RunnerStatus.Stalled;
-                    _position=_progress;
+                    new_status=_backgroundStatus; //Stalled or one of final 
+                    Position =_progress;
                 }
                 else {
                     new_status=RunnerStatus.Progressed;
-                    _position=StartPosition+Advance;
+                    Position =StartPosition+Advance;
                 }
-                SetStatus(new_status); //Just an attempt. If current status is a final one alredy, it'll never be changed
-                return new RunnerResult<TResult>(_result, Status, _position, Status == RunnerStatus.Failed ? Exception : null);
+                if(SetStatus(new_status) && new_status==RunnerStatus.Failed) Exception=_backgroundException; 
+                return new RunnerResult<TResult>(_result, Status, Position , Status == RunnerStatus.Failed ? Exception : null);
             }
         }
 
@@ -124,24 +126,26 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             String? TraceIdentifier = null)
         {
             lock(_lock) {
-                int new_position;
+                int max_advance;
                 CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetRequiredAsync));
-                new_position = Position + Advance;
-                if(Status.IsFinal() || new_position <= _progress) {
-                    if(!Status.IsFinal()) _position = Math.Max(new_position, _position);
+                max_advance = Math.Min(Advance, Int32.MaxValue-StartPosition);
+                if(IsBackgroundExecutionCompleted || max_advance <= _progress-StartPosition) { //Synchronous path
+                    Position  = Math.Min(_progress, StartPosition + max_advance);
+                    RunnerStatus new_status = Position  < _progress ? RunnerStatus.Progressed : _backgroundStatus;
+                    if(SetStatus(new_status) && new_status==RunnerStatus.Failed) Exception=_backgroundException;
                     return new ValueTask<RunnerResult<TResult>>(
-                        new RunnerResult<TResult>(_result, Status, _position, Status == RunnerStatus.Failed ? Exception : null));
+                        new RunnerResult<TResult>(_result, Status, Position , Status == RunnerStatus.Failed ? Exception : null));
                 }
-                else {
+                else { //Asynchronous path
                     TaskListItem item = new TaskListItem
                     {
                         TaskSourceToComplete = new TaskCompletionSource<RunnerResult<TResult>>(),
                         Token = Token,
-                        DesiredPosition = new_position,
+                        DesiredPosition = StartPosition+max_advance,
                         TraceIdentifier = TraceIdentifier
                     };
                     if(Token.CanBeCanceled) item.Registration = Token.Register(CancelATask, item);
-                    _waitList.Enqueue(item, new_position);
+                    _waitList.Enqueue(item, item.DesiredPosition);
                     return new ValueTask<RunnerResult<TResult>>(item.TaskSourceToComplete.Task);
 
                 }
@@ -159,15 +163,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <inheritdoc/>
         public Boolean IsBackgroundExecutionCompleted { get; private set; } = false;
 
-        /// <inheritdoc/>
-        public override Int32 Position { get => _position;} //TODO Volatile.Read?
-
         void CheckAndNormalizeParams(ref Int32 Advance,ref Int32 StartPosition, String MethodName)
         {
-            if(StartPosition == IRunner.CURRENT_POSITION) StartPosition = _position;
-            if(StartPosition < _position) {
+            if(StartPosition == IRunner.CURRENT_POSITION) StartPosition = Position ;
+            if(StartPosition < Position ) {
                 String classname = Utilities.MakeClassCategoryName(GetType());
-                throw new ArgumentException(nameof(Advance),
+                throw new ArgumentException(nameof(StartPosition),
                         $"{classname}.{MethodName}:StartPosition value ({StartPosition}) is behind current runner Position({Position})");
             }
             if(Advance<0) {
@@ -176,7 +177,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         $"{classname}.{MethodName}:Advance value ({Advance}) is negative");
 
             }
-            if(StartPosition==_position && Advance == IRunner.DEFAULT_ADVANCE) Advance = 1;
+            if(StartPosition==Position  && Advance == IRunner.DEFAULT_ADVANCE) Advance = 1;
         }
 
         void CancelATask(object? Item)
@@ -190,29 +191,33 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         internal void AdvanceProgress()
         {
             _progress++;
-            CompleteWaitingTasks();
-        }
-
-        void CompleteWaitingTasks()
-        {
+            SetStatus(RunnerStatus.Progressed);
             TaskListItem? task_item;
             Int32 task_position;
+            //Complete tasks that wait for reaching this position
             while(_waitList.TryPeek(out task_item, out task_position) && (Status.IsFinal() || task_position <= _progress)) {
                 task_item.Registration?.Dispose();
                 _waitList.Dequeue();
                 if(task_item.Token.IsCancellationRequested) task_item!.TaskSourceToComplete?.TrySetCanceled();
-                else task_item!.TaskSourceToComplete?.TrySetResult(
-                    new RunnerResult<TResult>(_result, Status, task_position, Status == RunnerStatus.Failed ? Exception : null));
+                else {
+                    Position=task_position;
+                    SetStatus(Position<_progress ? RunnerStatus.Progressed : RunnerStatus.Stalled);
+                    task_item!.TaskSourceToComplete?.TrySetResult(
+                        new RunnerResult<TResult>(_result, Status, Position, Status == RunnerStatus.Failed ? Exception : null));
+                }
             }
         }
 
         void SessionTaskCompletionHandler(Task Antecedent)
         {
-            lock (_lock) {
+            TaskListItem? task_item;
+            Int32 task_position;
+            lock(_lock) {
                 IsBackgroundExecutionCompleted = true;
                 switch(Antecedent.Status) {
                     case TaskStatus.RanToCompletion:
-                        SetStatus(RunnerStatus.Complete);
+                        //SetStatus(RunnerStatus.Complete);
+                        _backgroundStatus=RunnerStatus.Complete;
                         _progress++;
                         if(Antecedent is Task<TResult> task_with_result) _result = task_with_result.Result;
                         break;
@@ -220,15 +225,27 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         Exception? exception = Antecedent.Exception;
                         if(exception != null && exception is AggregateException aggregate_exception)
                             if(aggregate_exception.InnerExceptions.Count == 1) exception = aggregate_exception.InnerExceptions[0];
-                        if(SetStatus(RunnerStatus.Failed)) Exception = exception;
+                        _backgroundStatus=RunnerStatus.Failed;
+                        _backgroundException=exception;
                         break;
-                    case TaskStatus:
+                    case TaskStatus.Canceled:
                         SetStatus(RunnerStatus.Aborted);
                         break;
                     default:
-                        //TODO Something went wrong
+                        //TODO Something went wrong, LogError
+                        while(_waitList.TryDequeue(out task_item, out task_position)) {
+                            Exception e = new Exception("Internal error in SessionTaskCompletionHandler");
+                            task_item!.TaskSourceToComplete?.TrySetException(e);
+                        }
+                        return;
                 }
-                CompleteWaitingTasks();
+                while(_waitList.TryDequeue(out task_item, out task_position)) {
+                    Position=_progress;
+                    if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;
+                    task_item!.TaskSourceToComplete?
+                        .TrySetResult(new RunnerResult<TResult>(
+                            _result, Status, _progress, Status == RunnerStatus.Failed ? Exception : null));
+                }
             }
         }
 
