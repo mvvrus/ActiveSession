@@ -14,7 +14,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Int32? _estimatedEnd=null;
         Object _lock = new Object();
         PriorityQueue<TaskListItem, Int32> _waitList = new PriorityQueue<TaskListItem, Int32>();
-        readonly Func<Action<TResult, Int32?>, CancellationToken, Task> _taskToRun;
+        readonly Func<Action<TResult, Int32?>, CancellationToken, Task> _taskToRunCreator;
         RunnerStatus _backgroundStatus = RunnerStatus.Stalled;
         Exception? _backgroundException = null;
         internal Task? _bkgCompletionTask;  //internal asccess modifier is for test project access
@@ -28,7 +28,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             Func<Action<TResult, Int32?>, CancellationToken, TResult> TaskBody, RunnerId RunnerId, ILogger? Logger) :
-            this(MakeTaskToRun(TaskBody), RunnerId, Logger) {}
+            this(MakeTaskToRunCreator(TaskBody), RunnerId, Logger) {}
 
 
         /// <summary>
@@ -40,13 +40,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             Action<Action<TResult, Int32?>, CancellationToken> TaskBody, RunnerId RunnerId, ILogger? Logger):
-            this(MakeTaskToRun(TaskBody), RunnerId,Logger) {}
+            this(MakeTaskToRunCreator(TaskBody), RunnerId,Logger) {}
 
         SessionProcessRunner(
-            Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRun, RunnerId RunnerId, ILogger? Logger) 
+            Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRunCretator, RunnerId RunnerId, ILogger? Logger) 
             : base(new CancellationTokenSource(), true, RunnerId, Logger)
         {
-            _taskToRun = TaskToRun;
+            _taskToRunCreator = TaskToRunCretator;
             StartRunning();
         }
 
@@ -55,12 +55,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         protected internal override void StartBackgroundExecution()
         {
-            Task t = _taskToRun(SetProgress, CompletionToken);
+            Task t = _taskToRunCreator(SetProgress, CompletionToken);
             _bkgCompletionTask=t.ContinueWith(SessionTaskCompletionHandler,TaskContinuationOptions.ExecuteSynchronously);
             if(t.Status == TaskStatus.Created) try { t.Start(); } catch(TaskSchedulerException) { }
         }
 
-        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRun(
+        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRunCreator(
             Action<Action<TResult, Int32?>, CancellationToken> TaskBody)
         {
             return (ProgressSetter,Token)=>new Task(
@@ -70,7 +70,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 (ProgressSetter, Token),Token);
         }
 
-        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRun(
+        static Func<Action<TResult, Int32?>, CancellationToken, Task> MakeTaskToRunCreator(
             Func<Action<TResult, Int32?>, CancellationToken,TResult> TaskBody)
         {
             return (ProgressSetter, Token) => new Task<TResult>(
@@ -79,6 +79,25 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     ((ValueTuple<Action<TResult, Int32?>, CancellationToken>)State!).Item2)
                 , (ProgressSetter, Token), Token)
             ;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected override void PreDispose()
+        {
+            Abort();
+            base.PreDispose();
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Disposing"></param>
+        protected override void Dispose(Boolean Disposing)
+        {
+            _bkgCompletionTask?.Wait();
+            base.Dispose(Disposing);
         }
 
         // <inheritdoc/>: Invalid cref value "!:TResult" found in triple-slash-comments for GetAvailable 
@@ -242,15 +261,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 while(_waitList.TryDequeue(out task_item, out task_position)) {
                     Position=_progress;
                     if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;
-                    task_item!.TaskSourceToComplete?
-                        .TrySetResult(new RunnerResult<TResult>(
-                            _result, Status, _progress, Status == RunnerStatus.Failed ? Exception : null));
+                    if(Disposed()) task_item!.TaskSourceToComplete?.TrySetException(new ObjectDisposedException(DisposedObjectName()));
+                    else task_item!.TaskSourceToComplete?.TrySetResult(new RunnerResult<TResult>(
+                        _result, Status, _progress, Status == RunnerStatus.Failed ? Exception : null));
                 }
             }
         }
 
         void SetProgress(TResult Result, Int32? EstimatedEnd)
         {
+            CompletionToken.ThrowIfCancellationRequested();
             lock(_lock) {
                 _result = Result;
                 _estimatedEnd = EstimatedEnd;

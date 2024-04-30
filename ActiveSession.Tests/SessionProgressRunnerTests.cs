@@ -481,6 +481,7 @@ namespace ActiveSession.Tests
                 _pauseEvent.Reset();
                 try {
                     for(_position = 0, cp_pos = 0; _position < _count; _position++) {
+                        Thread.Sleep(10);
                         if(cp_pos < cp_count && cp_keys[cp_pos] == _position) {
                             _checkPoints.Values[cp_pos++]();
                         }
