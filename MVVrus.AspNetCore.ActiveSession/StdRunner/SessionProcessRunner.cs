@@ -112,18 +112,21 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         public RunnerResult<TResult> GetAvailable(Int32 Advance = IRunner.MAXIMUM_ADVANCE, Int32 StartPosition = IRunner.CURRENT_POSITION, String? TraceIdentifier = null)
         {
             lock (_lock) {
+                CheckDisposed();
                 CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetAvailable));
-                Int32 max_advance = _progress-StartPosition;
-                RunnerStatus new_status;
-                if(max_advance<=Advance) {
-                    new_status=_backgroundStatus; //Stalled or one of final 
-                    Position =_progress;
+                if(!Status.IsFinal()) {
+                    Int32 max_advance = _progress-StartPosition;
+                    RunnerStatus new_status;
+                    if(max_advance<=Advance) {
+                        new_status=_backgroundStatus; //Stalled or a final 
+                        Position =_progress;
+                    }
+                    else {
+                        new_status=RunnerStatus.Progressed;
+                        Position =StartPosition+Advance;
+                    }
+                    if(SetStatus(new_status) && new_status==RunnerStatus.Failed) Exception=_backgroundException;
                 }
-                else {
-                    new_status=RunnerStatus.Progressed;
-                    Position =StartPosition+Advance;
-                }
-                if(SetStatus(new_status) && new_status==RunnerStatus.Failed) Exception=_backgroundException; 
                 return new RunnerResult<TResult>(_result, Status, Position , Status == RunnerStatus.Failed ? Exception : null);
             }
         }
@@ -145,10 +148,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             String? TraceIdentifier = null)
         {
             lock(_lock) {
+                CheckDisposed();
                 int max_advance;
                 CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetRequiredAsync));
                 max_advance = Math.Min(Advance, Int32.MaxValue-StartPosition);
-                if(IsBackgroundExecutionCompleted || max_advance <= _progress-StartPosition) { //Synchronous path
+                if(Status.IsFinal() || IsBackgroundExecutionCompleted || max_advance <= _progress-StartPosition) { //Synchronous
                     Position  = Math.Min(_progress, StartPosition + max_advance);
                     RunnerStatus new_status = Position  < _progress ? RunnerStatus.Progressed : _backgroundStatus;
                     if(SetStatus(new_status) && new_status==RunnerStatus.Failed) Exception=_backgroundException;
