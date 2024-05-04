@@ -28,7 +28,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             Func<Action<TResult, Int32?>, CancellationToken, TResult> TaskBody, RunnerId RunnerId, ILogger? Logger) :
-            this(MakeTaskToRunCreator(TaskBody), RunnerId, Logger) {}
+            this(MakeTaskToRunCreator(TaskBody??throw new ArgumentNullException(nameof(TaskBody))), RunnerId, Logger) {}
 
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             Action<Action<TResult, Int32?>, CancellationToken> TaskBody, RunnerId RunnerId, ILogger? Logger):
-            this(MakeTaskToRunCreator(TaskBody), RunnerId,Logger) {}
+            this(MakeTaskToRunCreator(TaskBody??throw new ArgumentNullException(nameof(TaskBody))), RunnerId,Logger) {}
 
         SessionProcessRunner(
             Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRunCretator, RunnerId RunnerId, ILogger? Logger) 
@@ -248,8 +248,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         Exception? exception = Antecedent.Exception;
                         if(exception != null && exception is AggregateException aggregate_exception)
                             if(aggregate_exception.InnerExceptions.Count == 1) exception = aggregate_exception.InnerExceptions[0];
-                        _backgroundStatus=RunnerStatus.Failed;
-                        _backgroundException=exception;
+                        if(exception is OperationCanceledException) {
+                            SetStatus(RunnerStatus.Aborted);
+                        }
+                        else {
+                            _backgroundStatus=RunnerStatus.Failed;
+                            _backgroundException=exception;
+                        }
                         break;
                     case TaskStatus.Canceled:
                         SetStatus(RunnerStatus.Aborted);
@@ -262,6 +267,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         }
                         return;
                 }
+                _estimatedEnd = _progress;
                 while(_waitList.TryDequeue(out task_item, out task_position)) {
                     Position=_progress;
                     if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;

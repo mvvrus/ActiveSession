@@ -1,5 +1,7 @@
-﻿using MVVrus.AspNetCore.ActiveSession.StdRunner;
+﻿using Microsoft.Extensions.Logging;
+using MVVrus.AspNetCore.ActiveSession.StdRunner;
 using System.Reflection;
+
 using static System.Reflection.BindingFlags;
 
 namespace ActiveSession.Tests
@@ -21,7 +23,7 @@ namespace ActiveSession.Tests
             Exception? exception;
             using (test_setup = new TestSetup<Int32>(COUNT, pos => (pos+1)*2, new (Int32, String)[] {
                 (COUNT/4, "Pause"), (COUNT/2, "Pause"), (COUNT/4+COUNT/2, "Pause")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
                     Assert.True(test_setup.Wait(TIMEOUT,runner));
                     //Test case: StartPosition+Advance<_progress, default StartPosition, explicit Advance
                     (result, status, position, exception) = runner.GetAvailable(COUNT/6);
@@ -93,7 +95,15 @@ namespace ActiveSession.Tests
                     Assert.Equal(RunnerStatus.Complete, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
+                    //Test case: call while Status is Complete
+                    (result, status, position, exception) = runner.GetAvailable();
+                    Assert.Equal(COUNT*2, result);
+                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(COUNT, position);
+                    Assert.Null(exception);
                 }
+                //Test case: call for the disposed object
+                Assert.Throws<ObjectDisposedException>(()=>runner.GetAvailable());
             }
         }
 
@@ -110,17 +120,22 @@ namespace ActiveSession.Tests
             Exception? exception;
             using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {
                 (COUNT/2, "Fail")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
-                    Assert.True(test_setup.Wait(-1, runner)); //TODO
-
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
                     //Test case: exception in a background process, StartPosition+Advance<_progress
                     (result, status, position, exception) = runner.GetAvailable(COUNT / 6);
                     Assert.Equal(COUNT, result);
                     Assert.Equal(RunnerStatus.Progressed, status);
                     Assert.Equal(COUNT/ 6, position);
                     Assert.Null(exception);
-
                     //Test case: exception in a background process, StartPosition+Advance>_progress
+                    (result, status, position, exception) = runner.GetAvailable();
+                    Assert.Equal(COUNT, result);
+                    Assert.Equal(RunnerStatus.Failed, status);
+                    Assert.Equal(COUNT/2, position);
+                    Assert.NotNull(exception);
+                    Assert.IsType<TestException>(exception);
+                    //Test case: call while Status is Failed
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.Equal(COUNT, result);
                     Assert.Equal(RunnerStatus.Failed, status);
@@ -146,7 +161,7 @@ namespace ActiveSession.Tests
 
             using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {
                 (COUNT/2, "Pause"), (COUNT*2/3, "Pause")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
                     Assert.True(test_setup.Wait(TIMEOUT, runner));
                     //Test case: default StartPosition, explicit Advance, synchronous (StartPosition+Advance<_progress) 
                     task_sync  = runner.GetRequiredAsync(COUNT / 3).AsTask();
@@ -300,7 +315,18 @@ namespace ActiveSession.Tests
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                     Assert.Equal(COUNT, runner.Position);
+                    //Test case: call while Status is Complete
+                    task_sync = runner.GetRequiredAsync(Int32.MaxValue).AsTask();
+                    Assert.True(task_sync.IsCompletedSuccessfully);
+                    (result, status, position, exception) = task_sync.Result;
+                    Assert.Equal(COUNT*2, result);
+                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(COUNT, position);
+                    Assert.Null(exception);
+                    Assert.Equal(COUNT, runner.Position);
                 }
+                //Test case: call for disposed object
+                Assert.Throws<ObjectDisposedException>(()=>runner.GetRequiredAsync(Int32.MaxValue).AsTask().Result);
             }
         }
 
@@ -318,7 +344,7 @@ namespace ActiveSession.Tests
 
             using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {
                 (COUNT/2, "Pause")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
                     Assert.True(test_setup.Wait(TIMEOUT, runner));
                     Task<RunnerResult<Int32>> task1 = runner.GetRequiredAsync(COUNT+1).AsTask();
                     Task.Yield().GetAwaiter().GetResult();
@@ -363,7 +389,7 @@ namespace ActiveSession.Tests
 
             using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {
                 (COUNT*2/3, "Fail")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
                     Assert.True(test_setup.Wait(TIMEOUT, runner));
                     //Test case: exception in a background process, synchronous, StartPosition+Advance<_progress
                     Task<RunnerResult<Int32>> task_sync = runner.GetRequiredAsync(COUNT/2).AsTask();
@@ -378,6 +404,19 @@ namespace ActiveSession.Tests
                     Assert.Null(runner.Exception);
 
                     //Test case: exception in a background process, synchronous, StartPosition+Advance>_progress
+                    task_sync = runner.GetRequiredAsync(Int32.MaxValue).AsTask();
+                    Assert.True(task_sync.IsCompleted);
+                    (result, status, position, exception) = task_sync.Result;
+                    Assert.Equal((COUNT*2/3)*2, result);
+                    Assert.Equal(RunnerStatus.Failed, status);
+                    Assert.Equal(COUNT*2/3, position);
+                    Assert.NotNull(exception);
+                    Assert.IsType<TestException>(exception);
+                    Assert.Equal(RunnerStatus.Failed, runner.Status);
+                    Assert.Equal(COUNT*2/3, runner.Position);
+                    Assert.NotNull(runner.Exception);
+                    Assert.IsType<TestException>(runner.Exception);
+                    //Test case: call while Status is Failed
                     task_sync = runner.GetRequiredAsync(Int32.MaxValue).AsTask();
                     Assert.True(task_sync.IsCompleted);
                     (result, status, position, exception) = task_sync.Result;
@@ -408,7 +447,7 @@ namespace ActiveSession.Tests
 
             using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {
                 (COUNT/2, "Pause"), (COUNT*2/3, "Fail")})) {
-                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, null)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
                     Assert.True(test_setup.Wait(TIMEOUT, runner));
                     Task<RunnerResult<Int32>> task1 = runner.GetRequiredAsync(COUNT+1).AsTask();
                     Task.Yield().GetAwaiter().GetResult();
@@ -422,7 +461,6 @@ namespace ActiveSession.Tests
                     Assert.True(task1.Wait(TIMEOUT));
                     Assert.True(task1.IsCompletedSuccessfully);
                     (result, status, position, exception) = task1.Result;
-                    //TODO Change assertions
                     Assert.Equal((COUNT*2/3)*2, result);
                     Assert.Equal(RunnerStatus.Failed, status);
                     Assert.Equal(COUNT*2/3, position);
@@ -446,25 +484,367 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: Disposing the runner
+        [Fact]
+        public void Dispose()
+        {
+            const Int32 COUNT = 24;
+            TestSetup<Int32> test_setup;
+            SessionProcessRunner<Int32> runner;
+            //Test case: Background process is completed
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { })) {
+                runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger);
+                Assert.True(test_setup.Wait(TIMEOUT, runner));
+                runner.GetAvailable();
+                Assert.Equal(RunnerStatus.Complete, runner.Status);
+                Assert.True(Task.Run(() => runner.Dispose()).Wait(TIMEOUT));
+                Assert.True(runner.IsBackgroundExecutionCompleted);
+            }
+            //Test case: Background process is not completed, no pending GetRequiredAsync calls
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {(COUNT/2, "Pause")})) {
+                runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger);
+                Assert.True(test_setup.Wait(TIMEOUT, runner));
+                runner.GetAvailable();
+                Assert.Equal(RunnerStatus.Stalled, runner.Status);
+                Assert.True(Task.Run(() => runner.Dispose()).Wait(TIMEOUT));
+                Assert.True(runner.IsBackgroundExecutionCompleted);
+            }
+            //Test case: Background process is not completed, some pending GetRequiredAsync calls
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {(COUNT/2, "Pause")})) {
+                runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger);
+                Assert.True(test_setup.Wait(TIMEOUT, runner));
+
+                Task<RunnerResult<Int32>> task1 = runner.GetRequiredAsync(COUNT*3/2).AsTask();
+                Task.Yield().GetAwaiter().GetResult();
+                Assert.False(task1.IsCompleted);
+                Task<RunnerResult<Int32>> task2 = runner.GetRequiredAsync(COUNT*2).AsTask();
+                Task.Yield().GetAwaiter().GetResult();
+                Assert.False(task2.IsCompleted);
+                Assert.Equal(RunnerStatus.Progressed, runner.Status);
+                Assert.True(Task.Run(() => runner.Dispose()).Wait(TIMEOUT));
+                Assert.True(runner.IsBackgroundExecutionCompleted);
+                Assert.True(task1.IsFaulted);
+                Assert.True(task1.Exception is AggregateException agg1 && agg1.InnerExceptions.Count==1 && agg1.InnerExceptions[0] is ObjectDisposedException);
+                Assert.True(task2.IsFaulted);
+                Assert.True(task2.Exception is AggregateException agg2 && agg2.InnerExceptions.Count==1 && agg2.InnerExceptions[0] is ObjectDisposedException);
+            }
+        }
+
+        //Test group: Abort the runner
+        [Fact]
+        public void Abort()
+        {
+            const Int32 COUNT = 24;
+            TestSetup<Int32> test_setup;
+            SessionProcessRunner<Int32> runner;
+            //Test case: Background completed, Status in not Completed yet
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    runner.Abort();
+                    Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                    //Test case: Runner already aborted
+                    runner.Abort();
+                    Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                }
+            }
+            //Test case: Background completed, Status in Completed
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    runner.GetAvailable();
+                    runner.Abort();
+                    Assert.Equal(RunnerStatus.Complete, runner.Status);
+                }
+            }
+            //Test case: Background failed, Status in not Failed yet
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {(COUNT/2,"Fail")})) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    runner.Abort();
+                    Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                    Assert.Null(runner.Exception);
+                }
+            }
+            //Test case: Background failed, Status in Failed
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Fail") })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    runner.GetAvailable();
+                    runner.Abort();
+                    Assert.Equal(RunnerStatus.Failed, runner.Status);
+                    Assert.NotNull(runner.Exception);
+                    Assert.IsType<TestException>(runner.Exception);
+                }
+            }
+            //Test case: Runner disposed
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                }
+                runner.Abort();
+                Assert.Equal(RunnerStatus.Aborted, runner.Status);
+            }
+            //Test case: Background in progress, Abort at callback
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {(COUNT/2, "Pause")},
+                MonitorCompletionToken:false)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    runner.GetAvailable();
+                    runner.Abort();
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    test_setup.Resume();
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                    Assert.True(test_setup.InCallback);
+                }
+            }
+            //Test case: Background in progress, Abort inside the background task
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] {(COUNT/2, "Pause")})) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Int32 result;
+                    RunnerStatus status;
+                    Int32 position;
+                    Exception? exception;
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    //Test case (nested): GetRequiredAsync was awaiting during Abort call part 1/2
+                    Task<RunnerResult<Int32>> task1 = runner.GetRequiredAsync(COUNT*2/3).AsTask();
+                    Task.Yield().GetAwaiter().GetResult();
+                    Assert.False(task1.IsCompleted);
+                    //End of the test case part 1/2
+                    runner.GetAvailable();
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    runner.Abort();
+                    Assert.True(test_setup.WaitWithResume(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                    Assert.False(test_setup.InCallback);
+                    //Test case: GetRequiredAsync was awaiting during Abort call part 2/2
+                    Assert.True(task1.Wait(TIMEOUT));
+                    Assert.True(task1.IsCompletedSuccessfully);
+                    (result, status, position, exception) = task1.Result;
+                    Assert.Equal(RunnerStatus.Aborted, status);
+                    //Test case: GetAvailable after Abort
+                    (result, status, position, exception) = runner.GetAvailable();
+                    Assert.Equal(RunnerStatus.Aborted, status);
+                    //Test case: GetRequiredAsync after Abort
+                    task1 = runner.GetRequiredAsync(COUNT).AsTask();
+                    Assert.True(task1.IsCompletedSuccessfully);
+                    (result, status, position, exception) = task1.Result;
+                    Assert.Equal(RunnerStatus.Aborted, status);
+                }
+            }
+            //Test case: Background in progress, the background task was canceled by external means
+            using(CancellationTokenSource cts=new CancellationTokenSource()) {
+                using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") },
+                    ExtToken:cts.Token, MonitorCompletionToken:false)) {
+                    using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                        Int32 result;
+                        RunnerStatus status;
+                        Int32 position;
+                        Exception? exception;
+                        Assert.True(test_setup.Wait(TIMEOUT, runner));
+                        runner.GetAvailable();
+                        Assert.False(runner.IsBackgroundExecutionCompleted);
+                        //Test case (nested): GetRequiredAsync is awaiting during cancellation by external means part 1/2
+                        Task<RunnerResult<Int32>> task1 = runner.GetRequiredAsync(COUNT*2/3).AsTask();
+                        Task.Yield().GetAwaiter().GetResult();
+                        Assert.False(task1.IsCompleted);
+                        //End of the test case part 1/2
+                        cts.Cancel();
+                        Assert.True(test_setup.WaitWithResume(TIMEOUT, runner));
+                        Assert.True(runner.IsBackgroundExecutionCompleted);
+                        Assert.Equal(RunnerStatus.Aborted, runner.Status);
+                        Assert.False(test_setup.InCallback);
+                        Assert.True(test_setup.CanceledExternally);
+                        //Test case (nested): GetRequiredAsync is awaiting during cancellation by external means part 2/2
+                        Assert.True(task1.Wait(TIMEOUT));
+                        Assert.True(task1.IsCompletedSuccessfully);
+                        (result, status, position, exception) = task1.Result;
+                        Assert.Equal(RunnerStatus.Aborted, status);
+                    }
+                }
+            }
+        }
+
+        //Test group: IRunnerBackgroundProgress
+        [Fact]
+        public void BackgroundProgress() 
+        {
+            Int32 progress;
+            Int32? estimated_end;
+            const Int32 COUNT = 24;
+            TestSetup<Int32> test_setup;
+            SessionProcessRunner<Int32> runner;
+            //Test case: In progress, function body, report end estimation
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2,progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    //Test case: completed, function body, report end estimation
+                    test_setup.Resume();
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT, progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    Assert.Equal(COUNT*2, runner.GetAvailable().Result);
+                }
+            }
+            //Test case: In progress, procedure body, report end estimation
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.VoidBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    //Test case: completed, procedure body, report end estimation
+                    test_setup.Resume();
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT, progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    Assert.Equal(COUNT*2-2, runner.GetAvailable().Result);
+                }
+            }
+            //Test case: failed, report end estimation 
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Fail") })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Equal(COUNT/2, estimated_end);
+                }
+            }
+            //Test case: aborted, report end estimation 
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") })) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    runner.Abort();
+                    Assert.True(test_setup.WaitWithResume(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Equal(COUNT/2, estimated_end);
+                }
+            }
+            //Test case: In progress, function body, does not report end estimation
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") }, 
+                ReportCount:false)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Null(estimated_end);
+                    //Test case: completed, function body, does not report end estimation
+                    test_setup.Resume();
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT, progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    Assert.Equal(COUNT*2, runner.GetAvailable().Result);
+                }
+            }
+            //Test case: completed, procedure body, does not report end estimation
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") },
+                ReportCount: false)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.VoidBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Null(estimated_end);
+                    //Test case: completed, procedure body, does not report end estimation
+                    test_setup.Resume();
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT, progress);
+                    Assert.Equal(COUNT, estimated_end);
+                    Assert.Equal(COUNT*2-2, runner.GetAvailable().Result);
+                }
+            }
+            //Test case: failed, does not report end estimation 
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Fail") },
+                ReportCount: false)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Equal(COUNT/2, estimated_end);
+                }
+            }
+            //Test case: aborted, does not report end estimation 
+            using(test_setup = new TestSetup<Int32>(COUNT, pos => (pos + 1) * 2, new (Int32, String)[] { (COUNT/2, "Pause") },
+                ReportCount: false)) {
+                using(runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.Logger)) {
+                    Assert.True(test_setup.Wait(TIMEOUT, runner));
+                    Assert.False(runner.IsBackgroundExecutionCompleted);
+                    runner.Abort();
+                    Assert.True(test_setup.WaitWithResume(TIMEOUT, runner));
+                    Assert.True(runner.IsBackgroundExecutionCompleted);
+                    (progress, estimated_end) = runner.GetProgress();
+                    Assert.Equal(COUNT/2, progress);
+                    Assert.Equal(COUNT/2, estimated_end);
+                }
+            }
+        }
+
+        //Test case: pass null as a task body to one of constructors
+        [Fact]
+        public void ConstructorsNullArgument()
+        {
+            Assert.Throws<ArgumentNullException>(() =>new SessionProcessRunner<Int32>(
+                (Action<Action<int,int?>,CancellationToken>)(null!),default,null));
+            Assert.Throws<ArgumentNullException>(() => new SessionProcessRunner<Int32>(
+                (Func<Action<int, int?>, CancellationToken, int>)(null!), default, null));
+        }
+
         class TestSetup<TResult> : IDisposable
         {
             Int32 _count,_position;
             Boolean _reportCount;
+            Boolean _monitorCompletionToken;
             ManualResetEventSlim _pauseEvent, _readyEvent;
             Func<Int32, TResult> _resultFunc;
             SortedList<Int32, Action> _checkPoints;
             Boolean _ranToEnd=false;
+            CancellationToken _token = default;
+            MockedLoggerFactory _logger_factory_mock;
+            MockedLogger _logger_mock;
+            CancellationToken  _extToken = default;
+
+            public ILogger Logger { get { return _logger_mock.Logger; } }
+
+            public Boolean CanceledExternally { get; private set; }
+            public Boolean InCallback { get; private set; }
 
             public TestSetup(Int32 Count, Func<Int32, TResult> ResultFunc, 
-                IEnumerable<ValueTuple<Int32,String>> CheckPoints, Boolean ReportCount=true) 
+                IEnumerable<ValueTuple<Int32,String>> CheckPoints, 
+                Boolean ReportCount=true, Boolean MonitorCompletionToken=true, CancellationToken ExtToken=default) 
             {
                 _count = Count-1;
                 _resultFunc = ResultFunc;
                 _reportCount = ReportCount;
+                _monitorCompletionToken=MonitorCompletionToken;
+                _extToken=ExtToken;
                 _position = 0;
                 _pauseEvent = new ManualResetEventSlim();
                 _readyEvent = new ManualResetEventSlim(true);
                 _checkPoints = new SortedList<Int32, Action>();
+                _logger_factory_mock = new MockedLoggerFactory();
+                _logger_mock = _logger_factory_mock.MonitorLoggerCategory(nameof(EnumerableRunnerBaseTests));
                 foreach((Int32 pos, String action_name) in CheckPoints) {
                     MethodInfo action_method = GetType()
                         .GetMethod(action_name, Public | NonPublic | Instance, Type.EmptyTypes) 
@@ -474,20 +854,39 @@ namespace ActiveSession.Tests
                 }
             }
 
-            public TResult FuncBody(Action<TResult, Int32?> ProgressCallback, CancellationToken Token)
+            public TResult FuncBody(Action<TResult, Int32?> ProgressCallback, CancellationToken CompletionToken)
             {
                 IList<Int32> cp_keys = _checkPoints.Keys;
                 Int32 cp_pos, cp_count = cp_keys.Count;
                 _pauseEvent.Reset();
                 try {
                     for(_position = 0, cp_pos = 0; _position < _count; _position++) {
-                        Thread.Sleep(10);
+                        //Thread.Sleep(10);
                         if(cp_pos < cp_count && cp_keys[cp_pos] == _position) {
-                            _checkPoints.Values[cp_pos++]();
+                            CancellationTokenSource? compound_source = null;
+                            if(_extToken.CanBeCanceled && CompletionToken.CanBeCanceled && _monitorCompletionToken) {
+                                compound_source = CancellationTokenSource.CreateLinkedTokenSource(_extToken, CompletionToken);
+                                _token = compound_source.Token;
+                            }
+                            else if(_monitorCompletionToken) _token =CompletionToken;
+                            else if(_extToken.CanBeCanceled) _token=_extToken;
+                            try {
+                                _checkPoints.Values[cp_pos++]();
+                            }
+                            catch (OperationCanceledException){
+                                if(_extToken.IsCancellationRequested) CanceledExternally=true;
+                                throw;
+                            }
+                            finally {
+                                _token=default;
+                                compound_source?.Dispose();
+                            }
                         }
-                        Token.ThrowIfCancellationRequested();
+                        if(_monitorCompletionToken) CompletionToken.ThrowIfCancellationRequested();
                         TResult result = _resultFunc(_position);
-                        ProgressCallback(result, _reportCount ? _count : null);
+                        InCallback=true;
+                        ProgressCallback(result, _reportCount ? _count+1 : null);
+                        InCallback=false;
                     }
                 }
                 finally {
@@ -506,7 +905,7 @@ namespace ActiveSession.Tests
             {
                 _readyEvent.Reset();
                 _pauseEvent.Set();
-                _readyEvent.Wait();
+                _readyEvent.Wait(_token);
             }
 
             void Fail()
@@ -524,6 +923,20 @@ namespace ActiveSession.Tests
                 return result;
             }
 
+            public Boolean WaitWithResume(Int32 TimeOut, SessionProcessRunner<TResult> Runner)
+            {
+                Boolean result = false;
+                _pauseEvent.Reset();
+                try {
+                    result=_readyEvent.Wait(TimeOut, _token);
+                }
+                catch(OperationCanceledException) {
+                    result=true;
+                }
+                catch { }
+                return result && Wait(TimeOut,Runner);
+            }
+
             public void Resume()
             {
                 _pauseEvent.Reset();
@@ -539,11 +952,5 @@ namespace ActiveSession.Tests
 
         class TestException : Exception { };
 
-
-        record BkgProcessCheckPoint
-        {
-            Int32 Number { get; set; } = 0;
-            Action Action { get; set; } = () => { };
-        }
     }
 }
