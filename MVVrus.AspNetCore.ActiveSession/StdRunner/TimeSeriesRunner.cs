@@ -64,7 +64,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {
         }
 
-        class TimeSeriesAsyncEnumerable : IAsyncEnumerable<(DateTime, TResult)>
+        internal class TimeSeriesAsyncEnumerable : IAsyncEnumerable<(DateTime, TResult)>
         {
             readonly Func<TResult> _gauge;
             readonly TimeSpan _interval;
@@ -73,8 +73,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             public TimeSeriesAsyncEnumerable(Func<TResult> Gauge, TimeSpan Interval, Int32? Count)
             {
                 _gauge = Gauge ?? throw new ArgumentNullException(nameof(Gauge));
-                _interval = Interval > TimeSpan.Zero ? Interval : throw new ArgumentException(nameof(Interval));
-                _count = (Count == null || Count <= 0) ? Count : throw new ArgumentException(nameof(Count));
+                _interval = Interval > TimeSpan.Zero ? Interval : throw new ArgumentOutOfRangeException(nameof(Interval));
+                _count = (Count == null || Count > 0) ? Count : throw new ArgumentOutOfRangeException(nameof(Count));
             }
 
             public IAsyncEnumerator<(DateTime, TResult)> GetAsyncEnumerator(CancellationToken cancellationToken = default)
@@ -101,8 +101,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             public TimeSeriesAsyncEnumerator(Func<TResult> Gauge, TimeSpan Interval, Int32? Count, CancellationToken cancellationToken)
             {
                 _gauge = Gauge ?? throw new ArgumentNullException(nameof(Gauge));
-                _interval = Interval > TimeSpan.Zero ? Interval.Ticks : throw new ArgumentException(nameof(Interval));
-                _count = (Count == null || Count <= 0) ? Count : throw new ArgumentException(nameof(Count));
+                _interval = Interval > TimeSpan.Zero ? Interval.Ticks : throw new ArgumentOutOfRangeException(nameof(Interval));
+                _count = (Count == null || Count >0) ? Count : throw new ArgumentOutOfRangeException(nameof(Count));
                 _startTime = DateTime.Now.Ticks;
                 _delay_token = cancellationToken;
                 _disposeCts = new CancellationTokenSource();
@@ -148,7 +148,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             {
                 _disposeCts?.Cancel();
                 Task? enum_task = Interlocked.Exchange(ref _enumTask, null);
-                if(enum_task != null) await enum_task!;
+                if(enum_task != null) try {
+                        await enum_task!;
+                    }
+                    catch { }
                 _delayCts?.Dispose();
                 _disposeCts?.Dispose();
             }
