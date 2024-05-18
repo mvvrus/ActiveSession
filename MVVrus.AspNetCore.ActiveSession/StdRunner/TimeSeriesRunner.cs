@@ -6,7 +6,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// <summary>
     /// TODO
     /// </summary>
-    /// <typeparam name="TResult"></typeparam>
+    /// <typeparam name="TResult">TODO</typeparam>
     public class TimeSeriesRunner<TResult> : AsyncEnumAdapterRunner<(DateTime, TResult)>
     {
         /// <summary>

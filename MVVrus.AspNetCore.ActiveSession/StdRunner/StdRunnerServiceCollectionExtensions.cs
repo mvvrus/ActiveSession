@@ -1,46 +1,105 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession.StdRunner
+﻿#pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do) 
+namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// Contains extension methods used to configure standard runners from the ActiveSession library
-    /// /// </summary>
+    /// Contains extension methods for <see cref="IServiceCollection"/> interface used to configure runner factories for standard runners defined in the ActiveSession library.
+    /// </summary>
     public static class StdRunnerServiceCollectionExtensions
     {
         /// <summary>
-        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TResult"/> objects as ActiveService runner
+        /// Adds a runner factory to the application's DI container for <see cref="EnumAdapterRunner{TItem}"/>.
         /// </summary>
-        /// <typeparam name="TResult">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
+        /// <typeparam name="TItem">Type of objects in a sequence (<see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see>) for which the adapter to be created.</typeparam>
         /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
-        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
+        /// <returns>Value of the Services param, this value is used to facilitate call chaining.</returns>
         /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
-        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
-        /// and the second - of type <see cref="IEnumerable{TResult}"/>
+        /// <common>
+        /// The factory created will be used for creation of a runner via following extension methods: 
+        /// </common>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IEnumerable{TItem}, HttpContext)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)"/>
         /// </remarks>
-        public static IServiceCollection AddEnumAdapter<TResult>(this IServiceCollection Services)
+        public static IServiceCollection AddEnumAdapter<TItem>(this IServiceCollection Services)
         {
-            return Services.AddActiveSessions<EnumAdapterRunner<TResult>>();
+            return Services.AddActiveSessions<EnumAdapterRunner<TItem>>();
+        }
+
+        /// <param name="Configurator">
+        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) 
+        /// for the ActiveSession library features. May be null, if no additional configuraion to be performed
+        /// </param>
+        /// <inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection)" />
+        public static IServiceCollection AddEnumAdapter<TItem>(this IServiceCollection Services,
+            Action<ActiveSessionOptions>? Configurator)
+        {
+            return Services.AddActiveSessions<EnumAdapterRunner<TItem>>(Configurator);
         }
 
         /// <summary>
-        /// Extension method used to configure the adapter allowing use any sequence of <typeparamref name="TResult"/> objects as ActiveService runner
+        /// Adds a runner factory to the application's DI container for <see cref="AsyncEnumAdapterRunner{TItem}"/>.
         /// </summary>
-        /// <typeparam name="TResult">Type of objects in a sequence <see cref="IEnumerable{T}"/></typeparam>
-        /// <param name="Services"><see cref="IServiceCollection"/> implementation to be used to configure an application service container</param>
-        /// <param name="Configurator">
-        /// The delegate used to configure additional options (of type <see cref="ActiveSessionOptions"></see>) for the ActiveSession feature
-        /// May be null, if no additional configuraion to be performed
-        /// </param>
-        /// <returns>Value of the Services param, used to facilitate call chaining</returns>
         /// <remarks>
-        /// The adapter is created by <see cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)"/> call with
-        /// the first type parameter to be of type <see cref="EnumAdapterParams{TRequest}"/> 
-        /// and the second - of type <see cref="IEnumerable{TResult}"/>
+        /// <inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection)" path="/remarks/common/node()"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IAsyncEnumerable{TItem}, HttpContext)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, AsyncEnumAdapterParams{TItem}, HttpContext)"/>
         /// </remarks>
-        public static IServiceCollection AddEnumAdapter<TResult>(this IServiceCollection Services,
-            Action<ActiveSessionOptions>? Configurator)
+        /// <inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection)" path="/*[not(self::summary)]"/>
+        public static IServiceCollection AddAsyncEnumAdapter<TItem>(this IServiceCollection Services)
         {
-            return Services.AddActiveSessions<EnumAdapterRunner<TResult>>(Configurator);
+            return Services.AddActiveSessions<AsyncEnumAdapterRunner<TItem>>();
         }
 
+        /// <param name="Configurator"><inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection, Action{ActiveSessionOptions}?)" path='/param[@name="Configurator"]' /></param>
+        /// <inheritdoc cref="AddAsyncEnumAdapter{TItem}(IServiceCollection)"/>
+        public static IServiceCollection AddAsyncEnumAdapter<TItem>(this IServiceCollection Services,
+            Action<ActiveSessionOptions>? Configurator)
+        {
+            return Services.AddActiveSessions<AsyncEnumAdapterRunner<TItem>>(Configurator);
+        }
+
+        /// <summary>
+        /// Adds a runner factory to the application's DI container for <see cref="TimeSeriesRunner{TResult}"/>.
+        /// </summary>
+        /// <typeparam name="TResult">A type of the value part of the tuples making up the returned time series</typeparam>
+        /// <remarks>
+        /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/remarks/common/node()"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, ValueTuple{Func{TResult}, TimeSpan}, HttpContext)"/>
+        /// , <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, ValueTuple{Func{TResult}, TimeSpan, int}, HttpContext)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext)"/>
+        /// </remarks>
+        /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/*[not(self::summary)]"/>
+        public static IServiceCollection AddTimeSeriesRunner<TResult>(this IServiceCollection Services)
+        {
+            return Services.AddActiveSessions<TimeSeriesRunner<TResult>>();
+        }
+
+        /// <param name="Configurator"><inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection, Action{ActiveSessionOptions}?)" path='/param[@name="Configurator"]' /></param>
+        /// <inheritdoc cref="AddTimeSeriesRunner{TResult}(IServiceCollection)"/>
+        public static IServiceCollection AddTimeSeriesRunner<TResult>(this IServiceCollection Services,
+            Action<ActiveSessionOptions>? Configurator)
+        {
+            return Services.AddActiveSessions<TimeSeriesRunner<TResult>>(Configurator);
+        }
+
+        /// <summary>
+        /// Adds a runner factory to the application's DI container for <see cref="SessionProcessRunner{TResult}"/>.
+        /// </summary>
+        /// <typeparam name="TResult">Type of the result returned by the running process.</typeparam>
+        /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/*[not(self::summary)]"/>
+        public static IServiceCollection AddSessionProcessRunner<TResult>(this IServiceCollection Services)
+        {
+            return Services.AddActiveSessions<SessionProcessRunner<TResult>>();
+        }
+
+        /// <param name="Configurator"><inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection, Action{ActiveSessionOptions}?)" path='/param[@name="Configurator"]' /></param>
+        /// <inheritdoc cref="AddSessionProcessRunner{TResult}(IServiceCollection)"/>
+        public static IServiceCollection AddSessionProcessRunner<TResult>(this IServiceCollection Services,
+            Action<ActiveSessionOptions>? Configurator)
+        {
+            return Services.AddActiveSessions<SessionProcessRunner<TResult>>(Configurator);
+        }
+
+
+#pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
     }
 }
