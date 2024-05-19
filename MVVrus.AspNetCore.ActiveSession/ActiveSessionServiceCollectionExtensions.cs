@@ -302,7 +302,8 @@ namespace MVVrus.AspNetCore.ActiveSession
                     ConstructorInfo factory_impl_object_constructor = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)
                         .GetConstructors()[0];
-                    Int32 num_req_param = 1;    //TODO check for RunnerId constructor parameter
+                    Int32 num_req_param = 1;    
+                    //Account for RunnerId constructor parameter
                     if (constructor.GetParameters().Count(p => p.ParameterType==typeof(RunnerId))==1) num_req_param++;
                     Services.AddSingleton(
                         factory_service_type, 
@@ -355,8 +356,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         {
             internal ConstructorInfo FactoryImplObjectConstructor { get; init; }
             internal Type RunnerResultType { get; init; }
-            internal Object[] ExtraArguments;
-            internal Int32 NumberOfRequiredParams=1;
+            internal Object[] _extraArguments;
+            internal Int32 _numberOfRequiredParams=1;
 
             public FactoryDelegateTarget(
                 ConstructorInfo FactoryImplObjectConstructor, 
@@ -366,8 +367,8 @@ namespace MVVrus.AspNetCore.ActiveSession
             ){
                 this.FactoryImplObjectConstructor=FactoryImplObjectConstructor;
                 this.RunnerResultType=RunnerResultType;
-                this.NumberOfRequiredParams=NumberOfRequiredParams;
-                this.ExtraArguments=ExtraArguments??new Object[0];
+                this._numberOfRequiredParams=NumberOfRequiredParams;
+                this._extraArguments=ExtraArguments??new Object[0];
             }
 
             public Object Invoke(IServiceProvider sp)
@@ -375,8 +376,8 @@ namespace MVVrus.AspNetCore.ActiveSession
 
                 return FactoryImplObjectConstructor.Invoke(new Object?[] {
                                 RunnerResultType,
-                                ExtraArguments,
-                                NumberOfRequiredParams,
+                                _extraArguments,
+                                _numberOfRequiredParams,
                                 sp.GetService<ILoggerFactory>() 
                             }
                 );
