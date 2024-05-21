@@ -141,13 +141,13 @@
         }
 
         /// <summary>
-        /// 
+        /// TODO
         /// </summary>
-        /// <typeparam name="TItem"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="RunnerNumber"></param>
-        /// <param name="Context"></param>
-        /// <returns></returns>
+        /// <typeparam name="TItem">TODO</typeparam>
+        /// <param name="Session">TODO</param>
+        /// <param name="RunnerNumber">TODO</param>
+        /// <param name="Context">TODO</param>
+        /// <returns>TODO</returns>
         public static IRunner<IEnumerable<TItem>>? GetSequenceRunner<TItem>(this IActiveSession Session,
             Int32 RunnerNumber,
             HttpContext Context)
@@ -156,13 +156,13 @@
         }
 
         /// <summary>
-        /// 
+        /// TODO
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="RunnerNumber"></param>
-        /// <param name="Context"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">TODO</typeparam>
+        /// <param name="Session">TODO</param>
+        /// <param name="RunnerNumber">TODO</param>
+        /// <param name="Context">TODO</param>
+        /// <returns>TODO</returns>
         public static IRunner<IEnumerable<(DateTime, TResult)>>? GetTimeSeriesRunner<TResult>(this IActiveSession Session,
             Int32 RunnerNumber,
             HttpContext Context)
