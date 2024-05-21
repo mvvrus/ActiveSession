@@ -1641,6 +1641,9 @@ namespace ActiveSession.Tests
             public new Boolean Disposed { get=>base.Disposed();}
 
             public String Arg { get; private set; }
+
+            public override Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
             Action? _disposeSpyAction;
             ManualResetEvent _evt = new ManualResetEvent(false);
             public Task DisposeTask;
@@ -1675,6 +1678,11 @@ namespace ActiveSession.Tests
             }
 
             protected internal override void StartBackgroundExecution()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override RunnerBkgProgress GetProgress()
             {
                 throw new NotImplementedException();
             }

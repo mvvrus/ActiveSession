@@ -116,6 +116,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc/>
         public RunnerId Id { get; init; }
 
+        /// <inheritdoc/>
+        public abstract Boolean IsBackgroundExecutionCompleted { get; }
+
+        /// <inheritdoc/>
+        public abstract RunnerBkgProgress GetProgress();
+
         /// <summary>
         /// Protected. Sets the <see cref="Status"/> property enforcing rules for changing this property.
         /// </summary>

@@ -23,11 +23,18 @@ namespace ActiveSession.Tests
 
         public Exception? Exception => throw new NotImplementedException();
 
+        public Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
             Int32 Advance = IRunner.DEFAULT_ADVANCE,
             CancellationToken Token = default,
             Int32 StartPosition = IRunner.CURRENT_POSITION,
             String? TraceIdentifier = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public RunnerBkgProgress GetProgress()
         {
             throw new NotImplementedException();
         }

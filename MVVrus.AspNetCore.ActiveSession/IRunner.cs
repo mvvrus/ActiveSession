@@ -56,6 +56,19 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <remarks>Contains the default value of <see cref="RunnerId"/> type if not exposed by the runner or assigned in a constructor.</remarks>
         public RunnerId Id { get=>default; }
+
+        /// <summary>
+        /// Returns information about progress of background operation of a runner.
+        /// </summary>
+        /// <returns> A record struct containing a pair of values: 
+        ///   <para>Progress: a <see cref="Position"/> value wich a background execution have been reached</para>
+        ///   <para>EstimatedEnd: estimation of a <see cref="Position"/> value to be at a finish of the background execution(if any)</para>
+        /// </returns>
+        RunnerBkgProgress GetProgress();
+        /// <summary>
+        /// Indicate whether the background operation is completed.
+        /// </summary>
+        Boolean IsBackgroundExecutionCompleted { get; }
     }
 
     /// <summary>

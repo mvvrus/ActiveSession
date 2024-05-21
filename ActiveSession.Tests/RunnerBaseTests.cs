@@ -225,6 +225,8 @@ namespace ActiveSession.Tests
 
             public Boolean DoAbortCalled { get; private set; }
 
+            public override Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
             public void SetPosition(Int32 NewPosition)
             {
                 Position=NewPosition;
@@ -259,6 +261,11 @@ namespace ActiveSession.Tests
             protected internal override void StartBackgroundExecution()
             {
                 _atStartBkg?.Invoke();
+            }
+
+            public override RunnerBkgProgress GetProgress()
+            {
+                throw new NotImplementedException();
             }
         }
 

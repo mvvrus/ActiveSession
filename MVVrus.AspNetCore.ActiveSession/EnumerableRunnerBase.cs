@@ -48,7 +48,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// overwise <see cref="InvalidOperationException"/> exception will be thrown.
     /// </para>
     /// </remarks>
-    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IRunnerBackgroundProgress, IAsyncDisposable
+    public abstract class EnumerableRunnerBase<TItem> : RunnerBase, IRunner<IEnumerable<TItem>>, IAsyncDisposable
     {
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
 
@@ -316,7 +316,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 #pragma warning restore CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
 
         ///<summary>
-        ///<inheritdoc/> It is a part of <see cref="IRunnerBackgroundProgress"/> interface implementation.
+        ///<inheritdoc/> 
         ///</summary>
         ///<remarks>
         ///Retunrs total number of elements already fetched by background process in the Progress result field.
@@ -324,18 +324,15 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///Otherwise it will contain the same value as Progress field.
         ///</remarks>
         ///<inheritdoc/>
-        public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
+        public override RunnerBkgProgress GetProgress()
         {
             CheckDisposed();
             Int32 progress = _queueAddedCount;
             return (progress, (IsBackgroundExecutionCompleted ? progress : null));
         }
 
-        ///<summary>
-        ///<inheritdoc/> It is a part of <see cref="IRunnerBackgroundProgress"/> interface implementation.
-        ///</summary>
         /// <inheritdoc/>
-        public Boolean IsBackgroundExecutionCompleted { get { CheckDisposed(); return _queue.IsAddingCompleted; } }
+        public override Boolean IsBackgroundExecutionCompleted { get { CheckDisposed(); return _queue.IsAddingCompleted; } }
 
         ///<summary>
         ///Protected, overrides <see cref="RunnerBase.PreDispose">RunnerBase.PreDispose()</see>. 

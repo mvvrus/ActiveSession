@@ -476,9 +476,16 @@ namespace ActiveSession.Tests
                 _completionTokenSource.Cancel();
             }
 
+            public RunnerBkgProgress GetProgress()
+            {
+                throw new NotImplementedException();
+            }
+
             public CancellationToken CompletionToken => _completionTokenSource.Token;
 
             public Exception? Exception => throw new NotImplementedException();
+
+            public Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
         }
 
         class RunnerDisposable: RunnerBase, IDisposable

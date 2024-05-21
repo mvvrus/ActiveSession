@@ -21,6 +21,8 @@ namespace ProbeApp
             Logger?.LogDebug($"Parameters: {Params}");
         }
 
+        public override Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
         public RunnerResult<Int32> GetAvailable(Int32 Advance = int.MaxValue, Int32 StartPosition = -1, String? TraceIdentifier = null)
         {
             if(Status!=Progressed) return new RunnerResult<int>(_last_set, Status, Position);
@@ -30,6 +32,11 @@ namespace ProbeApp
                 result= new RunnerResult<int>(_last_set, Status, Position);
             }
             return result;
+        }
+
+        public override RunnerBkgProgress GetProgress()
+        {
+            throw new NotImplementedException();
         }
 
         public async ValueTask<RunnerResult<Int32>> GetRequiredAsync(

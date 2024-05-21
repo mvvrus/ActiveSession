@@ -7,7 +7,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// TODO                                                                                     
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public sealed class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>, IRunnerBackgroundProgress
+    public sealed class SessionProcessRunner<TResult> : RunnerBase, IRunner<TResult>
     {
         TResult _result=default!;
         Int32 _progress = 0;
@@ -18,6 +18,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         RunnerStatus _backgroundStatus = RunnerStatus.Stalled;
         Exception? _backgroundException = null;
         internal Task? _bkgCompletionTask;  //internal asccess modifier is for test project access
+        Boolean _isBackgroundExecutionCompleted=false;
 
         /// <summary>
         /// TODO
@@ -177,14 +178,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <inheritdoc/>
-        public (Int32 Progress, Int32? EstimatedEnd) GetProgress()
+        public override RunnerBkgProgress GetProgress()
         {
             lock(_lock) return (_progress, _estimatedEnd);
         }
 
 
         /// <inheritdoc/>
-        public Boolean IsBackgroundExecutionCompleted { get; private set; } = false;
+        public override Boolean IsBackgroundExecutionCompleted { get => _isBackgroundExecutionCompleted; }
 
         void CheckAndNormalizeParams(ref Int32 Advance,ref Int32 StartPosition, String MethodName)
         {
@@ -236,7 +237,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             TaskListItem? task_item;
             Int32 task_position;
             lock(_lock) {
-                IsBackgroundExecutionCompleted = true;
+                _isBackgroundExecutionCompleted = true;
                 switch(Antecedent.Status) {
                     case TaskStatus.RanToCompletion:
                         //SetStatus(RunnerStatus.Complete);
