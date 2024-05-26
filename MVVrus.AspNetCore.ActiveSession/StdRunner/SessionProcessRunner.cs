@@ -19,33 +19,125 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Exception? _backgroundException = null;
         internal Task? _bkgCompletionTask;  //internal asccess modifier is for test project access
         Boolean _isBackgroundExecutionCompleted=false;
+        Boolean _bkgTaskReturnsResult;
 
         /// <summary>
         /// TODO
         /// </summary>
-        /// <param name="TaskBody"></param>
+        /// <param name="ProcessTaskBody"></param>
         /// <param name="RunnerId"></param>
         /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
-            Func<Action<TResult, Int32?>, CancellationToken, TResult> TaskBody, RunnerId RunnerId, ILogger? Logger) :
-            this(MakeTaskToRunCreator(TaskBody??throw new ArgumentNullException(nameof(TaskBody))), RunnerId, Logger) {}
-
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody, RunnerId RunnerId, ILogger? Logger) :
+            this((ProcessTaskBody??throw new ArgumentNullException(nameof(ProcessTaskBody)),
+                null, true), RunnerId, Logger) {}
 
         /// <summary>
         /// TODO
         /// </summary>
-        /// <param name="TaskBody"></param>
+        /// <param name="Param"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            (Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, 
+            RunnerId RunnerId, ILogger? Logger) :
+            this(MakeTaskToRunCreator(Param.ProcessTaskBody??throw new ArgumentNullException(nameof(Param.ProcessTaskBody))),
+                Param.Cts, Param.PassCtsOwnership, RunnerId, Logger) 
+        {
+            _bkgTaskReturnsResult=true;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ProcessTaskBody"></param>
         /// <param name="RunnerId"></param>
         /// <param name="Logger"></param>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
-            Action<Action<TResult, Int32?>, CancellationToken> TaskBody, RunnerId RunnerId, ILogger? Logger):
-            this(MakeTaskToRunCreator(TaskBody??throw new ArgumentNullException(nameof(TaskBody))), RunnerId,Logger) {}
+            Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody, RunnerId RunnerId, ILogger? Logger):
+            this((ProcessTaskBody??throw new ArgumentNullException(nameof(ProcessTaskBody)), null, true),
+                RunnerId,Logger) {}
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Param"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            (Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, RunnerId RunnerId, ILogger? Logger) :
+            this(MakeTaskToRunCreator(Param.ProcessTaskBody??throw new ArgumentNullException(nameof(Param.ProcessTaskBody))),
+                Param.Cts, Param.PassCtsOwnership, RunnerId, Logger)
+        { }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ProcessTaskCreator"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator, RunnerId RunnerId, ILogger? Logger) :
+            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, Logger)
+        {}
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ProcessTaskCreator"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator, RunnerId RunnerId, ILogger? Logger) :
+            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, Logger)
+        { }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Param"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            (Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, 
+            RunnerId RunnerId, ILogger? Logger) :
+            this(Param.ProcessTaskCreator??throw new ArgumentNullException(nameof(Param.ProcessTaskCreator)), null, true, RunnerId, Logger)
+        {
+            _bkgTaskReturnsResult=true;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Param"></param>
+        /// <param name="RunnerId"></param>
+        /// <param name="Logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        [ActiveSessionConstructor]
+        public SessionProcessRunner(
+            (Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param,
+            RunnerId RunnerId, ILogger? Logger) :
+            this(Param.ProcessTaskCreator??throw new ArgumentNullException(nameof(Param.ProcessTaskCreator)), null, true, RunnerId, Logger)
+        { }
 
         SessionProcessRunner(
-            Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRunCretator, RunnerId RunnerId, ILogger? Logger) 
-            : base(new CancellationTokenSource(), true, RunnerId, Logger)
+            Func<Action<TResult, Int32?>,CancellationToken,Task> TaskToRunCretator, 
+            CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership,
+            RunnerId RunnerId, ILogger? Logger) 
+            : base(CompletionTokenSource, PassCtsOwnership, RunnerId, Logger)
         {
             _taskToRunCreator = TaskToRunCretator;
             StartRunning();
@@ -243,7 +335,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         //SetStatus(RunnerStatus.Complete);
                         _backgroundStatus=RunnerStatus.Complete;
                         _progress++;
-                        if(Antecedent is Task<TResult> task_with_result) _result = task_with_result.Result;
+                        if(_bkgTaskReturnsResult) _result = ((Task<TResult>)Antecedent).Result;
                         break;
                     case TaskStatus.Faulted:
                         Exception? exception = Antecedent.Exception;
