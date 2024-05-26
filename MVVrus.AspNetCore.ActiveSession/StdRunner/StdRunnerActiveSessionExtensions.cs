@@ -85,6 +85,22 @@
         /// </summary>
         /// <typeparam name="TResult">TODO</typeparam>
         /// <param name="Session">TODO</param>
+        /// <param name="Gauge">TODO</param>
+        /// <param name="Interval">TODO</param>
+        /// <param name="Context">TODO</param>
+        /// <returns>TODO</returns>
+        public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
+            Func<TResult> Gauge, TimeSpan Interval,
+            HttpContext Context)
+        {
+            return Session.CreateTimeSeriesRunner<TResult>((Gauge, Interval), Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult">TODO</typeparam>
+        /// <param name="Session">TODO</param>
         /// <param name="Source">TODO</param>
         /// <param name="Context">TODO</param>
         /// <returns>TODO</returns>
@@ -93,6 +109,23 @@
             HttpContext Context)
         {
             return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan>, IEnumerable<(DateTime, TResult)>>(Source, Context);
+        }
+
+        /// <summary>
+        ///  TODO
+        /// </summary>
+        /// <typeparam name="TResult">TODO</typeparam>
+        /// <param name="Session">TODO</param>
+        /// <param name="Gauge">TODO</param>
+        /// <param name="Interval">TODO</param>
+        /// <param name="Count">TODO</param>
+        /// <param name="Context">TODO</param>
+        /// <returns></returns>
+        public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
+            Func<TResult> Gauge, TimeSpan Interval, Int32 Count,
+            HttpContext Context)
+        {
+            return Session.CreateTimeSeriesRunner<TResult>((Gauge, Interval, Count), Context);
         }
 
         /// <summary>
