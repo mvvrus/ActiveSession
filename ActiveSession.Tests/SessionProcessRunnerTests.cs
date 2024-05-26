@@ -6,7 +6,7 @@ using static System.Reflection.BindingFlags;
 
 namespace ActiveSession.Tests
 {
-    public class SessionProgressRunnerTests
+    public class SessionProcessRunnerTests
     {
         const Int32 TIMEOUT = 5000;
 
