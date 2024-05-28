@@ -93,22 +93,7 @@
             Func<TResult> Gauge, TimeSpan Interval,
             HttpContext Context)
         {
-            return Session.CreateTimeSeriesRunner<TResult>((Gauge, Interval), Context);
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
-        public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
-            ValueTuple<Func<TResult>, TimeSpan> Source,
-            HttpContext Context)
-        {
-            return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan>, IEnumerable<(DateTime, TResult)>>(Source, Context);
+            return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan>, IEnumerable<(DateTime, TResult)>>((Gauge, Interval), Context);
         }
 
         /// <summary>
@@ -125,7 +110,8 @@
             Func<TResult> Gauge, TimeSpan Interval, Int32 Count,
             HttpContext Context)
         {
-            return Session.CreateTimeSeriesRunner<TResult>((Gauge, Interval, Count), Context);
+            return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan, Int32>, IEnumerable<(DateTime, TResult)>>
+                ((Gauge, Interval, Count), Context);
         }
 
         /// <summary>
@@ -133,29 +119,14 @@
         /// </summary>
         /// <typeparam name="TResult">TODO</typeparam>
         /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
-        public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
-            ValueTuple<Func<TResult>, TimeSpan, Int32> Source,
-            HttpContext Context)
-        {
-            return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan, Int32>, IEnumerable<(DateTime, TResult)>>(Source, Context);
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
+        /// <param name="Body">TODO</param>
         /// <param name="Context">TODO</param>
         /// <returns>TODO</returns>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, TResult> Source,
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> Body,
             HttpContext Context)
         {
-            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, TResult>, TResult>(Source, Context);
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, TResult>, TResult>(Body, Context);
         }
 
         /// <summary>
@@ -163,14 +134,116 @@
         /// </summary>
         /// <typeparam name="TResult">TODO</typeparam>
         /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
+        /// <param name="Body">TODO</param>
         /// <param name="Context">TODO</param>
         /// <returns>TODO</returns>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Action<Action<TResult, Int32?>, CancellationToken> Source,
+            Action<Action<TResult, Int32?>, CancellationToken> Body,
             HttpContext Context)
         {
-            return Session.CreateRunner<Action<Action<TResult, Int32?>, CancellationToken>, TResult>(Source, Context);
+            return Session.CreateRunner<Action<Action<TResult, Int32?>, CancellationToken>, TResult>(Body, Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Creator"></param>
+        /// <param name="Context"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> Creator,
+            HttpContext Context)
+        {
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>, TResult>(Creator, Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Creator"></param>
+        /// <param name="Context"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Func<Action<TResult, Int32?>, CancellationToken, Task> Creator,
+            HttpContext Context)
+        {
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task>, TResult>(Creator, Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Body"></param>
+        /// <param name="Context"></param>
+        /// <param name="Cts"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> Body,
+            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership=true)
+        {
+            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, TResult>, CancellationTokenSource,Boolean), 
+                TResult>((Body, Cts, PassCtsOwnership), Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Body"></param>
+        /// <param name="Context"></param>
+        /// <param name="Cts"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Action<Action<TResult, Int32?>, CancellationToken> Body,
+            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+        {
+            return Session.CreateRunner<(Action<Action<TResult, Int32?>, CancellationToken>, CancellationTokenSource, Boolean),
+                TResult>((Body, Cts, PassCtsOwnership), Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Creator"></param>
+        /// <param name="Context"></param>
+        /// <param name="Cts"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> Creator,
+            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+        {
+            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>,CancellationTokenSource,Boolean), 
+                TResult>((Creator,Cts,PassCtsOwnership), Context);
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="Session"></param>
+        /// <param name="Creator"></param>
+        /// <param name="Context"></param>
+        /// <param name="Cts"></param>
+        /// <param name="PassCtsOwnership"></param>
+        /// <returns></returns>
+        public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
+            Func<Action<TResult, Int32?>, CancellationToken, Task> Creator,
+            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+        {
+            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task>,CancellationTokenSource,Boolean), 
+                TResult>((Creator,Cts,PassCtsOwnership), Context);
         }
 
         /// <summary>
