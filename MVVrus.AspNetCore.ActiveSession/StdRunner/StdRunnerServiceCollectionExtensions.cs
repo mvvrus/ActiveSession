@@ -63,8 +63,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <typeparam name="TResult">A type of the value part of the tuples making up the returned time series</typeparam>
         /// <remarks>
         /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/remarks/common/node()"/>
-        /// <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, ValueTuple{Func{TResult}, TimeSpan}, HttpContext)"/>
-        /// , <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, ValueTuple{Func{TResult}, TimeSpan, int}, HttpContext)"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, HttpContext)"/>
+        /// , <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, int, HttpContext)"/>
         /// or <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext)"/>
         /// </remarks>
         /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/*[not(self::summary)]"/>
