@@ -1,25 +1,38 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// Class containg parametrs to pass to a <see cref="TimeSeriesRunner{TResult}"/> constructor
+    /// Class containg parametrs to pass to the <see cref="TimeSeriesRunner{TResult}"/>  class
+    /// <see cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)"> 
+    /// constructor</see>.
     /// </summary>
-    /// <typeparam name="TResult">Type specializing the runner's <see cref="IRunner{TResult}"/> interface</typeparam>
-    /// <param name="Gauge">TODO</param>
-    /// <param name="Interval">TODO</param>
-    /// <param name="Count">TODO</param>
+    /// <typeparam name="TResult">
+    /// Type specializing the structure. Must be the same as a type parameter of 
+    /// the <see cref="TimeSeriesRunner{TResult}"/> class instance of which to be constructed.
+    /// </typeparam>
+    /// <param name="Gauge">
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Gauge"]'/>
+    /// </param>
+    /// <param name="Interval">
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Interval"]'/>
+    /// </param>
+    /// <param name="Count">
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Count"]'/>
+    /// </param>
     /// <param name="DefaultAdvance">
-    /// Maximum number of elements in a series to be returned to the caller in one call (currently defaults to 20)
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="DefaultAdvance"]'/>
     /// </param>
     /// <param name="CompletionTokenSource">
-    /// An external <see cref="CancellationTokenSource"/> instance used to obtain a completion token for the runner, 
-    /// null(default) means use a newly created instance
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="CompletionTokenSource"]'/>
     /// </param>
-    /// <param name="EnumAheadLimit">Size of a queue of items enumerated ahead but not fetched yet</param>
+    /// <param name="EnumAheadLimit">
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="EnumAheadLimit"]'/>
+    /// </param>
     /// <param name="PassCtsOwnership">
-    /// Flag showing that this  <see cref="AsyncEnumAdapterRunner{TResult}" /> is responsible for disposing 
-    /// the <paramref name="CompletionTokenSource"/> value passed to it, if any (defaults to true)
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="PassCtsOwnership"]'/>
     /// </param>
-    /// <param name="StartInConstructor">Set to true to start fecthing data from a constructor</param>
+    /// <param name="StartInConstructor">
+    /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="StartInConstructor"]'/>
+    /// </param>
     public record struct TimeSeriesParams<TResult>
     (
         Func<TResult> Gauge, 
