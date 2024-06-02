@@ -61,6 +61,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     Int32 EffectiveEnumAheadLimit,
                     Boolean StartInConstructor);
 
+        [LoggerMessage(D_TIMESERIESRUNNERPARAMS, LogLevel.Debug,
+            "New TimeSeriesRunner created, RunnerId={RunnerId} parameters:(" +
+            "Interval={Interval}, Count={Count})" 
+            )]
+        public static partial void LogDebugTimeSeriesRunnerConstructor(this ILogger Logger,
+                    RunnerId RunnerId,
+                    TimeSpan Interval, 
+                    Int32? Count);
+
         [LoggerMessage(T_RUNNERBASECONSENTER, LogLevel.Trace, "RunnerBase: constructor started, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_RUNNERBASECONSEXIT, LogLevel.Trace, "RunnerBase: constructor complete, RunnerId={RunnerId}")]

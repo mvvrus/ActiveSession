@@ -128,10 +128,21 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
         /// </param>
         /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
-        protected TimeSeriesRunner(Func<TResult> Gauge, TimeSpan Interval, Int32? Count, CancellationTokenSource? CompletionTokenSource, Boolean PassCtsOwnership, Int32? DefaultAdvance, Int32? EnumAheadLimit, Boolean StartInConstructor, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) : 
-            base(new TimeSeriesAsyncEnumerable(Gauge,Interval,Count), true, CompletionTokenSource, PassCtsOwnership, DefaultAdvance, EnumAheadLimit, StartInConstructor, RunnerId, Options,
+        protected TimeSeriesRunner(Func<TResult> Gauge, 
+            TimeSpan Interval, 
+            Int32? Count, 
+            CancellationTokenSource? CompletionTokenSource, 
+            Boolean PassCtsOwnership, 
+            Int32? DefaultAdvance, 
+            Int32? EnumAheadLimit, 
+            Boolean StartInConstructor, 
+            RunnerId RunnerId, 
+            IOptionsSnapshot<ActiveSessionOptions> Options, 
+            ILoggerFactory? LoggerFactory)
+            : base(new TimeSeriesAsyncEnumerable(Gauge,Interval,Count), true, CompletionTokenSource, PassCtsOwnership, DefaultAdvance, EnumAheadLimit, StartInConstructor, RunnerId, Options,
                 LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(TimeSeriesRunner<ValueTuple<Func<TResult>, TimeSpan>>))))
         {
+            Logger?.LogDebugTimeSeriesRunnerConstructor(RunnerId, Interval, Count);
         }
 
         internal class TimeSeriesAsyncEnumerable : IAsyncEnumerable<(DateTime, TResult)>
