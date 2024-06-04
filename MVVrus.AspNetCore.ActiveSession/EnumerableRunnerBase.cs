@@ -628,7 +628,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 #endif
             }
             RunnerResult<IEnumerable<TItem>> result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
-            Logger?.LogDebugRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
+            Logger?.LogDebugEnumerableRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
             return result;
         }
 

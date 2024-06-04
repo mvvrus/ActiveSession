@@ -21,7 +21,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogErrorEnumAdapterRunnerContinuationException(this ILogger Logger, Exception AnException, RunnerId RunnerId);
         [LoggerMessage(E_ASYNCENUMADAPTERRUNNERSOURCEENUMERATIONEXCEPTION, LogLevel.Error, "An exception occured during the source enumeration in AsyncEnumAdapterRunner, RunnerId={RunnerId}.")]
         public static partial void LogErrorAsyncEnumAdapterRunnerSourceEnumerationException(this ILogger Logger, Exception? AnException, RunnerId RunnerId);
-
+        [LoggerMessage(E_SESSIONPROCESSRUNNERCONTINTERNALERROR, LogLevel.Error, "SessionProcessRunner: internal error, continuation of a task with invalid status, Status={Status}, RunnerId={RunnerId}.")]
+        public static partial void LogErrorSessionProgressBkgEndedInternal(this ILogger Logger, TaskStatus Status, RunnerId RunnerId);
 
         [LoggerMessage(W_RUNNERBASEUNEXPECTEDSTATUS, LogLevel.Warning, "Unexpected runner status detected while rolling back a start of the runner background execution, RunnerId={RunnerId}, expected: {OldStatus}, detected: {RolledBackStatus}.")]
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
@@ -29,9 +30,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningEnumerableRunnerBaseParallelAttempt(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_ENUMERABLERUNNERBASEBADPARAM, LogLevel.Warning, "Invalid parameter value, MethodName={MethodName}, ParamName={ParamName}, Value={ParamValue}, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningBadParam(this ILogger Logger, String MethodName, String ParamName, Int32 ParamValue, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(W_SESSIONPROCESSRUNNERBADPARAM, LogLevel.Warning, "SessionProcessRunner: bad parameter, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningSessionProcessBadParameters(this ILogger Logger, Exception? AnException, RunnerId RunnerId, String TraceIdentifier);
 
+        [LoggerMessage(I_SESSIONPROCESSRUNNERTASKRESULTALREADYSET, LogLevel.Information, "SessionProcessRunner: pending task result is already set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogInfoTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogDebugRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
+        public static partial void LogDebugEnumerableRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(D_ENUMADAPTERRUNNERPARAMS, LogLevel.Debug, 
             "New EnumAdapterRunner created, RunnerId={RunnerId} parameters:(" +
             "PassSourceOnership={PassSourceOnership}, CompletionTokenSourcePresent={CompletionTokenSourcePresent}, " +
@@ -60,7 +66,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     Int32 EffectiveDefaultAdvance,
                     Int32 EffectiveEnumAheadLimit,
                     Boolean StartInConstructor);
-
         [LoggerMessage(D_TIMESERIESRUNNERPARAMS, LogLevel.Debug,
             "New TimeSeriesRunner created, RunnerId={RunnerId} parameters:(" +
             "Interval={Interval}, Count={Count})" 
@@ -69,6 +74,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     RunnerId RunnerId,
                     TimeSpan Interval, 
                     Int32? Count);
+        [LoggerMessage(D_SESSIONPROCESSRUNNERPARAMS, LogLevel.Debug,
+            "New SessionProcessRunner created, RunnerId={RunnerId} parameters:(" +
+            "CompletionTokenSourcePresent={CompletionTokenSourcePresent}" +
+            ", PassCtsOwnership={PassCtsOwnership}" +
+            ", SyncBkg={SyncBkg}" +
+            ", BkgReturnsResult={BkgReturnsResult}" +
+            ")"
+            )]
+        public static partial void LogDebugSessionRunnerConstructor(this ILogger Logger,
+                    RunnerId RunnerId,
+                    Boolean CompletionTokenSourcePresent,
+                    Boolean PassCtsOwnership,
+                    Boolean SyncBkg,
+                    Boolean BkgReturnsResult);
+        [LoggerMessage(D_SESSIONPROCESSRUNNERRESULT, LogLevel.Debug, "Result to return: (Result:{ResultString}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogDebugSessionProcessRunnerResult(this ILogger Logger, Exception? AnException, String ResultString, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_RUNNERBASECONSENTER, LogLevel.Trace, "RunnerBase: constructor started, RunnerId={RunnerId}")]
         public static partial void LogTraceRunnerBaseConstructorEnter(this ILogger Logger, RunnerId RunnerId);
@@ -283,5 +304,99 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncStoreContext(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ASYNCENUMADAPTERRUNNERFETCHEXIT, LogLevel.Trace, "AsyncEnumAdapterRunner.FetchRequiredAsync exited, the task returned, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceAsyncEnumAdapterRunnerFetchRequiredAsyncExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONPROCESSSTARTBKGENTER, LogLevel.Trace, "SessionProgressRunner.StartBackgroundRunner entered, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessStartBackgroundExecution(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSSTARTBKGTASK, LogLevel.Trace, "SessionProgressRunner: Background task started, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessStartBackgroundTask(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSSTARTBKGEXIT, LogLevel.Trace, "SessionProgressRunner.StartBackgroundRunner exited, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessStartBackgroundExecutionExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSPREDISPOSE, LogLevel.Trace, "SessionProgressRunner: aborting baclground task, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessAbortBkgTask(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSDODISPOSE, LogLevel.Trace, "SessionProgressRunner: perform disposing, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessDisposing(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGTASKAWAITED, LogLevel.Trace, "SessionProgressRunner: background task terminated, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgTaskAwaited(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSENTERDISPOSEASYNC, LogLevel.Trace, "SessionProgressRunner.DisposeAsync started to run, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessDisposeAsync(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILENTER, LogLevel.Trace, "SessionProcessRunner.GetAvailable entered, acquiring the lock, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableEntered(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILLOCKACQUIRED, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the lock acquired, checking and ajusting parameters, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableLockAckuired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILALL, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the current point of a background execution is reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILNOTALL, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the current point of a background execution is not reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableNotAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner.GetAvailable: trying to change the runner Status, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILSTATUSSET, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the runner status have been just changed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETAVAILLOCKRELEASED, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the lock released, exiting, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetAvailableLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCENTER, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync entered, acquiring the lock, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncEntered(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCLOCKACQUIRED, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the lock acquired, checking and ajusting parameters, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncLockAckuired(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCSYNCPATH, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the method can be executed synchronously, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncSynchronous(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCNOTALL, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the current point of a background execution is not reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncNotAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCALL, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the current point of a background execution is reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: trying to change the runner Status, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCSTATUSSET, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the runner status have been just changed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCASYNCPATH, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: synchronous execution is not possible, schedule a continuation task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncAsynchronous(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCTASENQUEUED, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the continuation task is enqued to the completion queue, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncTaskEnqueued(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCLOCKRELEASED, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the lock released, exiting, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessGetRequiredAsyncLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPARAMSENTER, LogLevel.Trace, "SessionProcessRunner.CheckAndNormalizeParams entered, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessCheckAndNormalizeParams(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPARAMSADJUSTDEFAULT, LogLevel.Trace, "SessionProcessRunner.CheckAndNormalizeParams: defaults adjusted, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessCheckAndNormalizeParamsDefaultAdjusted(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPARAMSEXIT, LogLevel.Trace, "SessionProcessRunner.CheckAndNormalizeParams exited, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessCheckAndNormalizeParamsExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDENTER, LogLevel.Trace, "SessionProcessRunner background task continuation: entered, acquiring the lock, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEnded(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDLOCKACQUIRED, LogLevel.Trace, "SessionProcessRunner background task continuation: the lock acquired, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedLockAcquired(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDRANTOCOMPLETION, LogLevel.Trace, "SessionProcessRunner background task continuation: the task was completed successfully, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedRanToCompletion(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDACCEPTRESULT, LogLevel.Trace, "SessionProcessRunner background task continuation: accept the final result of the task, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedAcceptResult(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDFAULTED, LogLevel.Trace, "SessionProcessRunner background task continuation: the task was canceled, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedCanceled(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDCANCELED, LogLevel.Trace, "SessionProcessRunner background task continuation: the task throwed an exception, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedFaulted(this ILogger Logger, Exception? AnException, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDPEDINGLOOP, LogLevel.Trace, "SessionProcessRunner background task continuation: process pending tasks from GetRequiredAsync, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedCompletePendingTasks(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDPROCESSAPENDING, LogLevel.Trace, "SessionProcessRunner background task continuation: processing a task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessBkgEndedCompleteAPendingTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSBKGENDEXIT, LogLevel.Trace, "SessionProcessRunner background task continuation: the lock released, exiting, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessBkgEndedExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETCANCELED, LogLevel.Trace, "SessionProcessRunner pending task processing: cancel the task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessPendingTaskSetCanceled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETEXCEPTION, LogLevel.Trace, "SessionProcessRunner pending task processing: fail the task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessPendingTaskSetException(this ILogger Logger, Exception? AnException, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETRESULT, LogLevel.Trace, "SessionProcessRunner pending task processing: set the task result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessPendingTaskSetResult(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSPENDINGALREADYCANCELED, LogLevel.Trace, "SessionProcessRunner pending task processing: the task has been already canceled, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessPendingTaskAlreadyCanceled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKENTER, LogLevel.Trace, "SessionProcessRunner callback entered, acquiring a  lock, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessCallback(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKCANCELED, LogLevel.Trace, "SessionProcessRunner callback: signal that the runner was aborted , RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessCallbackCanceled(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKLOCKACQUIRED, LogLevel.Trace, "SessionProcessRunner callback: the lock acquired, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessCallbackLockAcquired(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKPENDINGLOOP, LogLevel.Trace, "SessionProcessRunner callback: process pending tasks from GetRequiredAsync, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessCallbackCompletePendingTasks(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKPROCESSAPENDING, LogLevel.Trace, "SessionProcessRunner callback: processing a task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessCallbackCompleteAPendingTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSCALLBACKEXIT, LogLevel.Trace, "SessionProcessRunner callback: the lock released, exiting, RunnerId={RunnerId}")]
+        public static partial void LogTraceSessionProcessCallbackExit(this ILogger Logger, RunnerId RunnerId);
+
     }
 }
