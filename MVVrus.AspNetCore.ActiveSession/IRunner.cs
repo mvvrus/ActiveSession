@@ -111,9 +111,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="Advance">Desired increment of the runner's <see cref="IRunner.Position"/>, at which the fetch should stop.
         /// If the backgound process did not get so far, this method returns the result for the last Position reached.
+        /// In general, the value of this param should be positive, zero ( <see cref="IRunner.DEFAULT_ADVANCE"/>) value having a special meaning.
         /// </param>
         /// <param name="StartPosition">
         /// <toinherit>Position value from which a fetch of the result should begin. </toinherit>
+        /// In general, value of this parameter should be non-negative (except for the special value below) and not less than value of the <see cref="IRunner.Position">Position</see> property.
         /// Use <see cref="IRunner.CURRENT_POSITION"/> constant to continue to fetch result from the last position fetched.
         /// </param>
         /// <param name="TraceIdentifier"> <inheritdoc cref="IRunner.Abort" path='/param[@name="TraceIdentifier"]'/>
