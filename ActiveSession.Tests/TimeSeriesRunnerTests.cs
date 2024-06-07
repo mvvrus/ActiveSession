@@ -1,4 +1,5 @@
 ﻿using MVVrus.AspNetCore.ActiveSession.StdRunner;
+using Microsoft.Extensions.Logging;
 namespace ActiveSession.Tests
 {
     public class TimeSeriesRunnerTests
@@ -65,7 +66,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test case: timer with infinite count and cancellation
+        //Test case: timer with unlimited count and cancellation
         [Fact]
         public void InfiniteTimer()
         {
@@ -105,9 +106,94 @@ namespace ActiveSession.Tests
                 finally {
                     timer_enumerator.DisposeAsync().AsTask().Wait();
                 }
+            }        
+        }
 
-            }        }
+        //Test case: TimeSeriesRunner constructor using a tuple of two values (timer with unlimited count)
+        [Fact]
+        public void TwoValuesTupleConstructor()
+        {
 
+            MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
+            ActiveSessionOptionsSnapshot options = new ActiveSessionOptionsSnapshot(new ActiveSessionOptions());
+            Int32 COUNT = 10;
+            TimeSeriesRunner<TimeSpan> runner;
+
+            using(runner=new TimeSeriesRunner<TimeSpan>((new Timer().Elapsed, INTERVAL), default, options,
+                logger_factory_mock.LoggerFactory.CreateLogger<TimeSeriesRunner<TimeSpan>>())) {
+                var result_task = runner.GetRequiredAsync(COUNT).AsTask();
+                Assert.True(result_task.Wait((Int32)INTERVAL.TotalMilliseconds*COUNT*2));
+                (var result, RunnerStatus status, Int32 position, Exception? exception) = result_task.Result;
+                Assert.True(status.IsRunning());
+                Int32 count = 0;
+                TimeSpan last_delay = TimeSpan.Zero;
+                foreach(var t in result) {
+                    (_, last_delay)=t;
+                    count++;
+                }
+                Assert.Equal(COUNT, count);
+                Assert.InRange(last_delay, INTERVAL*(COUNT-1)-TOTAL_TOLERANCE, INTERVAL*(COUNT-1)+TOTAL_TOLERANCE);
+                Assert.Equal(COUNT, position);
+                Assert.Null(exception);
+            }
+        }
+
+        //Test case: TimeSeriesRunner constructor using a tuple of three values (timer with finite count)
+        [Fact]
+        public void ThreeValuesTupleConstructor()
+        {
+            MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
+            ActiveSessionOptionsSnapshot options = new ActiveSessionOptionsSnapshot(new ActiveSessionOptions());
+            Int32 COUNT = 10;
+            TimeSeriesRunner<TimeSpan> runner;
+
+            using(runner=new TimeSeriesRunner<TimeSpan>((new Timer().Elapsed, INTERVAL, COUNT),default,options,
+                logger_factory_mock.LoggerFactory.CreateLogger<TimeSeriesRunner<TimeSpan>>())) {
+                var result_task = runner.GetRequiredAsync(COUNT).AsTask();
+                Assert.True(result_task.Wait((Int32)INTERVAL.TotalMilliseconds*COUNT*2));
+                (var result, RunnerStatus status, Int32 position, Exception? exception) = result_task.Result;
+                Assert.Equal(RunnerStatus.Complete, status);
+                Int32 count=0;
+                TimeSpan last_delay=TimeSpan.Zero;
+                foreach(var t in result) {
+                    (_, last_delay)=t;
+                    count++;
+                }
+                Assert.Equal(COUNT, count);
+                Assert.InRange(last_delay, INTERVAL*(COUNT-1)-TOTAL_TOLERANCE, INTERVAL*(COUNT-1)+TOTAL_TOLERANCE);
+                Assert.Equal(COUNT, position);
+                Assert.Null(exception);
+            }
+        }
+
+        //TODO Test case: TimeSeriesRunner constructor using a TimeSeriesParam instance
+        [Fact]
+        public void TimeSeriesParamConstructor()
+        {
+            MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
+            ActiveSessionOptionsSnapshot options = new ActiveSessionOptionsSnapshot(new ActiveSessionOptions());
+            Int32 COUNT = 10;
+            TimeSeriesRunner<TimeSpan> runner;
+
+            using(runner=new TimeSeriesRunner<TimeSpan>( new TimeSeriesParams<TimeSpan> { 
+                Gauge=new Timer().Elapsed, Interval=INTERVAL, Count=COUNT, DefaultAdvance=COUNT 
+            }, default, options, logger_factory_mock.LoggerFactory.CreateLogger<TimeSeriesRunner<TimeSpan>>())) {
+                var result_task = runner.GetRequiredAsync().AsTask();
+                Assert.True(result_task.Wait((Int32)INTERVAL.TotalMilliseconds*COUNT*2));
+                (var result, RunnerStatus status, Int32 position, Exception? exception) = result_task.Result;
+                Assert.Equal(RunnerStatus.Complete, status);
+                Int32 count = 0;
+                TimeSpan last_delay = TimeSpan.Zero;
+                foreach(var t in result) {
+                    (_, last_delay)=t;
+                    count++;
+                }
+                Assert.Equal(COUNT, count);
+                Assert.InRange(last_delay, INTERVAL*(COUNT-1)-TOTAL_TOLERANCE, INTERVAL*(COUNT-1)+TOTAL_TOLERANCE);
+                Assert.Equal(COUNT, position);
+                Assert.Null(exception);
+            }
+        }
 
         class Timer
         {
