@@ -79,6 +79,7 @@ namespace ActiveSession.Tests
             _loggerFactoryMock=new Mock<ILoggerFactory>();
             _loggerFactoryMock.Setup(s => s.CreateLogger(It.IsAny<String>()))
                 .Returns((String name) => {
+                    MonitorLoggerCategory(name);
                     if (_loggers.ContainsKey(name)) {
                         _loggers[name].CreationCount++;
                         return _loggers[name].LoggerMock.Logger;

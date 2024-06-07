@@ -44,11 +44,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options">
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
         /// </param>
-        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]' />
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
-            this(Source, true, null, true, null, null, false, RunnerId, Options, LoggerFactory) { }
+        public AsyncEnumAdapterRunner(IAsyncEnumerable<TItem> Source, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger<AsyncEnumAdapterRunner<TItem>>? Logger):
+            this(Source, true, null, true, null, null, false, RunnerId, Options, Logger) { }
 
         /// <summary>
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
@@ -61,12 +63,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options">
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]' />
         /// </param>
-        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]' />
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
-        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory): 
+        public AsyncEnumAdapterRunner(AsyncEnumAdapterParams<TItem> Params, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger<AsyncEnumAdapterRunner<TItem>>? Logger) : 
             this(Params.Source,Params.PassSourceOnership,Params.CompletionTokenSource,Params.PassCtsOwnership,
-                Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, LoggerFactory) { }
+                Params.DefaultAdvance,Params.EnumAheadLimit, Params.StartInConstructor, RunnerId, Options, Logger) { }
 
         AsyncEnumAdapterRunner(
             IAsyncEnumerable<TItem> Source,
@@ -78,10 +82,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean StartInConstructor,
             RunnerId RunnerId,
             IOptionsSnapshot<ActiveSessionOptions> Options,
-            ILoggerFactory? LoggerFactory):
+            ILogger<AsyncEnumAdapterRunner<TItem>>? Logger):
             this(Source,PassSourceOnership,CompletionTokenSource,PassCtsOwnership,DefaultAdvance,EnumAheadLimit, 
-                StartInConstructor, RunnerId, Options,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(AsyncEnumAdapterRunner<TItem>))))  { }
+                StartInConstructor, RunnerId, Options,  (ILogger?)Logger)  { }
 
         /// <summary>
         /// <common>A constructor that creates AsyncEnumAdapterRunner instance.</common>
@@ -110,7 +113,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options">
         /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="Logger">A logger for the instance to be created.</param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         protected AsyncEnumAdapterRunner(
             IAsyncEnumerable<TItem> Source,

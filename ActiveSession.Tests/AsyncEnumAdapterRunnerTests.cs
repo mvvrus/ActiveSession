@@ -347,8 +347,6 @@ namespace ActiveSession.Tests
         public void Constructor_Params()
         {
             MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
-            MockedLogger logger_mock = logger_factory_mock
-                .MonitorLoggerCategory(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<Int32>)));
             ActiveSessionOptionsSnapshot options = new ActiveSessionOptionsSnapshot(new ActiveSessionOptions());
             int end = 18;
             AsyncEnumAdapterRunner<Int32> runner;
@@ -356,7 +354,7 @@ namespace ActiveSession.Tests
 
             //Test case: default parameters
             source = new CtorTestClass(end);
-            using(runner = new AsyncEnumAdapterRunner<Int32>(source, default, options, logger_factory_mock.LoggerFactory)) {
+            using(runner = new AsyncEnumAdapterRunner<Int32>(source, default, options, logger_factory_mock.LoggerFactory.CreateLogger<AsyncEnumAdapterRunner<Int32>>())) {
                 Assert.Equal(RunnerStatus.NotStarted, runner.Status);
                 runner.StartRunning();
                 Assert.NotNull(runner.EnumTask);
@@ -371,7 +369,7 @@ namespace ActiveSession.Tests
                 PassSourceOnership = false,
                 StartInConstructor = true
             };
-            using(runner = new AsyncEnumAdapterRunner<Int32>(param, default, options, logger_factory_mock.LoggerFactory)) {
+            using(runner = new AsyncEnumAdapterRunner<Int32>(param, default, options, logger_factory_mock.LoggerFactory.CreateLogger<AsyncEnumAdapterRunner<Int32>>())) {
                 Assert.NotEqual(RunnerStatus.NotStarted, runner.Status);
                 Assert.NotNull(runner.EnumTask);
                 Assert.True(runner.EnumTask.Wait(10000));
@@ -403,10 +401,12 @@ namespace ActiveSession.Tests
 
         class TestRunner : AsyncEnumAdapterRunner<Int32>
         {
+            public const String LOGGERNAME = "TestRunner";
             readonly TestEnumerable _source;
 
             public TestRunner(TestEnumerable Source, Int32 Max)
-                : base(Source.GetTestEnumerable(Max), default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory)
+                : base(Source.GetTestEnumerable(Max), //true, null, true, null, null, false,
+                      default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory.CreateLogger<AsyncEnumAdapterRunner<Int32>>())
             {
                 _source = Source;
             }

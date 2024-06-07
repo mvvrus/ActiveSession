@@ -28,7 +28,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     public class TimeSeriesRunner<TResult> : AsyncEnumAdapterRunner<(DateTime, TResult)>
     {
         /// <summary>
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary' />
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger{TimeSeriesRunner{TResult}}?)" path='/summary' />
         /// Creates a runner producing an unlimited series of measurements.
         /// </summary>
         /// <param name="SeriesParam">
@@ -37,20 +37,20 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// The second value is a requested interval between measurements.
         /// </param>
         /// <param name="RunnerId">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]'/>
         /// </param>
         /// <param name="Options">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="LoggerFactory">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]'/>
+        /// <param name="Logger">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]'/>
         /// </param>
         [ActiveSessionConstructor]
-        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
-            this(SeriesParam.Item1, SeriesParam.Item2, null, null, true, null, null, false, RunnerId, Options, LoggerFactory) { }
+        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger? Logger) :
+            this(SeriesParam.Item1, SeriesParam.Item2, null, null, true, null, null, false, RunnerId, Options, Logger) { }
 
         /// <summary>
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary' />
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger{TimeSeriesRunner{TResult}}?)" path='/summary' />
         /// Creates a runner producing a finite series of measurements.
         /// </summary>
         /// <param name="SeriesParam">
@@ -60,42 +60,42 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// The third value is a maximum number of measurements to be performed. 
         /// </param>
         /// <param name="RunnerId">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]'/>
         /// </param>
         /// <param name="Options">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="LoggerFactory">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]'/>
+        /// <param name="Logger">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]'/>
         /// </param>
         [ActiveSessionConstructor]
-        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan, Int32> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
-            this(SeriesParam.Item1, SeriesParam.Item2, SeriesParam.Item3, null, true, null, null, false, RunnerId, Options, LoggerFactory)
+        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan, Int32> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger<TimeSeriesRunner<TResult>>? Logger) :
+            this(SeriesParam.Item1, SeriesParam.Item2, SeriesParam.Item3, null, true, null, null, false, RunnerId, Options, Logger)
         { }
 
         /// <summary>
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/summary/common' />
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
         /// This constructor is used to create an instance via <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see>.
         /// </summary>
         /// <param name="SeriesParam">
         /// A structure that contains parameters used for creation of the instance. 
         /// Fields of the structure contains the same values as the paramemters of  the 
-        /// <see cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)">
+        /// <see cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)">
         /// protected constructor
         /// </see> with the same names.
         /// </param>
         /// <param name="RunnerId">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="RunnerId"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]'/>
         /// </param>
         /// <param name="Options">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="Options"]'/>
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="LoggerFactory">
-        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILoggerFactory?)" path='/param[@name="LoggerFactory"]'/>
+        /// <param name="Logger">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]'/>
         /// </param>
         [ActiveSessionConstructor]
-        public TimeSeriesRunner(TimeSeriesParams<TResult> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILoggerFactory? LoggerFactory) :
-            this(SeriesParam.Gauge, SeriesParam.Interval, SeriesParam.Count, SeriesParam.CompletionTokenSource, SeriesParam.PassCtsOwnership, SeriesParam.DefaultAdvance, SeriesParam.EnumAheadLimit, SeriesParam.StartInConstructor, RunnerId, Options, LoggerFactory)
+        public TimeSeriesRunner(TimeSeriesParams<TResult> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger<TimeSeriesRunner<TResult>>? Logger) :
+            this(SeriesParam.Gauge, SeriesParam.Interval, SeriesParam.Count, SeriesParam.CompletionTokenSource, SeriesParam.PassCtsOwnership, SeriesParam.DefaultAdvance, SeriesParam.EnumAheadLimit, SeriesParam.StartInConstructor, RunnerId, Options, Logger)
         { }
 
         /// <summary>
@@ -127,7 +127,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="Options">
         /// <inheritdoc cref="EnumerableRunnerBase{TItem}.EnumerableRunnerBase(CancellationTokenSource?, bool, RunnerId, ILogger?, IOptionsSnapshot{ActiveSessionOptions}, int?, int?)" path='/param[@name="Options"]'/>
         /// </param>
-        /// <param name="LoggerFactory">A logger factory used to create a logger for the instance to be created (usually it is taken from DI container)</param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]'/>
+        /// </param>
         protected TimeSeriesRunner(Func<TResult> Gauge, 
             TimeSpan Interval, 
             Int32? Count, 
@@ -138,9 +140,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Boolean StartInConstructor, 
             RunnerId RunnerId, 
             IOptionsSnapshot<ActiveSessionOptions> Options, 
-            ILoggerFactory? LoggerFactory)
-            : base(new TimeSeriesAsyncEnumerable(Gauge,Interval,Count), true, CompletionTokenSource, PassCtsOwnership, DefaultAdvance, EnumAheadLimit, StartInConstructor, RunnerId, Options,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(TimeSeriesRunner<ValueTuple<Func<TResult>, TimeSpan>>))))
+            ILogger? Logger)
+            : base(new TimeSeriesAsyncEnumerable(Gauge,Interval,Count), true, CompletionTokenSource, PassCtsOwnership, DefaultAdvance, 
+                  EnumAheadLimit, StartInConstructor, RunnerId, Options, Logger)
         {
             Logger?.LogDebugTimeSeriesRunnerConstructor(RunnerId, Interval, Count);
         }

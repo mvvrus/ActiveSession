@@ -1,5 +1,5 @@
 ﻿using MVVrus.AspNetCore.ActiveSession.Internal;
-using System;
+using System; 
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -81,13 +81,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
-        [ActiveSessionConstructor]
+        [ActiveSessionConstructor] 
         public SessionProcessRunner(Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody, 
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
             this((ProcessTaskBody??throw new ArgumentNullException(nameof(ProcessTaskBody)),
-                null, true), RunnerId, LoggerFactory) {}
+                null, true), RunnerId, Logger) {}
 
         /// <summary>
         /// A constructor that creates an instance of the runner with the specified body of a background task 
@@ -98,7 +100,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <list type="bullet">
         /// <item>
         /// <see cref="Delegate"/> ProcessTaskBody: 
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILoggerFactory?)"  path='/param[@name="ProcessTaskBody"]' />
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
         /// </item>
         /// <item>
         /// <see cref="CancellationTokenSource"/> Cts: 
@@ -112,15 +114,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             (Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, 
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
             this(MakeTaskToRunCreator(Param.ProcessTaskBody??throw new ArgumentNullException(nameof(Param.ProcessTaskBody))),
                 Param.Cts, Param.PassCtsOwnership, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(SessionProcessRunner<TResult>)))) 
+                Logger) 
         {
             _bkgTaskReturnsResult=true;
             _bkgSynchronous=true;
@@ -132,17 +136,19 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
         /// <param name="ProcessTaskBody">
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILoggerFactory?)"  path='/param[@name="ProcessTaskBody"]' />
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
         /// </param>
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
-            Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody, RunnerId RunnerId, ILoggerFactory? LoggerFactory):
+            Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody, RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger):
             this((ProcessTaskBody??throw new ArgumentNullException(nameof(ProcessTaskBody)), null, true),
-                RunnerId, LoggerFactory) {}
+                RunnerId, Logger) {}
 
         /// <summary>
         /// A constructor that creates an instance of the runner with the specified body of a background task 
@@ -153,7 +159,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <list type="bullet">
         /// <item>
         /// <see cref="Delegate"/> ProcessTaskBody: 
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILoggerFactory?)"  path='/param[@name="ProcessTaskBody"]' />
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
         /// </item>
         /// <item>
         /// <see cref="CancellationTokenSource"/> Cts: 
@@ -167,15 +173,17 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             (Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody, 
-            CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
             this(MakeTaskToRunCreator(Param.ProcessTaskBody??throw new ArgumentNullException(nameof(Param.ProcessTaskBody))),
                 Param.Cts, Param.PassCtsOwnership, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(SessionProcessRunner<TResult>))))
+                Logger)
         {
             _bkgSynchronous=true;
         }
@@ -191,12 +199,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator, 
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
-            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, LoggerFactory)
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
+            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, Logger)
         {}
 
         /// <summary>
@@ -210,12 +220,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator, 
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
-            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, LoggerFactory)
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
+            this((ProcessTaskCreator??throw new ArgumentNullException(nameof(ProcessTaskCreator)), null, true), RunnerId, Logger)
         { }
 
         /// <summary>
@@ -241,14 +253,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             (Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param, 
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
             this(Param.ProcessTaskCreator??throw new ArgumentNullException(nameof(Param.ProcessTaskCreator)), null, true, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(SessionProcessRunner<TResult>))))
+                Logger)
         {
             _bkgTaskReturnsResult=true;
         }
@@ -276,14 +290,16 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
-        /// <param name="LoggerFactory"></param>
+        /// <param name="Logger">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="Logger"]'/>
+        /// </param>
         /// <exception cref="ArgumentNullException"></exception>
         [ActiveSessionConstructor]
         public SessionProcessRunner(
             (Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator, CancellationTokenSource? Cts, Boolean PassCtsOwnership) Param,
-            RunnerId RunnerId, ILoggerFactory? LoggerFactory) :
+            RunnerId RunnerId, ILogger<SessionProcessRunner<TResult>>? Logger) :
             this(Param.ProcessTaskCreator??throw new ArgumentNullException(nameof(Param.ProcessTaskCreator)), null, true, RunnerId,
-                LoggerFactory?.CreateLogger(Utilities.MakeClassCategoryName(typeof(SessionProcessRunner<TResult>))))
+                Logger)
         { }
 
         /// <summary>
