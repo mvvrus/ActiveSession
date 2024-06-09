@@ -15,7 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Request">Initialization data (of type <typeparamref name="TRequest"/>)</param>
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        /// <returns>A <see cref="KeyedRunner{TResult}"/> record containng the runner reference and its key</returns>
+        /// <returns>A structure that contains the reference to the new runner and its number within the Active Session.</returns>
         KeyedRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context);
 
         /// <summary>

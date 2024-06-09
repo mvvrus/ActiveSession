@@ -74,7 +74,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// A generic interface that must be implemented by an ActiveSession runner.
     /// </summary>
-    /// <typeparam name="TResult">The type of the result returned by the interface methods.</typeparam>
+    /// <typeparam name="TResult">The type of the result returned by the interface methods of the runner.</typeparam>
     /// <remarks>
     /// Inherited from non-generic <see cref="IRunner"></see> interface 
     /// that contains properties and methosds independent of the type of the result.

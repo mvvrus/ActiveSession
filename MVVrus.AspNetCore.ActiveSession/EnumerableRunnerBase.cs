@@ -16,7 +16,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// It is an abstract class intended to be a base for specific sequence-oriented runner classes.
     /// It implements a common logic for those runners. 
     /// </summary>
-    /// <typeparam name="TItem">Type of items of <see cref="IEnumerable{T}"/> interface to be enumerated in background.</typeparam>
+    /// <typeparam name="TItem">Type of items of a sequence (<see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see> interface) that a background process of the runner returns.</typeparam>
     /// <remarks>
     /// <seqrunner>
     /// <para>

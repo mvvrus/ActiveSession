@@ -56,7 +56,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
         /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
         /// </summary>
-        /// <param name="Params">A structure that contains a refernce to the source enumerable and additional parameters.</param>
+        /// <param name="Params">A structure that contains a refernce to the source async-enumerable and additional parameters.</param>
         /// <param name="RunnerId">
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]' />
         /// </param>

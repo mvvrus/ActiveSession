@@ -1,18 +1,27 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
     /// <summary>
-    /// Contains extension methods for <see cref="IActiveSession"/> interface used to create standard runners defined in the ActiveSession library.
+    /// Contains extension methods for <see cref="IActiveSession"/> interface 
+    /// used to create standard runners defined in the ActiveSession library.
     /// </summary>
     public static class StdRunnerActiveSessionExtensions
     {
         /// <summary>
-        /// TODO
+        /// Creates an <see cref="EnumAdapterRunner{TItem}"/> instance in the specified Active Session
         /// </summary>
-        /// <typeparam name="TItem">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TItem">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}" path='/typeparam[@name="TItem"]'/>
+        /// </typeparam>
+        /// <param name="Session">An interface of Active Session object to work with.</param>
+        /// <param name="Source">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(EnumAdapterParams{TItem}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger{EnumAdapterRunner{TItem}}?)" path='/param[@name="Params"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<TItem>> CreateSequenceRunner<TItem>(this IActiveSession Session, 
             EnumAdapterParams<TItem> Source, 
             HttpContext Context)  
@@ -21,13 +30,23 @@
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path="/summary"/>
         /// </summary>
-        /// <typeparam name="TItem">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TItem">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}" path='/typeparam[@name="TItem"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="Source">
+        /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger{EnumAdapterRunner{TItem}}?)" path='/param[@name="Source"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<TItem>> CreateSequenceRunner<TItem>(this IActiveSession Session, 
             IEnumerable<TItem> Source, 
             HttpContext Context)
@@ -36,13 +55,23 @@
         }
 
         /// <summary>
-        /// TODO
+        /// Creates an <see cref="AsyncEnumAdapterRunner{TItem}"/> instance in the specified Active Session.
         /// </summary>
-        /// <typeparam name="TItem">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TItem">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}" path='/typeparam[@name="TItem"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="Source">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(AsyncEnumAdapterParams{TItem}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger{AsyncEnumAdapterRunner{TItem}}?)" path='/param[@name="Params"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<TItem>> CreateSequenceRunner<TItem>(this IActiveSession Session, 
             AsyncEnumAdapterParams<TItem> Source, 
             HttpContext Context)
@@ -51,13 +80,23 @@
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, AsyncEnumAdapterParams{TItem}, HttpContext)" path="/summary"/>
         /// </summary>
-        /// <typeparam name="TItem">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TItem">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}" path='/typeparam[@name="TItem"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="Source">
+        /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger{AsyncEnumAdapterRunner{TItem}}?)" path='/param[@name="Source"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<TItem>> CreateSequenceRunner<TItem>(this IActiveSession Session, 
             IAsyncEnumerable<TItem> Source, 
             HttpContext Context)
@@ -66,29 +105,54 @@
         }
 
         /// <summary>
-        /// TODO
+        /// Creates a <see cref="TimeSeriesRunner{TResult}"/> instance in the specified Active Session.
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Source">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TResult">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}" path='/typeparam[@name="TResult"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="SeriesParam">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(TimeSeriesParams{TResult}, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger{TimeSeriesRunner{TResult}}?)" path='/param[@name="SeriesParam"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
-            TimeSeriesParams<TResult> Source, 
+            TimeSeriesParams<TResult> SeriesParam, 
             HttpContext Context)
         {
-            return Session.CreateRunner<TimeSeriesParams<TResult>, IEnumerable<(DateTime, TResult)>>(Source, Context);
+            return Session.CreateRunner<TimeSeriesParams<TResult>, IEnumerable<(DateTime, TResult)>>(SeriesParam, Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext)" path="/summary"/>
+        /// Creates a runner producing an unlimited series of measurements.
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Gauge">TODO</param>
-        /// <param name="Interval">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TResult">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}" path='/typeparam[@name="TResult"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="Gauge">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Gauge"]'/>
+        /// </param>
+        /// <param name="Interval">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Interval"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// </remarks>
         public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
             Func<TResult> Gauge, TimeSpan Interval,
             HttpContext Context)
@@ -97,15 +161,30 @@
         }
 
         /// <summary>
-        ///  TODO
+        /// <inheritdoc cref="CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext)" path="/summary"/>
+        /// Creates a runner producing a finite series of measurements.
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Gauge">TODO</param>
-        /// <param name="Interval">TODO</param>
-        /// <param name="Count">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}" path='/typeparam[@name="TResult"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="Gauge">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Gauge"]'/>
+        /// </param>
+        /// <param name="Interval">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Interval"]'/>
+        /// </param>
+        /// <param name="Count">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, Microsoft.Extensions.Options.IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Count"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
         public static KeyedRunner<IEnumerable<(DateTime, TResult)>> CreateTimeSeriesRunner<TResult>(this IActiveSession Session,
             Func<TResult> Gauge, TimeSpan Interval, Int32 Count,
             HttpContext Context)

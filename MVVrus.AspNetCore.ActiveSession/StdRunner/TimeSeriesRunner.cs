@@ -7,7 +7,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// Used for implementation of a sequence-oriented runner that returns a time series - 
     /// a sequence of pairs of a measurement time and a measured value (of type TResult) at this time.
     /// </summary>
-    /// <typeparam name="TResult">Type of the value to be measured</typeparam>
+    /// <typeparam name="TResult">Type of the measured values in the series. 
+    /// They are returned as "measured value" parts of pairs 
+    /// ("time of measurement", "measured value") composing the result sequence of the runner.
+    /// .</typeparam>
     /// <remarks>
     /// <para>
     /// This class implements the <see cref="IRunner{TResult}"> IRunner&lt;IEnumerable&lt;(DateTime,TResult)&gt;&gt;</see> interface.
@@ -81,8 +84,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// A structure that contains parameters used for creation of the instance. 
         /// Fields of the structure contains the same values as the paramemters of  the 
         /// <see cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)">
-        /// protected constructor
-        /// </see> with the same names.
+        /// protected constructor</see> with the same names.
         /// </param>
         /// <param name="RunnerId">
         /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="RunnerId"]'/>
