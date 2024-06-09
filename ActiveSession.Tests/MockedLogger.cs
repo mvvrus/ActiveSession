@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -96,6 +97,30 @@ namespace ActiveSession.Tests
         public Int32 LoggerCreationCount(String CategoryName)
         {
             return _loggers.ContainsKey(CategoryName) ? _loggers[CategoryName].CreationCount : 0;
+        }
+
+        delegate String GetTypeNameDelegate(Type T, bool FullName, bool IncludeGenericParameterNames, bool IncludeGenericParameters, char NestedTypeDelimiter);
+        static Lazy<GetTypeNameDelegate> _getTypeNameDelegate = new Lazy<GetTypeNameDelegate>(CreateTypeNameDelegate);
+
+        static GetTypeNameDelegate CreateTypeNameDelegate()
+        {
+            Assembly ilogger_assembly = Assembly.GetAssembly(typeof(ILogger)) 
+                ?? throw new InvalidOperationException("An assebly containing ILogger not found");
+            Type type_name_type = ilogger_assembly.GetType("Microsoft.Extensions.Internal.TypeNameHelper")
+                ?? throw new InvalidOperationException("The assembly does not contain a TypeNameHelper type.");
+            MethodInfo get_name_method_info = type_name_type
+                .GetMethod("GetTypeDisplayName", new Type[] { typeof(Type), typeof(bool), typeof(bool), typeof(bool), typeof(char) })
+                    ?? throw new InvalidOperationException("The type does not contain GetTypeDisplayName method.");
+            GetTypeNameDelegate result = (GetTypeNameDelegate)(get_name_method_info.CreateDelegate(typeof(GetTypeNameDelegate)));
+
+            //(Type type, bool fullName = true, bool includeGenericParameterNames = false, bool includeGenericParameters = true, char nestedTypeDelimiter = DefaultNestedTypeDelimiter));
+            return result;
+        }
+
+        public MockedLogger MonitorLoggerCategory<T>()
+        {
+            String category_name=_getTypeNameDelegate.Value(typeof(T),true,false,false,'.');
+            return MonitorLoggerCategory(category_name);
         }
 
         public MockedLogger MonitorLoggerCategory(String CategoryName)
