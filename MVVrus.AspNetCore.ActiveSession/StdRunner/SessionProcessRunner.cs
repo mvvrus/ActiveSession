@@ -8,7 +8,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
     /// The executing task invokes from time to time a callback presented by the runner, 
     /// informing it about background execution at the time of the invocation.                                    
     /// </summary>
-    /// <typeparam name="TResult">The type of values passed to a callback and of a value optionally returned by background task.</typeparam>
+    /// <typeparam name="TResult"> 
+    /// <inheritdoc cref="IRunner{TResult}" path='/typeparam[@name="TResult"]'/>
+    /// Values of this type are passed to a callback and a value of this type is optionally returned by a background task.
+    /// </typeparam>
     /// <remarks>
     /// <list type="number">
     /// <item>
@@ -73,11 +76,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Task? _disposeTask;
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with the specified body of a background task 
-        /// that returns the final result. The constructor does not use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <factory>A constructor that creates an instance of the runner by means of <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see>.</factory>
+        /// <noextcts>An external source for CompletionToken property of the runner cannot be used. </noextcts>
+        /// <sync>The runner will run a background task that executes the specified (synchronous) delegate </sync> 
+        /// <result>returning the final result from the task.</result> 
         /// </summary>
-        /// <param name="ProcessTaskBody">A delegate that is used as a body of a synchronously executing background task.</param>
+        /// <param name="ProcessTaskBody">A delegate that is used as a synchronously executing body of a background task.</param>
         /// <param name="RunnerId">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="RunnerId"]'/>
         /// </param>
@@ -92,21 +96,22 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 null, true), RunnerId, Logger) {}
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with the specified body of a background task 
-        /// that returns the final result. The constructor can use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <extcts>An external source for CompletionToken property of the runner can be used. </extcts>
+        /// <inheritdoc path="/summary/sync" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/result" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
         /// <param name="Param"> A tuple of three values:
         /// <list type="bullet">
         /// <item>
-        /// <see cref="Delegate"/> ProcessTaskBody: 
+        /// <see cref="Func{T1, T2, TResult}">Func&lt;Action&lt;TResilt, int?&gt;, CancellationToken, TResult&gt; </see> ProcessTaskBody: <br/>
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
         /// </item>
-        /// <item>
-        /// <see cref="CancellationTokenSource"/> Cts: 
+        /// <item copy="yes">
+        /// <see cref="CancellationTokenSource"/> Cts: <br/> 
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
         /// </item>
-        /// <item><see cref="Boolean"/> PassCtsOwnership:
+        /// <item copy="yes"><see cref="Boolean"/> PassCtsOwnership: <br/>
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
         /// </item>
         /// </list>
@@ -131,9 +136,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with the specified body of a background task 
-        /// that does not return the final result. The constructor does not use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noextcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/sync" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <noresult>without returning the final result from the task.</noresult> 
         /// </summary>
         /// <param name="ProcessTaskBody">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
@@ -151,23 +157,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 RunnerId, Logger) {}
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with the specified body of a background task 
-        /// that does not return the final result. The constructor can use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/extcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/sync" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noresult" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
-        /// <param name="Param"> A tuple of three values:
+        /// <param name="Param">A tuple of three values: 
         /// <list type="bullet">
         /// <item>
-        /// <see cref="Delegate"/> ProcessTaskBody: 
+        /// <see cref="Action{T1, T2}">Action&lt;Action&lt;TResilt, Int32?&gt;, CancellationToken&gt; </see> ProcessTaskBody: <br/>
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"  path='/param[@name="ProcessTaskBody"]' />
         /// </item>
-        /// <item>
-        /// <see cref="CancellationTokenSource"/> Cts: 
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
-        /// </item>
-        /// <item><see cref="Boolean"/> PassCtsOwnership:
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
-        /// </item>
+        /// <inheritdoc path='/param[@name="Param"]/list/item[@copy]' cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </list>
         /// </param>
         /// <param name="RunnerId">
@@ -189,9 +190,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with a background task created by the specified delegate
-        /// that returns the final result. The constructor does not use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noextcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <async>The runner will run a background task created by the specified delegate </async>
+        /// <inheritdoc path="/summary/result" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
         /// <param name="ProcessTaskCreator">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="ProcessTaskCreator"]'/>
@@ -210,9 +212,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         {}
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with a background task created by the specified delegate
-        /// that does not return the final result. The constructor does not use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noextcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/async" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noresult" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
         /// <param name="ProcessTaskCreator">
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="ProcessTaskCreator"]'/>
@@ -231,23 +234,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         { }
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with a background task created by the specified delegate
-        /// that returns the final result. The constructor can use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/extcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/async" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/result" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
         /// <param name="Param"> A tuple of three values:
         /// <list type="bullet">
         /// <item>
-        /// <see cref="Delegate"/> ProcessTaskCreator: 
+        /// <see cref="Func{T1, T2, TResult}">Func&lt;Action&lt;TResilt, Int32?&gt;, CancellationToken, Task&lt;TResult&gt;&gt; </see> ProcessTaskCreator: <br/>
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="ProcessTaskCreator"]'/>
         /// </item>
-        /// <item>
-        /// <see cref="CancellationTokenSource"/> Cts: 
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
-        /// </item>
-        /// <item><see cref="Boolean"/> PassCtsOwnership:
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
-        /// </item>
+        /// <inheritdoc path='/param[@name="Param"]/list/item[@copy]' cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </list>
         /// </param>
         /// <param name="RunnerId">
@@ -268,23 +266,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         }
 
         /// <summary>
-        /// A constructor that creates an instance of the runner with a background task created by the specified delegate
-        /// that does not return the final result. The constructor can use an external source for CompletionToken property.
-        /// <factory>This constructor is used to create an instance by <see cref="TypeRunnerFactory{TRequest, TResult}">TypeRunnerFactory</see></factory>
+        /// <inheritdoc path="/summary/factory" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/extcts" cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/async" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
+        /// <inheritdoc path="/summary/noresult" cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </summary>
         /// <param name="Param"> A tuple of three values:
         /// <list type="bullet">
         /// <item>
-        /// <see cref="Delegate"/> ProcessTaskCreator: 
+        /// <see cref="Func{T1, T2, TResult}">Func&lt;Action&lt;TResilt, Int32?&gt;, CancellationToken, Task&gt; </see> ProcessTaskCreator: <br/>
         /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="ProcessTaskCreator"]'/>
         /// </item>
-        /// <item>
-        /// <see cref="CancellationTokenSource"/> Cts: 
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
-        /// </item>
-        /// <item><see cref="Boolean"/> PassCtsOwnership:
-        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
-        /// </item>
+        /// <inheritdoc path='/param[@name="Param"]/list/item[@copy]' cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)"/>
         /// </list>
         /// </param>
         /// <param name="RunnerId">
