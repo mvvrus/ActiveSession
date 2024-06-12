@@ -22,10 +22,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A method used to search for an existing runner
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
+        /// <param name="RunnerNumber">An <see cref="Int32"/>  a number (key) specifying the runner to search for</param>
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        /// <returns>The existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        /// <returns>The runner with specified number and result type (<see cref="IRunner{TResult}"/>) if such a runner exists or null</returns>
         IRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext Context);
 
         /// <summary>

@@ -194,145 +194,271 @@
         }
 
         /// <summary>
-        /// TODO
+        /// <general>Creates a <see cref="SessionProcessRunner{TResult}"/> instance in the specified Active Session: </general>
+        /// synchronous task, returns result, no external source for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Body">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskBody">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskBody"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <features>Runners created by this method have the following features.</features>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, TResult> Body,
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody,
             HttpContext Context)
         {
-            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, TResult>, TResult>(Body, Context);
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, TResult>, TResult>(ProcessTaskBody, Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// synchronous task, does not return result, no external source for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="Body">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskBody"><inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskBody"]'/></param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Action<Action<TResult, Int32?>, CancellationToken> Body,
+            Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody,
             HttpContext Context)
         {
-            return Session.CreateRunner<Action<Action<TResult, Int32?>, CancellationToken>, TResult>(Body, Context);
+            return Session.CreateRunner<Action<Action<TResult, Int32?>, CancellationToken>, TResult>(ProcessTaskBody, Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// asynchronous task, returns result, no external source for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Creator"></param>
-        /// <param name="Context"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskCreator">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskCreator"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> Creator,
+            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator,
             HttpContext Context)
         {
-            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>, TResult>(Creator, Context);
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>, TResult>(ProcessTaskCreator, Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// asynchronous task, does not return result, no external source for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Creator"></param>
-        /// <param name="Context"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskCreator">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskCreator"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, Task> Creator,
+            Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator,
             HttpContext Context)
         {
-            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task>, TResult>(Creator, Context);
+            return Session.CreateRunner<Func<Action<TResult, Int32?>, CancellationToken, Task>, TResult>(ProcessTaskCreator, Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <general>Creates a <see cref="SessionProcessRunner{TResult}"/> instance in the specified Active Session: </general>
+        /// synchronous task, returns result, can use externalsource for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Body"></param>
-        /// <param name="Context"></param>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskBody">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, TResult}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskBody"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, TResult}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, TResult> Body,
-            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership=true)
+            Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody,
+            HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership=true)
         {
             return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, TResult>, CancellationTokenSource,Boolean), 
-                TResult>((Body, Cts, PassCtsOwnership), Context);
+                TResult>((ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// synchronous task, does not return result, can use externalsource for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Body"></param>
-        /// <param name="Context"></param>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskBody"><inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Action{Action{TResult, int?}, CancellationToken}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskBody"]'/></param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Action{Action{TResult, int?}, CancellationToken}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Action<Action<TResult, Int32?>, CancellationToken> Body,
-            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+            Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody,
+            HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true)
         {
             return Session.CreateRunner<(Action<Action<TResult, Int32?>, CancellationToken>, CancellationTokenSource, Boolean),
-                TResult>((Body, Cts, PassCtsOwnership), Context);
+                TResult>((ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// asynchronous task, returns result, can use external source for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Creator"></param>
-        /// <param name="Context"></param>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskCreator">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskCreator"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, Task{TResult}}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> Creator,
-            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+            Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator,
+            HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true)
         {
             return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>,CancellationTokenSource,Boolean), 
-                TResult>((Creator,Cts,PassCtsOwnership), Context);
+                TResult>((ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context);
         }
 
         /// <summary>
-        /// TODO
+        /// <inheritdoc cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)" path="/summary/general"/>
+        /// asynchronous task, does not return result, can use externalsource for CompletionToken.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="Session"></param>
-        /// <param name="Creator"></param>
-        /// <param name="Context"></param>
-        /// <param name="Cts"></param>
-        /// <param name="PassCtsOwnership"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult"><inheritdoc cref="SessionProcessRunner{TResult}"  path='/typeparam[@name="TResult"]'/></typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="ProcessTaskCreator">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/param[@name="ProcessTaskCreator"]'/>
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <param name="CompletionTokenSource">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="CompletionTokenSource"]'/>
+        /// </param>
+        /// <param name="PassCtsOwnership">
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool, RunnerId, ILogger?)"  path='/param[@name="PassCtsOwnership"]'/>
+        /// </param>
+        /// <returns>
+        /// <inheritdoc cref="IActiveSession.CreateRunner{TRequest, TResult}(TRequest, HttpContext)" path='/returns' />
+        /// </returns>
+        /// <remarks>
+        /// <inheritdoc path='/remarks/features' cref="CreateSessionProcessRunner{TResult}(IActiveSession, Func{Action{TResult, int?}, CancellationToken, TResult}, HttpContext)"/>
+        /// <inheritdoc cref="SessionProcessRunner{TResult}.SessionProcessRunner(ValueTuple{Func{Action{TResult, int?}, CancellationToken, Task}, CancellationTokenSource?, bool}, RunnerId, ILogger{SessionProcessRunner{TResult}}?)" path='/summary/*[not(self::factory)]'/>
+        /// </remarks>
         public static KeyedRunner<TResult> CreateSessionProcessRunner<TResult>(this IActiveSession Session,
-            Func<Action<TResult, Int32?>, CancellationToken, Task> Creator,
-            HttpContext Context, CancellationTokenSource Cts, Boolean PassCtsOwnership = true)
+            Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator,
+            HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true)
         {
             return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task>,CancellationTokenSource,Boolean), 
-                TResult>((Creator,Cts,PassCtsOwnership), Context);
+                TResult>((ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context);
         }
 
         /// <summary>
-        /// TODO
+        /// Searches for an existing runner with result type <see cref="IEnumerable{T}">IEnumerable&lt;TItem&gt;</see>
+        /// i.e. instance of class <see cref="EnumAdapterRunner{TItem}">EnumAdapterRunner&lt;TItem&gt;</see> 
+        /// or <see cref="AsyncEnumAdapterRunner{TItem}">AsyncEnumAdapterRunner&lt;TItem&gt;</see>.
         /// </summary>
-        /// <typeparam name="TItem">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="RunnerNumber">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TItem">
+        /// <inheritdoc cref="EnumerableRunnerBase{TItem}" path='/typeparam[@name="TItem"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="RunnerNumber">
+        /// <inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns><inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/returns' /> </returns>
         public static IRunner<IEnumerable<TItem>>? GetSequenceRunner<TItem>(this IActiveSession Session,
             Int32 RunnerNumber,
             HttpContext Context)
@@ -341,13 +467,22 @@
         }
 
         /// <summary>
-        /// TODO
+        /// Searches for an existing runner with result type <see cref="IEnumerable{T}">IEnumerable&lt;(DateTime, TResult)&gt;</see>
+        /// i.e. instance of class <see cref="TimeSeriesRunner{TResult}">TimeSeriesRunner&lt;TResult&gt;</see>. 
         /// </summary>
-        /// <typeparam name="TResult">TODO</typeparam>
-        /// <param name="Session">TODO</param>
-        /// <param name="RunnerNumber">TODO</param>
-        /// <param name="Context">TODO</param>
-        /// <returns>TODO</returns>
+        /// <typeparam name="TResult">
+        /// <inheritdoc cref="TimeSeriesRunner{TResult}" path='/typeparam[@name="TResult"]'/>
+        /// </typeparam>
+        /// <param name="Session">
+        /// <inheritdoc cref="CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)" path='/param[@name="Session"]'/>
+        /// </param>
+        /// <param name="RunnerNumber">
+        /// <inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' />
+        /// </param>
+        /// <param name="Context">
+        /// <inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' />
+        /// </param>
+        /// <returns><inheritdoc cref="IActiveSession.GetRunner{TResult}(int, HttpContext)" path='/returns' /> </returns>
         public static IRunner<IEnumerable<(DateTime, TResult)>>? GetTimeSeriesRunner<TResult>(this IActiveSession Session,
             Int32 RunnerNumber,
             HttpContext Context)
