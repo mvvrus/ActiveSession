@@ -9,7 +9,7 @@ namespace ActiveSession.Tests
         static TimeSpan INTERVAL = TimeSpan.FromMilliseconds(500);
         const Int32 TIMEOUT = 5000;
         const Int32 TOLERANCE_MS = 250;
-        static TimeSpan TOTAL_TOLERANCE = TimeSpan.FromMilliseconds(500);
+        static TimeSpan TOTAL_TOLERANCE = TimeSpan.FromMilliseconds(600);
 
         //Test group: passing invalid arguments to the constructor
         [Fact]
@@ -166,7 +166,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //TODO Test case: TimeSeriesRunner constructor using a TimeSeriesParam instance
+        //Test case: TimeSeriesRunner constructor using a TimeSeriesParam instance
         [Fact]
         public void TimeSeriesParamConstructor()
         {

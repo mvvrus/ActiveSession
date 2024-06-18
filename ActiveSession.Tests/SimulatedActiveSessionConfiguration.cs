@@ -24,7 +24,7 @@ namespace ActiveSession.Tests
                             mgr[ActiveSessionConstants.CONFIG_SECTION_NAME+":"+config_property.Name]=value;
                         }
                         else {
-                            //TODO process nested config?
+                            //TODO(future) process nested config?
                         }
                     }
                 }

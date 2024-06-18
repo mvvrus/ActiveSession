@@ -257,7 +257,6 @@ namespace ActiveSession.Tests
             public SessionMockForRunner()
             {
                 _mock=new Mock<IActiveSession>();
-                //TODO mock CreateRunner<TRequest,TResult> method
                 _mock.Setup(x => x.CreateRunner<It.IsAnyType, It.IsAnyType>(It.IsAny<It.IsAnyType>(), It.IsAny<HttpContext>()))
                     .Throws<InvalidOperationException>();
                 _mock.Setup(_createRunnerExpression)
