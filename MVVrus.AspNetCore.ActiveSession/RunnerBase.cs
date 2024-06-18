@@ -268,10 +268,8 @@ namespace MVVrus.AspNetCore.ActiveSession
             RunnerStatus prev_status =
                 (RunnerStatus)Interlocked.CompareExchange(ref _status, (int)NewStatus, (int)RunnerStatus.NotStarted);
             Boolean result = prev_status == RunnerStatus.NotStarted;
-            #if TRACE
-            Logger?.LogTraceRunnerBaseStartedInState(Id, Status);   //TODO Use anover logger method?
-            #endif
-            if(result) try {
+            if(result) {
+                try {
                     await StartBackgroundExecutionAsync();
                 }
                 catch(Exception exception) {
@@ -279,6 +277,10 @@ namespace MVVrus.AspNetCore.ActiveSession
                     FailStartRunning(NewStatus);
                     throw;
                 }
+                #if TRACE
+                Logger?.LogTraceRunnerBaseStartedInState(Id, Status);
+                #endif
+            }
             if(result && NewStatus.IsFinal()) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseComeToFinalState(Id);
