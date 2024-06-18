@@ -49,10 +49,15 @@ namespace MVVrus.AspNetCore.ActiveSession
             ActiveSessionMiddleware.MiddlewareParam middleware_param;
             if (Builder.Properties.ContainsKey(ACTIVESESSION_PROPERTYNAME)) {
                 middleware_param=(ActiveSessionMiddleware.MiddlewareParam)Builder.Properties[ACTIVESESSION_PROPERTYNAME]!;
-                //TODO LogTrace
+                #if TRACE
+                logger?.LogTraceUseActiveSessionExtractExistingParams();
+                #endif
             } 
             else {
                 middleware_param=new ActiveSessionMiddleware.MiddlewareParam();
+                #if TRACE
+                logger?.LogTraceUseActiveSessionCreateNewParams();
+                #endif
                 try {
                     //Try to get IActiveSessionStore from DI container to check if any of AddActiveSessions methods were ever called
                     Builder.ApplicationServices.GetRequiredService<IActiveSessionStore>();
@@ -65,11 +70,15 @@ namespace MVVrus.AspNetCore.ActiveSession
                 }
             }
             if (Filter==null) {
-                //TODO LogTrace
+                #if TRACE
+                logger?.LogTraceUseActiveSessionParamsMarkCatchAll();
+                #endif
                 middleware_param.AcceptAll=true;
             }
             else {
-                //TODO LogTrace
+                #if TRACE
+                logger?.LogTraceUseActiveSessionParamsAddFilter();
+                #endif
                 middleware_param.Filters.Add(Filter);
             }
             #if TRACE

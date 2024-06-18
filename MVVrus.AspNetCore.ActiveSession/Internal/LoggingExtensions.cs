@@ -108,16 +108,28 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_BUILDUSE, Trace, "Enetering ActiveSessionBuilderExtensions.UseActiveSessions.")]
         public static partial void LogTraceUseActiveSessions(this ILogger Logger);
 
-        [LoggerMessage(T_BUILDUSEEXIT, Trace, "Exiting ActiveSessionBuilderExtensions.UseActiveSessions.")]
+        [LoggerMessage(T_BUILDUSEEXTRACTPARAM, Trace, "ActiveSessionBuilderExtensions.UseActiveSessions: extracting the middleware constructor parameter.")]
+        public static partial void LogTraceUseActiveSessionCreateNewParams(this ILogger Logger);
 
+        [LoggerMessage(T_BUILDUSECREATEPARAM, Trace, "ActiveSessionBuilderExtensions.UseActiveSessions: creating new middleware constructor parameter.")]
+        public static partial void LogTraceUseActiveSessionExtractExistingParams(this ILogger Logger);
+
+        [LoggerMessage(T_BUILDUSEADDCATCHALL, Trace, "ActiveSessionBuilderExtensions.UseActiveSessions: mark middleware constructor parameter as catch-all.")]
+        public static partial void LogTraceUseActiveSessionParamsMarkCatchAll(this ILogger Logger);
+
+        [LoggerMessage(T_BUILDUSEADDFILTER, Trace, "ActiveSessionBuilderExtensions.UseActiveSessions: add a filter to the middleware constructor parameter.")]
+        public static partial void LogTraceUseActiveSessionParamsAddFilter(this ILogger Logger);
+
+        [LoggerMessage(T_BUILDUSEEXIT, Trace, "Exiting ActiveSessionBuilderExtensions.UseActiveSessions.")]
         public static partial void LogTraceUseActiveSessionsExit(this ILogger Logger);
-        [LoggerMessage(T_BUILDCONS, Trace, "Enetering ActiveSessionMiddleware constructor.")]
+
+        [LoggerMessage(T_MIDDLEWARECONS, Trace, "Enetering ActiveSessionMiddleware constructor.")]
         public static partial void LogTraceConstructActiveSessionMiddleware(this ILogger Logger);
 
-        [LoggerMessage(T_BUILDCONSEXIT, Trace, "Exiting ActiveSessionMiddleware constructor.")]
+        [LoggerMessage(T_MIDDLEWARECONSEXIT, Trace, "Exiting ActiveSessionMiddleware constructor.")]
         public static partial void LogTraceConstructActiveSessionMiddlewareExit(this ILogger Logger);
 
-        [LoggerMessage(T_MIDDLEWARE, Trace, "Entering ActiveSessionMiddleware, TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(T_MIDDLEWAREENTER, Trace, "Entering ActiveSessionMiddleware, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceInvokeActiveSessionMiddleware(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(T_MIDDLEWARELOADAWAIT, Trace, "Awaiting while loading ActiveSession for SessionServices, TraceIdentifier=\"{TraceIdentifier}\".")]
