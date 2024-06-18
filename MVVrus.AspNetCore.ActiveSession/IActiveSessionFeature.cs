@@ -7,34 +7,35 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </summary>
     public interface IActiveSessionFeature
     {
-        /// <value>
-        /// Reference to an <see cref="IActiveSession"/> interface of ActiveSession for this request
-        /// </value>
+        /// <summary>
+        /// Points to an Active Session for this request.
+        /// </summary>
         IActiveSession ActiveSession { get; }
 
-        /// <value>
-        /// TODO
-        /// </value>
+        /// <summary>
+        /// Indicates that <see cref="ActiveSession"/> property contains reference 
+        /// to an initialized ActiveSession-imlementing object (which may be dummy one).
+        /// </summary>
         public Boolean IsLoaded { get; }
 
         /// <summary>
-        /// TODO
+        /// Asynchronously initializes all <see cref="ActiveSession"/> stuff.
         /// </summary>
-        /// <param name="Token"></param>
-        /// <returns></returns>
+        /// <param name="Token">Can be used to cancel <see cref="ActiveSession"/> initialization operations.</param>
+        /// <returns>Task that may be used to observe the initialization.</returns>
         public Task LoadAsync(CancellationToken Token=default);
 
         /// <summary>
-        /// TODO
+        /// Asynchronously commits all changes related to the ActiveSession-imlementing object.
         /// </summary>
-        /// <param name="Token"></param>
-        /// <returns></returns>
+        /// <param name="Token">Can be used to cancel ActiveSession-related commit operations.</param>
+        /// <returns>Task that may be used to observe the commit operation.</returns>
         public Task CommitAsync(CancellationToken Token = default);
 
         /// <summary>
-        /// TODO
+        /// Get current ActiveSession store usage statistics.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A record containing ActiveSession store usage statistics if it exists, otherwise <see langword="null"/></returns>
         public ActiveSessionStoreStats? GetCurrentStoreStatistics();
 
     }
