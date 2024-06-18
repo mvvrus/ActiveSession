@@ -165,7 +165,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
                                     _logger,
                                     session_scope.ServiceProvider
-                                    ); //TODO Set MinRunnerNumber & MaxRunnerNumber
+                                    ); //TODO(future) Set MinRunnerNumber & MaxRunnerNumber
                                 RunnerManagerInfo info = new RunnerManagerInfo();
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
@@ -690,15 +690,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //Possible future implementation draft
             //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
             //if (runner_type_name==null) {
-            //    //TODO? Log that runner has unknown type
+            //    // Log that runner has unknown type
             //    return null;
             //}
             //if (!s_ResultTypesDictionary.TryGetValue(runner_type_name, out runner_type)) {
-            //    //TODO? Log that type is unregistered
+            //    // Log that type is unregistered
             //    throw new InvalidOperationException(); //TODO Add message
             //}
-            //if (runner_type.IsAssignableTo(typeof(TResult))) { } //TODO
-            //                                                     //TODO
+            //if (runner_type.IsAssignableTo(typeof(TResult))) { } //
+            //                                                     //
             //throw new NotImplementedException();
         }
 
@@ -725,7 +725,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         Int32 GetRunnerSize(Type RunnerType)
         {
-            return _runnerSize; //TODO: it's a stub
+            return _runnerSize; //TODO(future) it's a stub
         }
 
         internal void InitCacheExpiration()

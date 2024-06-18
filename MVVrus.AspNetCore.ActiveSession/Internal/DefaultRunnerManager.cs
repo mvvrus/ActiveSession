@@ -38,7 +38,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
             _maxRunnerNumber=MaxRunnerNumber;
             if (MaxRunnerNumber!=Int32.MaxValue) {
-                //TODO Implement runner number reusage
+                //TODO (future) Implement runner number reusage
             }
             _runners=new Dictionary<int, RunnerInfo>();
             _runningDisposeTasks=new HashSet<Task>();

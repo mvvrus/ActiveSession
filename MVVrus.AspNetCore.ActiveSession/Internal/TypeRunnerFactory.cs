@@ -2,7 +2,6 @@
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    //TODO Add logging
     internal class TypeRunnerFactory<TRequest, TResult> :
         IRunnerFactory<TRequest, TResult>
     {
