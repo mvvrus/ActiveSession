@@ -172,7 +172,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager,info);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 Task runner_completion_task = new Task(RunnerManagerCleanupWait, info);
-                                result=new ActiveSession(runner_manager, session_scope, this, Session, _logger, runner_completion_task, trace_identifier);
+                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _logger, runner_completion_task, trace_identifier);
                                 try {
                                     runner_manager.RegisterSession(result);
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));

@@ -29,7 +29,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger);
 
                 Assert.True(active_session.IsAvailable);
@@ -48,7 +48,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger,
                     dummy_completion_task);
 
@@ -59,7 +59,7 @@ namespace ActiveSession.Tests
                     () => new Active_Session(null!,
                         test_setup.MockServiceScope.Object,
                         test_setup.MockStore.Object,
-                        test_setup.StubSession.Object,
+                        test_setup.StubSession.Object.Id,
                         test_setup.Logger)
                     );
 
@@ -68,7 +68,7 @@ namespace ActiveSession.Tests
                     () => new Active_Session(test_setup.DummyRunnerManager.Object,
                         null!,
                         test_setup.MockStore.Object,
-                        test_setup.StubSession.Object,
+                        test_setup.StubSession.Object.Id,
                         test_setup.Logger)
                     );
 
@@ -77,7 +77,7 @@ namespace ActiveSession.Tests
                     () => new Active_Session(test_setup.DummyRunnerManager.Object,
                         test_setup.MockServiceScope.Object,
                         null!,
-                        test_setup.StubSession.Object,
+                        test_setup.StubSession.Object.Id,
                         test_setup.Logger)
                     );
 
@@ -102,7 +102,7 @@ namespace ActiveSession.Tests
                 Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger);
 
                 (var runner, var key)=active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object);
@@ -127,7 +127,7 @@ namespace ActiveSession.Tests
                 Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger);
 
                 var runner = active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
@@ -154,7 +154,7 @@ namespace ActiveSession.Tests
                 Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
                 test_setup.MockServiceScope.Object,
                 test_setup.MockStore.Object,
-                test_setup.StubSession.Object,
+                test_setup.StubSession.Object.Id,
                 test_setup.Logger);
 
                 var runner = active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
@@ -182,7 +182,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger);
                 Boolean called_back = false;
                 active_session.CompletionToken.Register(() => { if(!called_back) called_back=true; });
@@ -201,7 +201,7 @@ namespace ActiveSession.Tests
             using (test_setup=new ConstructorTestSetup()) {
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object, test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger);
 
                 active_session.SetDisposedForTests();
@@ -223,7 +223,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
-                    test_setup.StubSession.Object,
+                    test_setup.StubSession.Object.Id,
                     test_setup.Logger,
                     test_setup.CleanupCompletionTask);
 
@@ -242,7 +242,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(ts.DummyRunnerManager.Object,
                     ts.MockServiceScope.Object,
                     ts.MockStore.Object,
-                    ts.StubSession.Object,
+                    ts.StubSession.Object.Id,
                     null);
                 active_session.SetDisposedForTests();
 

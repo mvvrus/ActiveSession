@@ -20,15 +20,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IRunnerManager RunnerManager
             , IServiceScope SessionScope
             , IActiveSessionStore Store
-            , ISession Session
+            , String SessionId
             , ILogger? Logger
             , Task? CleanupCompletionTask = null
             , String? TraceIdentifier = null
         )
         {
-            if (Session is null) throw new ArgumentNullException(nameof(Session));
+            if (SessionId is null) throw new ArgumentNullException(nameof(SessionId));
             _logger=Logger;
-            _sessionId=Session.Id;
+            _sessionId=SessionId;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
