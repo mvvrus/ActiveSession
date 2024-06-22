@@ -15,6 +15,8 @@
 
         public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
+        public Int32 Generation => throw new NotImplementedException();
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

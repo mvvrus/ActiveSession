@@ -65,6 +65,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <value>The ActiveSession identifier</value>
         String Id { get; }
 
+        /// <summary>
+        /// A generation number of this ActiveSession within the containing <see cref="ISession">ASP.NET Core session</see>
+        /// </summary>
+        Int32 Generation {  get; }
+
         /// <value>Cancellation token that will be fired after session completion (eviction/disposal)</value>
         CancellationToken CompletionToken { get;}
 

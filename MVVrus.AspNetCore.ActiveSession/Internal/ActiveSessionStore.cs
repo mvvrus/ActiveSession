@@ -135,14 +135,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
 
             ActiveSession? result=null;
-            Boolean terminated=false;
             String key = SessionKey(session_id);
             _logger?.LogDebugActiveSessionKeyToUse(session_id, trace_identifier);
-            String? sess_value = Session.GetString(key);
-            if (sess_value==null) Session.SetString(key, SESSION_ACTIVE);
-            else terminated=sess_value==SESSION_TERMINATED;
+            Int32 insession_generation = Session.GetInt32(key)??0;
+            Int32 new_generation= insession_generation<=0?-insession_generation+1:0;
+
             if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
-            else {
+            if(result==null) { //Not found or evicted due to bad generation
                 #if TRACE
                 _logger?.LogTraceAcquiringSessionCreationLock(session_id, trace_identifier);
                 #endif
@@ -151,9 +150,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(session_id, trace_identifier);
                     #endif
-                    terminated=Session.GetString(key)==SESSION_TERMINATED;
                     if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
-                    else if(!terminated) {
+                    if(result==null) {  //Not found or evicted due to bad generation
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
@@ -172,7 +170,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager,info);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 Task runner_completion_task = new Task(RunnerManagerCleanupWait, info);
-                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _logger, runner_completion_task, trace_identifier);
+                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _logger, new_generation, runner_completion_task, trace_identifier);
                                 try {
                                     runner_manager.RegisterSession(result);
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
@@ -189,6 +187,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     runner_manager.PerformRunnersCleanupAsync(result);
                                     throw;
                                 }
+                                Session.SetInt32(key, new_generation);
                             } //Commit the entry to the cache via implicit Dispose call 
                         }
                         catch (Exception exception) {
@@ -212,7 +211,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
             void FoundInCahe()
             {
-                if (terminated) {
+                if (result!.Generation<new_generation) {
                     #if TRACE
                     _logger?.LogTraceFetchOrCreateTerminatedFound(session_id, trace_identifier);
                     #endif
@@ -435,11 +434,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceSessionTerminate(ActiveSession.Id, trace_identifier);
             #endif
-            if(SESSION_TERMINATED!=Session.GetString(SessionKey(ActiveSession.Id))) {
-                Session.SetString(SessionKey(ActiveSession.Id), SESSION_TERMINATED);
-                DoTerminateSession(ActiveSession, RunnerManager,trace_identifier);
+            Int32 insession_generation = Session.GetInt32(SessionKey(ActiveSession.Id))??0;
+            if(insession_generation!=-ActiveSession.Generation) {
+                if(insession_generation==ActiveSession.Generation)
+                    Session.SetInt32(SessionKey(ActiveSession.Id), -ActiveSession.Generation);
+                else
+                    _logger?.LogInfoInconsistentSessionTermination(ActiveSession.Generation, insession_generation, ActiveSession.Id, trace_identifier);
+                DoTerminateSession(ActiveSession, RunnerManager, trace_identifier);
             }
-            else
+            else 
                 #if TRACE
                 _logger?.LogTraceSessionAlreadyTerminated(ActiveSession.Id, trace_identifier)
                 #endif
@@ -455,8 +458,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceSessionDoTerminate(ActiveSession.Id, TraceIdentifier);
             #endif
-            RunnerManager.AbortAll(ActiveSession);
-            (ActiveSession as IDisposable)?.Dispose();
+            Object? dummy;
+            String key= SessionKey(ActiveSession.Id);
+            Boolean removed = false;
+            Monitor.Enter(_creation_lock);
+            try {
+                _logger?.LogTraceSessionDoTerminateLockAcquired(ActiveSession.Id, TraceIdentifier);
+                if(_memoryCache.TryGetValue(key, out dummy) && Object.ReferenceEquals(dummy, ActiveSession)) {
+                    //Try to free a cache slot synchronously, all disposing will be done by ActiveSessionEviction callback (asynchronously) 
+                    _logger?.LogTraceSessionDoTerminateViaEvict(ActiveSession.Id, TraceIdentifier);
+                    _memoryCache.Remove(key);
+                    removed=true;
+                }
+            }
+            finally {
+                _logger?.LogTraceSessionDoTerminateLockReleased(ActiveSession.Id, TraceIdentifier);
+                Monitor.Exit(_creation_lock);
+            }
+            if(!removed) {
+                //Already have been evicted from cache. Do all disposing here
+                _logger?.LogTraceSessionDoTerminateDisposeEvicted(ActiveSession.Id, TraceIdentifier);
+            }
             #if TRACE
             _logger?.LogTraceSessionDoTerminateExit(ActiveSession.Id, TraceIdentifier);
             #endif

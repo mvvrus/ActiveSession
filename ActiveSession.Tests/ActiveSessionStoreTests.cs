@@ -796,7 +796,7 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.True(ReferenceEquals(cleanup_task, terminate_task));
                     terminate_task.GetAwaiter().GetResult();
-                    Assert.Equal(SESSION_TERMINATED, ts.MockSession.Object.GetString(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID));
+                    Assert.Equal(-1, ts.MockSession.Object.GetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID));
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.AtLeastOnce);
                     Assert.False(ts.Cache.IsEntryStored);
                     Assert.Equal(1, ts.Cache.CalledCallbacksCount);
@@ -822,29 +822,30 @@ namespace ActiveSession.Tests
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Never);
                     IActiveSession old_session = session;
                     Task cleanup_task = session.CleanupCompletionTask;
-                    IServiceProvider session_sp = session.SessionServices;
-                    ts.MockSession.Object.SetString(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID, SESSION_TERMINATED);
+                    ts.MockSession.Object.SetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID, -1);
                     //Act
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null);
                     //Assess
-                    Assert.Null(session);
+                    Assert.NotNull(session);
+                    Assert.Equal(2, session.Generation);
                     Assert.NotEqual(TaskStatus.Created, cleanup_task.Status);
                     cleanup_task.GetAwaiter().GetResult();
-                    Assert.False(ts.Cache.IsEntryStored);
+                    Assert.True(ts.Cache.IsEntryStored);
                     Assert.True((old_session as Active_Session)!.Disposed);
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.AtLeastOnce);
                     ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Once);
-                    Assert.Throws<ObjectDisposedException>(() => session_sp.GetService(typeof(ILoggerFactory)));
+                    Assert.Equal(1, ts.ScopeDisposeCount);
                 }
 
                 //Create ActiveSession after the termination var in ISession is set
                 //Arrange
                 using (store=ts.CreateStore()) {
-                    ts.MockSession.Object.SetString(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID, SESSION_TERMINATED);
+                    ts.MockSession.Object.SetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_SESSION_ID, -1);
                     //Act
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null);
                     //Assess
-                    Assert.Null(session);
+                    Assert.NotNull(session);
+                    Assert.Equal(2, session.Generation);
                 }
             }
         }
@@ -1224,6 +1225,7 @@ namespace ActiveSession.Tests
             readonly Mock<IServiceProvider> _fakeSessionServiceProvider;
 
             public Boolean ScopeDisposed { get; private set; }
+            public Int32 ScopeDisposeCount { get; private set; } = 0;
             public IServiceProvider ScopeServiceProvider
             {
                 get
@@ -1241,7 +1243,7 @@ namespace ActiveSession.Tests
                     .Returns((Type x) => ScopeDisposed?throw new ObjectDisposedException("IServiceScope"):RootServiceProviderMock.Object.GetService(x));
                 _fakeServiceScope=new Mock<IServiceScope>();
                 _fakeServiceScope.SetupGet(s => s.ServiceProvider).Returns(ScopeServiceProvider);
-                _fakeServiceScope.Setup(_disposeExpression).Callback(() => { ScopeDisposed=true; });
+                _fakeServiceScope.Setup(_disposeExpression).Callback(() => { ScopeDisposed=true; ScopeDisposeCount++; });
 
                 _fakeScopeFactory=new Mock<IServiceScopeFactory>();
                 _fakeScopeFactory.Setup(s => s.CreateScope())
@@ -1504,6 +1506,7 @@ namespace ActiveSession.Tests
         class CreateFetchTestSetup : CachedSessionAndRunnerBaseTestSetup, IDisposable
         {
             public Boolean ScopeDisposed { get { return _mockedSessionServiceProvider.ScopeDisposed; } }
+            public Int32 ScopeDisposeCount { get { return _mockedSessionServiceProvider.ScopeDisposeCount; } }
             public IServiceProvider ScopeServiceProvider { get { return _mockedSessionServiceProvider.ScopeServiceProvider; } }
             public readonly Expression<Action<IRunnerManager>> RegisterSessionExpression = (s => s.RegisterSession(It.IsAny<IActiveSession>()));
             public readonly Expression<Action<IRunnerManager>> AbortAllExpression = s => s.AbortAll(It.IsAny<IActiveSession>());

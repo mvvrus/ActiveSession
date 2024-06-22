@@ -15,8 +15,9 @@
         public const Int32 W_ACTIVESESSIONFAIL = 1300;
         public const Int32 W_REGISTERDURINGCLEANUP = 1500;
 
-        public const Int32 W_MIDDLEWAREREGISTERED = 2000;
-        public const Int32 W_MIDDLEWAREADDED= 2001;
+        public const Int32 I_MIDDLEWAREREGISTERED = 2000;
+        public const Int32 I_MIDDLEWAREADDED= 2001;
+        public const Int32 I_STOREINCOSNSISTENTTERMINATION = 2100;
 
         public const Int32 D_FEATUREACTIVATED = 3000;
         public const Int32 D_SERVICESSUBSTITUTED = 3001;
@@ -103,7 +104,11 @@
         public const Int32 T_STORETERMINATEALREADY = 4181;
         public const Int32 T_STORETERMINATEEXIT = 4182;
         public const Int32 T_STOREDOTERMINATE = 4183;
-        public const Int32 T_STOREDOTERMINATEEXIT = 4184;
+        public const Int32 T_STOREDOTERMINATELOCKED = 4184;
+        public const Int32 T_STOREDOTERMINATEVIAEVICT = 4185;
+        public const Int32 T_STOREDOTERMINATEUNLOCKED = 4186;
+        public const Int32 T_STOREDOTERMINATEVIADISPOSE = 4187;
+        public const Int32 T_STOREDOTERMINATEEXIT = 4188;
         public const Int32 T_SESSIONCONS = 4200;
         public const Int32 T_SESSIONCONSEXIT = 4201;
         public const Int32 T_SESSIONNEWRUNNER = 4210;

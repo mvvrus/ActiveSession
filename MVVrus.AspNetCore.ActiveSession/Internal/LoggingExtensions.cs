@@ -42,11 +42,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningRegisterRunnerAfterCleanupInit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
 
 
-        [LoggerMessage(W_MIDDLEWAREREGISTERED, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
+        [LoggerMessage(I_MIDDLEWAREREGISTERED, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
         public static partial void LogInformationActiveSessionMiddlewareRegistered(this ILogger Logger);
 
-        [LoggerMessage(W_MIDDLEWAREADDED, Information, "ActiveSession middleware is added to the middleware pipeline.")]
+        [LoggerMessage(I_MIDDLEWAREADDED, Information, "ActiveSession middleware is added to the middleware pipeline.")]
         public static partial void LogInformationActiveSessionMiddlewareAdded(this ILogger Logger);
+
+        [LoggerMessage(I_STOREINCOSNSISTENTTERMINATION, Information, "Terminating a session with inconsistent generation {Generation}(current) vs {SessGeneration}(in ASP.NET Core session), SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogInfoInconsistentSessionTermination(this ILogger Logger, Int32 Generation, Int32 SessGeneration, String SessionId, String TraceIdentifier);
 
 
         [LoggerMessage(D_FEATUREACTIVATED, Debug, "ActiveSession feature is activated, TraceIdentifier=\"{TraceIdentifier}\".")]
@@ -171,13 +174,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORESESSIONTERMINATED, Trace, "ActiveSessionStore.FetchOrCreateSession: the ActiveSession found is marked as terminated, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceFetchOrCreateTerminatedFound(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORESESSIONACQUIRING, Trace, "ActiveSessionStore.FetchOrCreateSession: acquiring session creation lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(T_STORESESSIONACQUIRING, Trace, "ActiveSessionStore.FetchOrCreateSession: acquiring session lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceAcquiringSessionCreationLock(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORESESSIONACQUIRED, Trace, "ActiveSessionStore.FetchOrCreateSession: acquired session creation lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(T_STORESESSIONACQUIRED, Trace, "ActiveSessionStore.FetchOrCreateSession: acquired session lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceAcquiredSessionCreationLock(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORESESSIONRELEASED, Trace, "ActiveSessionStore.FetchOrCreateSession: released session creation lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(T_STORESESSIONRELEASED, Trace, "ActiveSessionStore.FetchOrCreateSession: released session lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceReleasedSessionCreationLock(this ILogger Logger, String SessionId, String TraceIdentifier); 
 
         [LoggerMessage(T_STORESESSIONEXIT, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
@@ -300,8 +303,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORETERMINATEEXIT, Trace, "Exit ActiveSessionStore.TerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceSessionTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREDOTERMINATE, Trace, "Eneter ActiveSessionStore.DoTerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        [LoggerMessage(T_STOREDOTERMINATE, Trace, "Enter ActiveSessionStore.DoTerminateSession, acquiring session lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceSessionDoTerminate(this ILogger Logger, String SessionId, String TraceIdentifier);
+        
+        [LoggerMessage(T_STOREDOTERMINATELOCKED, Trace, "ActiveSessionStore.DoTerminateSession, session lock acquired, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminateLockAcquired(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREDOTERMINATEVIAEVICT, Trace, "Enter ActiveSessionStore.DoTerminateSession, terminate via eviction from the cache, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminateViaEvict(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREDOTERMINATEUNLOCKED, Trace, "Enter ActiveSessionStore.DoTerminateSession, session lock released, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminateLockReleased(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREDOTERMINATEVIADISPOSE, Trace, "Enter ActiveSessionStore.DoTerminateSession, not present in the cache means already terminated, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
+        public static partial void LogTraceSessionDoTerminateDisposeEvicted(this ILogger Logger, String SessionId, String TraceIdentifier);
 
         [LoggerMessage(T_STOREDOTERMINATEEXIT, Trace, "Exit ActiveSessionStore.DoTerminateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceSessionDoTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);

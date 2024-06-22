@@ -22,6 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , IActiveSessionStore Store
             , String SessionId
             , ILogger? Logger
+            , Int32 Generation
             , Task? CleanupCompletionTask = null
             , String? TraceIdentifier = null
         )
@@ -29,6 +30,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (SessionId is null) throw new ArgumentNullException(nameof(SessionId));
             _logger=Logger;
             _sessionId=SessionId;
+            this.Generation=Generation;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructor(_sessionId, trace_identifier);
@@ -137,5 +139,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         internal Boolean Disposed { get { return _disposed!=0; }}
 
+        public Int32 Generation { get; init; }
     }
 }

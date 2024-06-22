@@ -13,7 +13,6 @@
         public static readonly String UNKNOWN_TYPE = "<unknown type>";
         public const Int32 DEFAULT_ACTIVESESSIONSIZE = 1;
         public const Int32 DEFAULT_RUNNERSIZE = 1;
-        public const String SESSION_TERMINATED = "Terminated";
         public const String SESSION_ACTIVE = "Active";
         public static readonly TimeSpan DEFAULT_PATHREGEXTIMEOUT = TimeSpan.FromSeconds(1);
         public const Int32 ENUM_DEFAULT_ADVANCE = 20;
