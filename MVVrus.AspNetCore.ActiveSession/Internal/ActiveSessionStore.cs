@@ -12,6 +12,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     internal class ActiveSessionStore : IActiveSessionStore, IDisposable
     {
         const string TYPE_KEY_PART = "_Type";
+        const Int32 DISPOSE_TIMEOUT = 10000;
 
         #region InstannceFields
         readonly IMemoryCache _memoryCache;
@@ -35,8 +36,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Int32 _activeSessionSize = DEFAULT_ACTIVESESSIONSIZE;
         Int32 _runnerSize = DEFAULT_RUNNERSIZE;
         readonly int? _cleanupLoggingTimeoutMs;
-        internal Task? _cleanupLoggingTask;
-        SortedSet<String> _sessionKeys;
+        private readonly Task _storeTask;
+        internal Task? _cleanupLoggingTask;  //For unit tests only, no need to consider any parallelism
+        readonly SortedSet<String> _sessionKeys;
+        readonly TaskCompletionSource _shutdownTcs;
+        volatile Boolean _draining = false;
         #endregion
 
         #region StaticStuff
@@ -55,6 +59,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IRunnerManagerFactory RunnerManagerFactory,
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
+            IHostApplicationLifetime HostApplicationLifetime,
             ILoggerFactory? LoggerFactory = null
         )
         {
@@ -65,7 +70,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _sessionKeys=new SortedSet<String>();
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
-            _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+            _shutdownTcs=new TaskCompletionSource();
+            HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
+            _logger =LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructor();
             #endif
@@ -111,9 +118,39 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _activeSessionSize=options.ActiveSessionSize;
             _runnerSize=options.DefaultRunnerSize;
             _cleanupLoggingTimeoutMs=options.CleanupLoggingTimeoutMs;
+            _storeTask = MaintainCache();
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructorExit();
             #endif
+        }
+
+        async Task MaintainCache()
+        {
+            Task completed;
+            do {
+                completed = await Task.WhenAny(Task.Delay(_sessionIdleTimeout), _shutdownTcs.Task);
+                if(completed!=_shutdownTcs.Task) {
+                    InitCacheExpiration();
+                }
+            }
+            while(completed!=_shutdownTcs.Task);
+            List<Task> session_completion_tasks=new List<Task>();
+            lock(_creation_lock) {
+                _draining=true;
+                List<String> session_keys = _sessionKeys.ToList(); //Make a stable copy to iterate through
+                foreach(String key in session_keys) {
+                    Object? cached = null;
+                    if(_memoryCache?.TryGetValue(key,out cached)??false) {
+                        ActiveSession? session = cached as ActiveSession;
+                        if(session!=null) {
+                            session_completion_tasks.Add(session.CleanupCompletionTask);
+                            DoTerminateSession(session, UNKNOWN_TRACE_IDENTIFIER);
+                        }
+                    }
+                }
+            }
+            InitCacheExpiration();
+            await Task.WhenAll(session_completion_tasks.ToArray());
         }
 
         public void Dispose()
@@ -122,8 +159,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionStoreDisposing();
             #endif
-            _logger=null;
             _disposed= true;
+            _shutdownTcs.TrySetResult();
+            _storeTask.Wait(DISPOSE_TIMEOUT);
+            _logger=null;
             if (_useOwnCache) _memoryCache.Dispose();
             GC.SuppressFinalize(this);
         }
@@ -153,8 +192,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(session_id, trace_identifier);
                     #endif
-                    if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
-                    if(result==null) {  //Not found or evicted due to bad generation
+                    if(_draining) return null;
+                    if(_memoryCache.TryGetValue(key, out result)) FoundInCahe();
+                    if(result==null && !_draining) {  //Not found or evicted due to bad generation (and not stopping)
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             _sessionKeys.Add(key);
@@ -220,7 +260,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceFetchOrCreateTerminatedFound(session_id, trace_identifier);
                     #endif
-                    DoTerminateSession(result!, result!.RunnerManager, trace_identifier);
+                    DoTerminateSession(result!, trace_identifier);
                     result=null;
                     _logger?.LogDebugFoundTerminatedActiveSession(session_id, trace_identifier);
                 }
@@ -445,7 +485,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     Session.SetInt32(SessionKey(ActiveSession.Id), -ActiveSession.Generation);
                 else
                     _logger?.LogInfoInconsistentSessionTermination(ActiveSession.Generation, insession_generation, ActiveSession.Id, trace_identifier);
-                DoTerminateSession(ActiveSession, RunnerManager, trace_identifier);
+                DoTerminateSession(ActiveSession, trace_identifier);
             }
             else 
                 #if TRACE
@@ -458,7 +498,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return ActiveSession.CleanupCompletionTask;
         }
 
-        void DoTerminateSession(IActiveSession ActiveSession, IRunnerManager RunnerManager, String TraceIdentifier)
+        void DoTerminateSession(IActiveSession ActiveSession, String TraceIdentifier)
         {
             #if TRACE
             _logger?.LogTraceSessionDoTerminate(ActiveSession.Id, TraceIdentifier);
@@ -507,14 +547,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         #region PrivateMethods
         class RunnerManagerInfo
         {
-            public Task? CleanupTask;
+            //To be filled in ActiveSessionEvictionCallback to contain RunnerManager.PerformRunnersCleanupAsync() result
+            public Task? CleanupTask;  
         }
 
         void RunnerManagerCleanupWait(Object? State)
         {
             RunnerManagerInfo state =State as RunnerManagerInfo??throw new ArgumentNullException(nameof(State));
-            Task cleanup_task = state.CleanupTask??throw new NullReferenceException("State.CleanupTask is null.");
-
+            if(state.CleanupTask==null) throw new NullReferenceException("State.CleanupTask is null.");
             state.CleanupTask!.Wait();
         }
 
@@ -546,7 +586,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceAbortRunners(session_id);
             #endif
-            session_info.RunnerManager.AbortAll(active_session);
+            session_info.RunnerManager.AbortAll(active_session); //Preliminary call before PerformRunnersCleanupAsync, may be omitted
             _logger?.LogDebugBeforeSessionDisposing(session_id);
             active_session.Dispose();
             //Start runners cleanup processing and a task in the ActiveSession waiting for its completion

@@ -18,6 +18,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.LogIds;
 using LogValues = System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, object?>>;
 using Microsoft.Extensions.Internal;
 using System.Diagnostics;
+using Microsoft.Extensions.Hosting;
 
 namespace ActiveSession.Tests
 {
@@ -35,23 +36,23 @@ namespace ActiveSession.Tests
 
             //Test case: null IMemoryCahe argument while own caches is not used
             Assert.Throws<InvalidOperationException>(() => new ActiveSessionStore(
-                null, ts.RootSP, ts.StubRMFactory.Object, ts.IActSessionOptions, ts.ISessOptions));
+                null, ts.RootSP, ts.StubRMFactory.Object, ts.IActSessionOptions, ts.ISessOptions, ts.HostAppLifetime));
 
             //Test case: null IServiceProvider argument
             Assert.Throws<ArgumentNullException>(() => new ActiveSessionStore(
-                dummy_cache.Object, null!, ts.StubRMFactory.Object, ts.IActSessionOptions, ts.ISessOptions));
+                dummy_cache.Object, null!, ts.StubRMFactory.Object, ts.IActSessionOptions, ts.ISessOptions, ts.HostAppLifetime));
 
             //Test case: null IRunnerManagerFactory argument
             Assert.Throws<ArgumentNullException>(() => new ActiveSessionStore(
-                dummy_cache.Object, ts.RootSP, null!, ts.IActSessionOptions, ts.ISessOptions));
+                dummy_cache.Object, ts.RootSP, null!, ts.IActSessionOptions, ts.ISessOptions, ts.HostAppLifetime));
 
             //Test case: null IOptions<ActiveSessionOptions> argument
             Assert.Throws<ArgumentNullException>(() => new ActiveSessionStore(
-                dummy_cache.Object, ts.RootSP, ts.StubRMFactory.Object, null!, ts.ISessOptions));
+                dummy_cache.Object, ts.RootSP, ts.StubRMFactory.Object, null!, ts.ISessOptions, ts.HostAppLifetime));
 
             //Test case: null IOptions<SessionOptions> argument
             Assert.Throws<ArgumentNullException>(() => new ActiveSessionStore(
-                dummy_cache.Object, ts.RootSP, ts.StubRMFactory.Object, ts.IActSessionOptions, null!));
+                dummy_cache.Object, ts.RootSP, ts.StubRMFactory.Object, ts.IActSessionOptions, null!, ts.HostAppLifetime));
 
             //Test case: using shared cache
             using (ts.CreateStore()) {
@@ -1135,7 +1136,50 @@ namespace ActiveSession.Tests
 
         }
 
+        //Test group: IHostApplicationLifetime.ApplicationStopping signaled
+        [Fact]
+        public void ApplicationStopping() 
+        {
+            IActiveSession? session;
+            using(ApplicationStoppingTestSetup ts = new ApplicationStoppingTestSetup()) {
+                using(ActiveSessionStore store = ts.CreateStore()) {
+                    //Termination of existing sessions
+                    //Arrange
+                    int dispose_count = 0;
+                    ts.DisposeSpyAction = () => dispose_count++;
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    Assert.NotNull(session);
+                    Task cleanup_task = session.CleanupCompletionTask;
+                    store.CreateRunner<String, Result1>(
+                            ts.MockSession.Object,
+                            session,
+                            ((MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession)session).RunnerManager,
+                            "Runner1",
+                            null);
+                    store.CreateRunner<String, Result1>(
+                            ts.MockSession.Object,
+                            session,
+                            ((MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession)session).RunnerManager,
+                            "Runner2",
+                            null);
+                    //Act
+                    ts.Stop();
+                    //Assess
+                    Assert.True(cleanup_task.Wait(5000));
+                    Assert.Equal(2, dispose_count);
 
+                    //Attempt to create a session after signal
+                    //Arrange
+                    const String NEW_ID = "NewId";
+                    Mock<ISession> extra_session_mock = new Mock<ISession>();
+                    extra_session_mock.SetupGet(s => s.Id).Returns(NEW_ID);
+                    //Act
+                    session=store.FetchOrCreateSession(extra_session_mock.Object, null);
+                    //Assess
+                    Assert.Null(session);
+                }
+            }
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////////////
         //Auxilary clases
@@ -1386,8 +1430,10 @@ namespace ActiveSession.Tests
             protected MockedLogger _logger;
             public IServiceProvider RootSP { get { return MockRootServiceProvider.Object; } }
             public Object LockObject { get => _lockObject; }
+            public IHostApplicationLifetime HostAppLifetime { get => _stubAppLifetime.Object; }
 
             public readonly Mock<IServiceProvider> MockRootServiceProvider;
+            protected readonly Mock<IHostApplicationLifetime> _stubAppLifetime;
             readonly Object _lockObject=new Object();
 
             public Expression<Func<IRunnerManager, Object?>> LockObjectExpression = s => s.RunnerCreationLock;
@@ -1410,6 +1456,7 @@ namespace ActiveSession.Tests
                 StubRMFactory=new Mock<IRunnerManagerFactory>();
                 StubRMFactory.Setup(s => s.GetRunnerManager(It.IsAny<ILogger>(),
                     It.IsAny<IServiceProvider>(), It.IsAny<Int32>(), It.IsAny<Int32>())).Returns(MockRunnerManager.Object);
+                _stubAppLifetime=new Mock<IHostApplicationLifetime>();
             }
 
             public MockedLogger InitLogger()
@@ -1427,7 +1474,8 @@ namespace ActiveSession.Tests
                     MockRootServiceProvider.Object,
                     StubRMFactory.Object, 
                     IActSessionOptions,
-                    ISessOptions,
+                    ISessOptions, 
+                    HostAppLifetime,
                     _loggerFactory.LoggerFactory);
             }
         }
@@ -1633,10 +1681,33 @@ namespace ActiveSession.Tests
                     MockRootServiceProvider.Object,
                     _runnerManagerFactory,
                     IActSessionOptions,
-                    ISessOptions,
+                    ISessOptions, 
+                    HostAppLifetime,
                     _loggerFactory.LoggerFactory);
             }
 
+        }
+
+        class ApplicationStoppingTestSetup: OwnCacheTestSetup, IDisposable
+        {
+            CancellationTokenSource _cts;
+            public ApplicationStoppingTestSetup():base() 
+            {
+                _cts=new CancellationTokenSource();
+                _stubAppLifetime.SetupGet(s => s.ApplicationStopping).Returns(_cts.Token);
+            }
+
+            public void Dispose()
+            {
+                _cts.Dispose();
+            }
+
+            public void  Stop()
+            {
+                _cts.Cancel();
+            }
+
+            //TODO Add runner factory?
         }
 
         public class SpyRunnerX : RunnerBase, IRunner<Result1>
