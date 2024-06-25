@@ -186,8 +186,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORESESSIONEXIT, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceFetchOrCreateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORESESSIONCALLBACK, Trace, "Enter ActiveSession eviction callback, SessionId={SessionId}")]
+        [LoggerMessage(T_STORESESSIONCALLBACK, Trace, "Enter ActiveSession eviction callback, acquiring session lock, SessionId={SessionId}")]
         public static partial void LogTraceSessionEvictionCallback(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_STORESESSIONCALLBACKLOCKED, Trace, "ActiveSession eviction callback: session lock acquired, SessionId={SessionId}")]
+        public static partial void LogTraceSessionEvictionCallbackLocked(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_STORESESSIONCALLBACKUNLOCKED, Trace, "ActiveSession eviction callback: session lock released, SessionId={SessionId}")]
+        public static partial void LogTraceSessionEvictionCallbackUnlocked(this ILogger Logger, String SessionId);
 
         [LoggerMessage(T_STORESESSIONCALLBACKABORTALL, Trace, "Abort all runners of the evicted session, SessionId={SessionId}")]
         public static partial void LogTraceAbortRunners(this ILogger Logger, String SessionId);

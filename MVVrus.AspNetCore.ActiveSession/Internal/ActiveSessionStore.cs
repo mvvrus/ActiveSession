@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,6 +36,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         Int32 _runnerSize = DEFAULT_RUNNERSIZE;
         readonly int? _cleanupLoggingTimeoutMs;
         internal Task? _cleanupLoggingTask;
+        SortedSet<String> _sessionKeys;
         #endregion
 
         #region StaticStuff
@@ -60,6 +62,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw new ArgumentNullException(nameof(Options));
             if (SessionOptions is null)
                 throw new ArgumentNullException(nameof(SessionOptions));
+            _sessionKeys=new SortedSet<String>();
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
@@ -154,6 +157,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     if(result==null) {  //Not found or evicted due to bad generation
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
+                            _sessionKeys.Add(key);
                             using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
                                 new_entry.SlidingExpiration=_sessionIdleTimeout;
                                 new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
@@ -192,6 +196,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         }
                         catch (Exception exception) {
                             _logger?.LogDebugFetchOrCreateExceptionalExit(exception, trace_identifier);
+                            _sessionKeys.Remove(key);
                             throw;
                         }
                     }
@@ -520,6 +525,19 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceSessionEvictionCallback(session_id);
             #endif
+            Monitor.Enter(_creation_lock);
+            try {
+                #if TRACE
+                _logger?.LogTraceSessionEvictionCallbackLocked(session_id);
+                #endif
+                _sessionKeys.Remove((String)Key);
+            }
+            finally {
+                #if TRACE
+                _logger?.LogTraceSessionEvictionCallbackUnlocked(session_id);
+                #endif
+                Monitor.Exit(_creation_lock);
+            }
             ActiveSession active_session = (ActiveSession)Value;
             if (_trackStatistics) {
                 Interlocked.Decrement(ref _currentSessionCount);
