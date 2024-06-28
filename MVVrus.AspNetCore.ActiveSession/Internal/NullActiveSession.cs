@@ -17,6 +17,8 @@
 
         public Int32 Generation => throw new NotImplementedException();
 
+        public Boolean IsIdle =>  true;
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -40,6 +42,11 @@
         public Task Terminate(HttpContext Context)
         {
             throw new InvalidOperationException(MESSAGE);
+        }
+
+        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout)
+        {
+            throw new NotImplementedException();
         }
     }
 }

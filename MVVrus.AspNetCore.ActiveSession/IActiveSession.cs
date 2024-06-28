@@ -81,5 +81,23 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         Task CleanupCompletionTask { get; }
 
+        /// <summary>
+        /// Indicates whether no runners are executing within this session.
+        /// </summary>
+        /// <remarks> In this version of the library this property is a stub 
+        /// just returning a value of <see cref="IsFresh"/> property./</remarks>
+        Boolean IsIdle { get; }
+
+        /// <summary>
+        /// Waits until all runners in the session complete their execution.
+        /// </summary>
+        /// <param name="AbortAll">Indicates whether all executing runners should be immediately aborted.</param>
+        /// <param name="Timeout">A timeout value for waiting.</param>
+        /// <returns>A task representing a wait process. The task result is <see langword="true"/> if the wait was successfull.</returns>
+        /// <remarks> In this version of the library this method is a stub
+        /// just returning immediately with the result set to a value of <see cref="IsFresh"/> property.</remarks>
+        ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout);
+
+
     }
 }

@@ -108,6 +108,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public bool IsFresh => _isFresh;
 
+        public bool IsIdle => _isFresh; //TODO(future) Make real implementation instead of this stub
+
         public IServiceProvider SessionServices { get { return _scope.ServiceProvider; } }
 
         public String Id { get { return _sessionId; } }
@@ -135,6 +137,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal void SetDisposedForTests()
         {
             _disposed=1;
+        }
+
+        //TODO(future) Make real implementation instead of this stub
+        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout)
+        {
+            return new ValueTask<bool>(IsIdle);
         }
 
         internal Boolean Disposed { get { return _disposed!=0; }}
