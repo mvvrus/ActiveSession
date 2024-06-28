@@ -41,6 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal Task? _cleanupLoggingTask;  //For unit tests only, no need to consider any parallelism
         readonly SortedSet<String> _sessionKeys;
         readonly TaskCompletionSource _shutdownTcs;
+        CancellationTokenRegistration _shutdownCallback;
         volatile Boolean _draining = false;
         #endregion
 
@@ -72,7 +73,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _shutdownTcs=new TaskCompletionSource();
-            HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
+            _shutdownCallback=HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
             _logger =LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructor();
@@ -162,7 +163,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             _disposed= true;
             _shutdownTcs.TrySetResult();
-            _disposeNoTimedOut = _storeTask.Wait(DISPOSE_TIMEOUT);
+            DateTime dispose_start_time = DateTime.Now;
+            TimeSpan dispose_timeout = TimeSpan.FromMilliseconds(DISPOSE_TIMEOUT);
+            _disposeNoTimedOut = _storeTask.Wait(dispose_timeout);
+            if(_disposeNoTimedOut) {
+                dispose_timeout-=DateTime.Now-dispose_start_time;
+                _disposeNoTimedOut = _shutdownCallback.DisposeAsync().AsTask()
+                    .Wait(Math.Max((Int32)dispose_timeout.TotalMilliseconds,0));
+            }
             _logger=null;
             if (_useOwnCache) _memoryCache.Dispose();
             GC.SuppressFinalize(this);
