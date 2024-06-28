@@ -2,7 +2,7 @@
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using System.Linq.Expressions;
 
-[assembly: CollectionBehavior(MaxParallelThreads = 10)]
+[assembly: CollectionBehavior(MaxParallelThreads = 16)]
 namespace ActiveSession.Tests
 {
     public class DefaultRunnerManagerTests

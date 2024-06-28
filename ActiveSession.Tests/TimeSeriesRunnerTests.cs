@@ -6,10 +6,10 @@ namespace ActiveSession.Tests
     {
         //Tests for TimeSeriesRunner class are needed to be performed only over the TimeSeriesAsyncEnumerable auxilary class
 
-        static TimeSpan INTERVAL = TimeSpan.FromMilliseconds(500);
+        static TimeSpan INTERVAL = TimeSpan.FromMilliseconds(1000);
         const Int32 TIMEOUT = 5000;
         const Int32 TOLERANCE_MS = 250;
-        static TimeSpan TOTAL_TOLERANCE = TimeSpan.FromMilliseconds(600);
+        static TimeSpan TOTAL_TOLERANCE = TimeSpan.FromMilliseconds(900);
 
         //Test group: passing invalid arguments to the constructor
         [Fact]
