@@ -14,64 +14,64 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </remarks>
     public record ActiveSessionOptions
     {
-        /// <value>This host identifier.</value>
+        /// <summary>This host identifier.</summary>
         /// <remarks>
         /// It is used only for multi-instance active sessions (currently not implemented)
         /// and must be unique for each application instanse only in this case.
         /// </remarks>
         public String HostId { get; set; } = DEFAULT_HOST_NAME;
 
-        /// <value>Prefix for all keys of ActiveSession variables in the ISession store</value>
+        /// <summary>Prefix for all keys of ActiveSession variables in the ISession store</summary>
         public String Prefix { get; set; } = DEFAULT_SESSION_KEY_PREFIX;
 
-        /// <value>Maximum idle time for runner objects  </value>
+        /// <summary>Maximum idle time for runner objects  </summary>
         public TimeSpan RunnerIdleTimeout { get; set; } = DEFAULT_RUNNER_IDLE_TIMEOUT;
 
-        /// <value>Maximum lifetime for ActiveSession objects (measured from a session creation time) </value>
+        /// <summary>Maximum lifetime for ActiveSession objects (measured from a session creation time) </summary>
         public TimeSpan MaxLifetime { get; set; } = DEFAULT_MAX_LIFETIME;
 
-        /// <value>The flag to use own (not shared) MemoryCache instance as an ActiveSession objects storage</value>
+        /// <summary>The flag to use own (not shared) MemoryCache instance as an ActiveSession objects storage</summary>
         public Boolean UseOwnCache { get; set;}
 
-        /// <value>Throw exception if the runner is running by the remote application instance</value>
+        /// <summary>Throw exception if the runner is running by the remote application instance</summary>
         public Boolean ThrowOnRemoteRunner { get; set; } = true;
 
-        /// <value>Options used to set up own MemoryCache instance (ignored for shared cache)</value>
+        /// <summary>Options used to set up own MemoryCache instance (ignored for shared cache)</summary>
         public MemoryCacheOptions? OwnCacheOptions { get; set; }
 
-        ///<value>Replace value of RequestServices in HttpContext by the value of the ActiveSession.SessionServices</value>
+        ///<summary>Replace value of RequestServices in HttpContext by the value of the ActiveSession.SessionServices</summary>
         public Boolean UseSessionServicesAsRequestServices { get; set; }
 
-        /// <value> Track storage statistics</value>
+        /// <summary> Track storage statistics</summary>
         public Boolean TrackStatistics { get; set; }
 
-        /// <value> Default size of an IActiveSession-implementing  object</value>
+        /// <summary> Default size of an IActiveSession-implementing  object</summary>
         public Int32 ActiveSessionSize { get; set; } = DEFAULT_ACTIVESESSIONSIZE;
 
-        /// <value> Default size of an IRunner-implementing  object</value>
+        /// <summary> Default size of an IRunner-implementing  object</summary>
         public Int32 DefaultRunnerSize { get; set; } = DEFAULT_RUNNERSIZE;
 
-        /// <value> Timeout for logging runner cleanup outcome</value>
+        /// <summary> Timeout for logging runner cleanup outcome</summary>
         public Int32? CleanupLoggingTimeoutMs { get; set; }
 
-        /// <value> 
+        /// <summary> 
         /// Asynchronously preload IActiveSessionFeature.ActiveSession before processing the rest of the pipeline
-        /// </value>
+        /// </summary>
         public Boolean PreloadActiveSession { get; set; } = true;
 
-        /// <value>
+        /// <summary>
         /// Timeout for processing HTTP request path string by a middleware Regex-based filter
-        /// </value>
+        /// </summary>
         public TimeSpan PathRegexTimeout { get; internal set; } = DEFAULT_PATHREGEXTIMEOUT;
 
-        /// <value>
+        /// <summary>
         /// Default number of items to fetch by GetRequireAsync method of runners, returning an IEnumerable{TItem} result
-        /// </value>
+        /// </summary>
         public Int32 DefaultEnumerableAdvance { get; set; } = ENUM_DEFAULT_ADVANCE;
 
-        /// <value>
+        /// <summary>
         /// Default size of a queue used by GetRequireAsync method of runners, returning an IEnumerable{TItem} result
-        /// </value>
+        /// </summary>
         public Int32 DefaultEnumerableQueueSize { get; set; } = ENUM_DEFAULT_QUEUE_SIZE;
     }
 }

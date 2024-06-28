@@ -53,16 +53,16 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         Task Terminate(HttpContext Context);
 
-        /// <value>Indicator that the Active Session object is properly initialized and may be used.</value>
+        /// <summary>Indicator that the Active Session object is properly initialized and may be used.</summary>
         Boolean IsAvailable { get; }
 
-        /// <value>Indicator that the Active Session object was just created an is still empty.</value>
+        /// <summary>Indicator that the Active Session object was just created an is still empty.</summary>
         Boolean IsFresh { get; }
 
-        /// <value>The service (DI) container for the scope of the Active Session</value>
+        /// <summary>The service (DI) container for the scope of the Active Session</summary>
         IServiceProvider SessionServices { get; }
 
-        /// <value>The ActiveSession identifier</value>
+        /// <summary>The ActiveSession identifier</summary>
         String Id { get; }
 
         /// <summary>
@@ -70,10 +70,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         Int32 Generation {  get; }
 
-        /// <value>Cancellation token that will be fired after session completion (eviction/disposal)</value>
+        /// <summary>Cancellation token that will be fired after session completion (eviction/disposal)</summary>
         CancellationToken CompletionToken { get;}
 
-        /// <value>Task that performs asynchronous cleanup of this active session (waits for all runners completion etc).</value>
+        /// <summary>Task that performs asynchronous cleanup of this active session (waits for all runners completion etc).</summary>
         /// <remarks>
         /// The result of the task is false if cleanup of any runner has been not finished within a timeout, 
         /// otherwise the result is true

@@ -5,17 +5,17 @@
     /// </summary>
     public enum RunnerStatus
     {
-        /// <value> Just created and not started </value>
+        /// <summary> Just created and not started </summary>
         NotStarted=0,
-        /// <value> Started but stays at the same position  and has no new data available</value>
+        /// <summary> Started but stays at the same position  and has no new data available</summary>
         Stalled=1,
-        /// <value> Advanced to a new position or completed and has new data available</value>
+        /// <summary> Advanced to a new position or completed and has new data available</summary>
         Progressed=2,
-        /// <value> Completed and has no new data available</value>
+        /// <summary> Completed and has no new data available</summary>
         Complete=10,
-        /// <value> An error occured while the object is running, no data available</value>
+        /// <summary> An error occured while the object is running, no data available</summary>
         Failed=11,
-        /// <value> An error occured while the object is running, no data available</value>
+        /// <summary> An error occured while the object is running, no data available</summary>
         Aborted=12,
     }
 

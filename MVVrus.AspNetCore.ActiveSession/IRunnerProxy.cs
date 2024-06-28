@@ -6,9 +6,9 @@
     /// <typeparam name="TResult"></typeparam>
     public interface IRunnerProxy<TResult>:IRunner<TResult>
     {
-        /// <value>
+        /// <summary>
         /// Does the runner execute in the same instance?
-        /// </value>
+        /// </summary>
         public Boolean IsLocal { get; }
 
         /// <summary>

@@ -6,9 +6,9 @@
     [AttributeUsage(AttributeTargets.Constructor, Inherited=false)]
     public class ActiveSessionConstructorAttribute: Attribute
     {
-        /// <value>
+        /// <summary>
         /// Value indicating inclusion/exclusion of the constructor
-        /// </value>
+        /// </summary>
         public Boolean Use;
 
         /// <summary>
