@@ -1181,6 +1181,90 @@ namespace ActiveSession.Tests
             }
         }
 
+        //TODO Test group: Disposing the store while having active sessions in the cache
+        [Fact]
+        public void Dispose_Store()
+        {
+            const Int32 TIMEOUT = 8000;
+            const Int32 SMALL_TIMEOUT = 200;
+            OwnCacheTestSetup ts = new OwnCacheTestSetup();
+            ActiveSessionStore store;
+            const String ID1 = "Session1";
+            const String ID2 = "Session2";
+            Mock<ISession> session1_mock = new Mock<ISession>();
+            session1_mock.SetupGet(s => s.Id).Returns(ID1);
+            Mock<ISession> session2_mock = new Mock<ISession>();
+            session2_mock.SetupGet(s => s.Id).Returns(ID2);
+            int dispose_count=0;
+            ManualResetEventSlim pause_event = new ManualResetEventSlim(false);
+            Action delay_disposal = () => { Task.Delay(SMALL_TIMEOUT).Wait(); dispose_count++; };
+            Action pause_disposal = () => { pause_event.Wait(); dispose_count++; };
+            Action instant_disposal = () => dispose_count++;
+            Task dispose_task;
+            MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession? as1, as2;
+            Task cleanup_task1, cleanup_task2;
+            //test case: try to create a session in the disposed store
+            //Arrange
+            Arrange(true);
+            //Act
+            dispose_task=Task.Run(() => store.Dispose());
+            //Assess
+            Assess(true);
+            //Test case: disposing in the case all sessions and runners have been completed within timeout
+            //Arrange
+            Arrange(false);
+            //Act
+            dispose_task=Task.Run(() => store.Dispose());
+            //Assess
+            Assess(false);
+            //TODO Test case: disposing in the case some sessions an runners haven't been completed within timeout
+
+            void Arrange(Boolean Infinite)
+            {
+                dispose_count = 0;
+                pause_event.Reset();
+                store = ts.CreateStore();
+                as1=store.FetchOrCreateSession(session1_mock.Object, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
+                Assert.NotNull(as1);
+                cleanup_task1=as1.CleanupCompletionTask;
+                ts.DisposeSpyAction = delay_disposal;
+                store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager,"Runner1a", null);
+                ts.DisposeSpyAction = instant_disposal;
+                store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager, "Runner1b", null);
+                as2=store.FetchOrCreateSession(session2_mock.Object, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
+                Assert.NotNull(as2);
+                cleanup_task2=as2.CleanupCompletionTask;
+                ts.DisposeSpyAction = delay_disposal;
+                store.CreateRunner<String, Result1>(session2_mock.Object, as2, as2.RunnerManager, "Runner2a", null);
+                ts.DisposeSpyAction = instant_disposal;
+                if(Infinite) ts.DisposeSpyAction = pause_disposal;
+                store.CreateRunner<String, Result1>(session2_mock.Object, as2, as2.RunnerManager, "Runner1b", null);
+            }
+
+            void Assess(Boolean Infinite)
+            {
+                Task.Delay(SMALL_TIMEOUT/2).Wait();
+                Assert.False(cleanup_task1.IsCompleted);
+                Assert.False(cleanup_task2.IsCompleted);
+                if(Infinite) {
+                    Assert.True(dispose_task.Wait(ActiveSessionStore.DISPOSE_TIMEOUT+TIMEOUT));
+                    Assert.False(store._disposeNoTimedOut);
+                    Assert.True(cleanup_task1.IsCompleted);
+                    Assert.False(cleanup_task2.IsCompleted);
+                    Assert.Equal(3, dispose_count);
+                    pause_event.Set();
+                    Assert.True(cleanup_task2.Wait(TIMEOUT));
+                }
+                else {
+                    Assert.True(dispose_task.Wait(TIMEOUT));
+                    Assert.True(store._disposeNoTimedOut);
+                    Assert.True(cleanup_task1.IsCompleted);
+                    Assert.True(cleanup_task2.IsCompleted);
+                }
+                Assert.Equal(4, dispose_count);
+            }
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////////////
         //Auxilary clases
         /////////////////////////////////////////////////////////////////////////////////////////////
@@ -1706,8 +1790,6 @@ namespace ActiveSession.Tests
             {
                 _cts.Cancel();
             }
-
-            //TODO Add runner factory?
         }
 
         public class SpyRunnerX : RunnerBase, IRunner<Result1>

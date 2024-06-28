@@ -12,7 +12,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     internal class ActiveSessionStore : IActiveSessionStore, IDisposable
     {
         const string TYPE_KEY_PART = "_Type";
-        const Int32 DISPOSE_TIMEOUT = 10000;
+        internal const Int32 DISPOSE_TIMEOUT = 10000;
 
         #region InstannceFields
         readonly IMemoryCache _memoryCache;
@@ -26,6 +26,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
         bool _disposed = false;
+        internal Boolean _disposeNoTimedOut;
         ILogger? _logger;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
         readonly Object _creation_lock = new Object();
@@ -161,7 +162,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             _disposed= true;
             _shutdownTcs.TrySetResult();
-            _storeTask.Wait(DISPOSE_TIMEOUT);
+            _disposeNoTimedOut = _storeTask.Wait(DISPOSE_TIMEOUT);
             _logger=null;
             if (_useOwnCache) _memoryCache.Dispose();
             GC.SuppressFinalize(this);
