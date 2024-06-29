@@ -98,6 +98,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// just returning immediately with the result set to a value of <see cref="IsFresh"/> property.</remarks>
         ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout);
 
+        /// <summary>
+        /// A set of arbitrary objects associated with this active session accessible via their string keys.
+        /// </summary>
+        /// <remarks> Current implementation of this property is based on a <see cref="SortedList{TKey, TValue}"/> class.
+        /// </remarks>
+        IDictionary<String,Object> Properties { get; }
 
     }
 }

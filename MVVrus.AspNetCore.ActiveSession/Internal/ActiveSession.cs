@@ -12,6 +12,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
         readonly CancellationTokenSource _cts;
+        readonly IDictionary<String, Object> _properties;
 
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
@@ -41,6 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
             this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
+            _properties= new SortedList<String, Object>();
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(trace_identifier);
             #endif
@@ -117,6 +119,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public CancellationToken CompletionToken { get; private set; }
 
         public Task CleanupCompletionTask { get; private set; }
+
+        public IDictionary<String, Object> Properties { get=>_properties; }
+
 
         public void Dispose()
         {

@@ -253,6 +253,36 @@ namespace ActiveSession.Tests
 
         }
 
+        //Test group: test Properties property
+        [Fact]
+        public void Properties()
+        {
+            ConstructorTestSetup test_setup;
+            Active_Session active_session;
+
+            const String KEY1 = "key1", KEY2 = "key2", KEY3="key3";
+            Object value1 = new Object(), value2 = new Object();
+            
+            using(test_setup=new ConstructorTestSetup()) {
+                //Test case: Set properties
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.MockStore.Object,
+                    test_setup.StubSession.Object.Id,
+                    test_setup.Logger, 1);
+                active_session.Properties[KEY1]=value1;
+                active_session.Properties[KEY2]=value2;
+                Assert.Equal(2, active_session.Properties.Count);
+                //Test case: retrieve properties
+                Assert.True(active_session.Properties.ContainsKey(KEY1));
+                Assert.True(active_session.Properties.ContainsKey(KEY2));
+                Assert.False(active_session.Properties.ContainsKey(KEY3));
+                Assert.Same(value1,active_session.Properties[KEY1]);
+                Assert.Same(value2, active_session.Properties[KEY2]);
+                Assert.Throws<KeyNotFoundException>(()=> active_session.Properties[KEY3]);
+            }
+        }
+
         class ConstructorTestSetup: IDisposable
         {
             public readonly Mock<IServiceProvider> StubServiceProvider;

@@ -1,4 +1,5 @@
-﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
+﻿
+namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class NullActiveSession : IActiveSession
     {
@@ -18,6 +19,8 @@
         public Int32 Generation => throw new NotImplementedException();
 
         public Boolean IsIdle =>  true;
+
+        public IDictionary<String, Object> Properties => throw new NotImplementedException();
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
