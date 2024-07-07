@@ -283,6 +283,29 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: TrackRunnerCleanup tests
+        [Fact]
+        public void TrackRunnerCleanup()
+        {
+            //Test case: return a task from the _runnerManager
+            const Int32 RUNNER_NO = 1;
+            using(ConstructorTestSetup test_setup=new ConstructorTestSetup()) {
+                test_setup.DummyRunnerManager.Setup(s=>s.GetRunnerCleanupTrackingTask(It.IsAny<Active_Session>(), It.IsAny<Int32>()))
+                    .Returns((Task?)null);
+                test_setup.DummyRunnerManager.Setup(s => s.GetRunnerCleanupTrackingTask(It.IsAny<Active_Session>(), RUNNER_NO))
+                    .Returns(Task.CompletedTask);
+                using(Active_Session active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.MockStore.Object,
+                    test_setup.StubSession.Object.Id,
+                    test_setup.Logger, 1)) 
+                {
+                    Assert.Equal(Task.CompletedTask, active_session.TrackRunnerCleanup(RUNNER_NO));
+                    Assert.Null(active_session.TrackRunnerCleanup(RUNNER_NO+1));
+                }
+            }
+        }
+
         class ConstructorTestSetup: IDisposable
         {
             public readonly Mock<IServiceProvider> StubServiceProvider;

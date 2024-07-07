@@ -10,6 +10,7 @@
         RunnerInfo? GetRunnerInfo(IActiveSession SessionKey, int RunnerNumber);
         Object? RunnerCreationLock { get; }
         void AbortAll(IActiveSession SessionKey);
-        public Task PerformRunnersCleanupAsync(IActiveSession SessionKey);
+        Task PerformRunnersCleanupAsync(IActiveSession SessionKey);
+        Task? GetRunnerCleanupTrackingTask(IActiveSession SessionKey, int RunnerNumber);
     }
 }

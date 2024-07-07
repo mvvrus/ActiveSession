@@ -181,5 +181,9 @@
         public const Int32 T_MANAGERCLEANUPRELEASED2 = 4580;
         public const Int32 T_MANAGERCLEANUPDISPOSING = 4581;
         public const Int32 T_MANAGERCLEANUPENDED = 4582;
+        public const Int32 T_MANAGERTRACKCLEANUP = 4590;
+        public const Int32 T_MANAGERTRACKCLEANUPLOCKED = 4591;
+        public const Int32 T_MANAGERTRACKCLEANUPNEW = 4592;
+        public const Int32 T_MANAGERTRACKCLEANUPEXIT = 4593;
     }
 }

@@ -42,6 +42,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new InvalidOperationException(MESSAGE);
         }
 
+        public Task? TrackRunnerCleanup(Int32 RunnerNumber)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task Terminate(HttpContext Context)
         {
             throw new InvalidOperationException(MESSAGE);

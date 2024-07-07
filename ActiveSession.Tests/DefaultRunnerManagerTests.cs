@@ -175,7 +175,6 @@ namespace ActiveSession.Tests
             manager.RegisterSession(stub_as.Object);
             //Act
             manager.Dispose();
-            //Assert that internal countdown even object is disposed
 
             //Test case: attemp to call RegisterRunner for disposed instance
             //Act & assess: throws
@@ -424,8 +423,100 @@ namespace ActiveSession.Tests
                         .GetAwaiter().GetResult();
                 }
             }
-
         }
+
+        //Test group: tasks returned by GetRunnerCleanupTrackingTask
+        [Fact]
+        public void GetRunnerCleanupTrackingTask()
+        {
+            Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
+            Mock<IActiveSession> stub_as = MakeStubAs();
+            MockedLogger mock_logger;
+            DefaultRunnerManager manager;
+            Task? task, task2;
+            int number, number2;
+
+            mock_logger=new(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
+            using(manager=new DefaultRunnerManager(mock_logger.Logger, dummy_sp.Object)) {
+                manager.RegisterSession(stub_as.Object);
+                //Test case: non-existing runner
+                number = manager.GetNewRunnerNumber(stub_as.Object);
+                task=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                Assert.Null(task);
+                //Test case: existing runner, first request
+                manager.RegisterRunner(stub_as.Object, number, new RunnerBase(), typeof(Object));
+                task=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                Assert.NotNull(task);
+                //Test case: existing runner, non-first request
+                task2=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                Assert.Same(task,task2);
+                //Test case: request for additional existing runner
+                number2 = manager.GetNewRunnerNumber(stub_as.Object);
+                manager.RegisterRunner(stub_as.Object, number2, new RunnerBase(), typeof(Object));
+                task2=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number2);
+                Assert.NotNull(task2);
+                Assert.NotSame(task, task2);
+            }
+        }
+
+        //Test group: cleanup tracking tasks (from both UnregisterRunner and GetRunnerCleanupTrackingTask) completion
+        [Fact]
+        public void CleanupTrackingTasksCompletion()
+        {
+            Mock<IServiceProvider> dummy_sp = new Mock<IServiceProvider>();
+            Mock<IActiveSession> stub_as = MakeStubAs();
+            ManualResetEventSlim pause_event;
+            MockedLogger mock_logger;
+            DefaultRunnerManager manager;
+            int number;
+            Task? unreg_task;
+            Task? tracking_task;
+            const Int32 TIMEOUT = 5000;
+
+            mock_logger=new(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
+            using(manager=new DefaultRunnerManager(mock_logger.Logger, dummy_sp.Object)) {
+                using(pause_event=new ManualResetEventSlim()) {
+                    manager.RegisterSession(stub_as.Object);
+                    //Test case: non-disposable runner
+                    number = manager.GetNewRunnerNumber(stub_as.Object);
+                    manager.RegisterRunner(stub_as.Object, number, new RunnerBase(), typeof(Object));
+                    tracking_task=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                    Assert.NotNull(tracking_task);
+                    unreg_task=manager.UnregisterRunner(stub_as.Object,number);
+                    Assert.Null(unreg_task);
+                    Assert.True(tracking_task.IsCompletedSuccessfully);
+                    //Test case: disposable runner
+                    pause_event.Reset();
+                    number = manager.GetNewRunnerNumber(stub_as.Object);
+                    manager.RegisterRunner(stub_as.Object, number, new RunnerDisposable(Callback: () => pause_event.Wait()), typeof(Object));
+                    tracking_task=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                    Assert.NotNull(tracking_task);
+                    unreg_task=manager.UnregisterRunner(stub_as.Object, number);
+                    Assert.NotNull(unreg_task);
+                    Thread.Sleep(50);
+                    Assert.False(tracking_task.IsCompleted);
+                    Assert.False(unreg_task.IsCompleted);
+                    pause_event.Set();
+                    Assert.True(unreg_task.Wait(TIMEOUT));
+                    Assert.True(tracking_task.Wait(TIMEOUT));
+                    //Test case: async-disposable runner 
+                    pause_event.Reset();
+                    number = manager.GetNewRunnerNumber(stub_as.Object);
+                    manager.RegisterRunner(stub_as.Object, number, new RunnerAsyncDisposable(Callback: () => pause_event.Wait()), typeof(Object));
+                    tracking_task=manager.GetRunnerCleanupTrackingTask(stub_as.Object, number);
+                    Assert.NotNull(tracking_task);
+                    unreg_task=manager.UnregisterRunner(stub_as.Object, number);
+                    Assert.NotNull(unreg_task);
+                    Thread.Sleep(50);
+                    Assert.False(tracking_task.IsCompleted);
+                    Assert.False(unreg_task.IsCompleted);
+                    pause_event.Set();
+                    Assert.True(unreg_task.Wait(TIMEOUT));
+                    Assert.True(tracking_task.Wait(TIMEOUT));
+                }
+            }
+        }
+
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //  Auxilary methods and classes
@@ -442,7 +533,7 @@ namespace ActiveSession.Tests
         {
             int number = Manager.GetNewRunnerNumber(SessionKey);
             Manager.RegisterRunner(SessionKey, number, Runner, typeof(Object));
-            Runner.            CompletionToken.Register(() => Task.Run(() => UnregisterTestRunner(new UnregisterState(Manager,SessionKey,number,UnregCallback))));
+            Runner.CompletionToken.Register(() => Task.Run(() => UnregisterTestRunner(new UnregisterState(Manager,SessionKey,number,UnregCallback))));
             //Runner.GetCompletionToken().Register(UnregisterTestRunner,new UnregisterState(Manager, SessionKey, number, UnregCallback));
             return number;
         }

@@ -32,7 +32,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// An asynchronous version of <see cref="GetRunner{TResult}(int, HttpContext)"/> method.
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="RunnerNumber">An <see cref="Int32"/>  key specifying the runner to search for</param>
+        /// <param name="RunnerNumber">A key specifying the runner to search for</param>
         /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
@@ -104,6 +104,15 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <remarks> Current implementation of this property is based on a <see cref="SortedList{TKey, TValue}"/> class.
         /// </remarks>
         IDictionary<String,Object> Properties { get; }
+
+        /// <summary>
+        /// Obtains a task for the runner that tracks the runner's completion and cleanup, 
+        /// completing after the runner has been completed and its object has been disposed (if disposal is required).
+        /// </summary>
+        /// <param name="RunnerNumber">An <see cref="Int32"/>A key specifying the runner for which the task is obtained.</param>
+        /// <returns>The task tracking the runner cleanup.</returns>
+        public Task? TrackRunnerCleanup(Int32 RunnerNumber);
+
 
     }
 }

@@ -150,6 +150,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return new ValueTask<bool>(IsIdle);
         }
 
+        public Task? TrackRunnerCleanup(Int32 RunnerNumber)
+        {
+            return _runnerManager.GetRunnerCleanupTrackingTask(this, RunnerNumber);
+        }
+
         internal Boolean Disposed { get { return _disposed!=0; }}
 
         public Int32 Generation { get; init; }

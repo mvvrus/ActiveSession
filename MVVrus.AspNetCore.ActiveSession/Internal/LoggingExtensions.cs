@@ -537,6 +537,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MANAGERCLEANUPENDED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync finished, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanupComplete(this ILogger Logger, String SessionId);
 
+        [LoggerMessage(T_MANAGERTRACKCLEANUP, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask entered, acquiring lock, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceGetRunnerCleanupTracking(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+
+        [LoggerMessage(T_MANAGERTRACKCLEANUPLOCKED, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingLocked(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+
+        [LoggerMessage(T_MANAGERTRACKCLEANUPNEW, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask creating new source for the task, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingNewTaskSource(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+
+        [LoggerMessage(T_MANAGERTRACKCLEANUPEXIT, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock released exiting with Found={Found}, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingExit(this ILogger Logger, Boolean Found, String SessionId, Int32 RunnerNumber);
 
 #endif
 

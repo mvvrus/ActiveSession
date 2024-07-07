@@ -1,11 +1,12 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class RunnerInfo
+    internal record RunnerInfo
     {
-        public IRunner Runner { get; init; }
-        public Type ResultType { get; init; }
-        public String? RemoteHost { get; init; } //Currently not used and always null.
-        public Int32 Number { get; init; }
+        public readonly IRunner Runner; 
+        public readonly Type ResultType;
+        public readonly String? RemoteHost;  //Currently not used and always null.
+        public readonly Int32 Number;
+        public TaskCompletionSource? TrackCleanup;
 
         public RunnerInfo(IRunner Runner, Type ResultType, Int32 Number)
         {
