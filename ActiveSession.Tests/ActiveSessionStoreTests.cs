@@ -1181,7 +1181,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //TODO Test group: Disposing the store while having active sessions in the cache
+        //Test group: Disposing the store while having active sessions in the cache
         [Fact]
         public void Dispose_Store()
         {
@@ -1203,7 +1203,7 @@ namespace ActiveSession.Tests
             Task dispose_task;
             MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession? as1, as2;
             Task cleanup_task1, cleanup_task2;
-            //test case: try to create a session in the disposed store
+            //Test case: disposing in the case some sessions an runners haven't been completed within timeout
             //Arrange
             Arrange(true);
             //Act
@@ -1217,7 +1217,8 @@ namespace ActiveSession.Tests
             dispose_task=Task.Run(() => store.Dispose());
             //Assess
             Assess(false);
-            //TODO Test case: disposing in the case some sessions an runners haven't been completed within timeout
+            //Test case: try to create a session in the disposed store
+            Assert.Throws<ObjectDisposedException>(()=>store.FetchOrCreateSession(session1_mock.Object, null));
 
             void Arrange(Boolean Infinite)
             {
