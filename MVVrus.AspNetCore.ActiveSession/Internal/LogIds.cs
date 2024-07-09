@@ -138,8 +138,6 @@
         public const Int32 T_FEATURELOAD = 4340;
         public const Int32 T_FEATURELOADSESSION = 4341;
         public const Int32 T_FEATURELOADEXIT = 4342;
-        public const Int32 T_FEATURESETSESSION = 4350;
-        public const Int32 T_FEATURESETSESSIONEXIT = 4351;
         public const Int32 T_DLGTFACTORYCONS = 4400;
         public const Int32 T_DLGTFACTORYINVOKE = 4401;
         public const Int32 T_TYPEFACTORCONS = 4410;

@@ -861,7 +861,7 @@ namespace ActiveSession.Tests
             ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
             using (ActiveSessionStore store=ts.CreateStore()) {
                 //Act
-                IActiveSessionFeature feature = store.CreateFeatureObject(dummy_session.Object,null);
+                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object,null);
                 //Assess
                 Assert.IsType<ActiveSessionFeature>(feature);
             }

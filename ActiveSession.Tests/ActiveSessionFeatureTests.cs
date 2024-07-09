@@ -342,36 +342,6 @@ namespace ActiveSession.Tests
             Assert.Equal(0, statistics.StoreSize);
         }
 
-        //Test group: association a session(ISession) with a feature object
-        [Fact]
-        public void SetSession()
-        {
-            const String ANOTHER_SESSION_ID = "ANOTHER_SESSION_ID";
-            Mock<ISession> StubNewSession = new Mock<ISession>();
-            StubNewSession.SetupGet(s => s.Id).Returns(ANOTHER_SESSION_ID);
-            //Test case: set session for a non-loaded feature
-            //Arrange
-            LoadTestSetup test_setup = new LoadTestSetup();
-            ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
-            Assert.False(feature.IsLoaded);
-            //Act
-            feature.SetSession(StubNewSession.Object, null);
-            //Assess
-            Assert.Equal(StubNewSession.Object, feature.Session);
-
-            //Test case: set session for a loaded feature
-            //Arrange
-            feature.Load();
-            Assert.True(feature.IsLoaded);
-            //Act
-            feature.SetSession(StubNewSession.Object, null);
-            //Assess
-            Assert.Equal(StubNewSession.Object, feature.Session);
-            Assert.False(feature.IsLoaded);
-            Assert.False(feature.RawActiveSession.IsAvailable);
-        }
-
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Auxilary classes
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////

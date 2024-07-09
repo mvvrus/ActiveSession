@@ -62,7 +62,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 for (int i = 0; !pass&&i<_filters.Count; i++)
                     pass=pass||_filters[i].Invoke(Context);
                 if (pass) {
-                    feature=_store.CreateFeatureObject(Context.Session, Context.TraceIdentifier);
+                    feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier);
                     Context.Features.Set(feature);
                     _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
                     if (_preloadActiveSession||_useSessionServicesAsRequestServices) {
@@ -100,8 +100,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             finally {
                 Context.Features.Set((IActiveSessionFeature?)null);
-                IActiveSessionFeatureControl? feature_control = feature as IActiveSessionFeatureControl;
-                feature_control?.Clear();
+                if(feature!=null) _store.ReleaseFeatureObject(feature);
                 Context.RequestServices=request_services;
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);

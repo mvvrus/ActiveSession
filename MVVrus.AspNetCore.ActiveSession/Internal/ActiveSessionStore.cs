@@ -547,9 +547,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             } :null;
         }
 
-        public IActiveSessionFeature CreateFeatureObject(ISession? Session, String? TraceIdentier)
+        public IActiveSessionFeature AcquireFeatureObject(ISession? Session, String? TraceIdentier)
         {
             return new ActiveSessionFeature(this, Session, _logger, TraceIdentier);
+        }
+
+        public void ReleaseFeatureObject(IActiveSessionFeature AnObject)
+        {
+            ActiveSessionFeature? feature = AnObject as ActiveSessionFeature;
+            feature?.Clear();
         }
         #endregion
 
