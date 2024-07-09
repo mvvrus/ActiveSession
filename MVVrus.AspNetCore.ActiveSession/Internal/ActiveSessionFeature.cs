@@ -165,5 +165,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         static readonly internal NullActiveSession DummySession = new NullActiveSession();
+        static readonly internal NullLocalSession DummyLocalSession = new NullLocalSession();
     }
 }

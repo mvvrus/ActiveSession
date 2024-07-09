@@ -8,6 +8,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IServiceScope _scope;
         readonly ILogger? _logger;
         readonly String _sessionId;
+        readonly String _baseId;
         Int32 _disposed = 0;
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
@@ -26,10 +27,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , Int32 Generation
             , Task? CleanupCompletionTask = null
             , String? TraceIdentifier = null
+            , String? BaseId=null
         )
         {
-            if (SessionId is null) throw new ArgumentNullException(nameof(SessionId));
+            ArgumentNullException.ThrowIfNull(SessionId, nameof(SessionId));
             _logger=Logger;
+            _baseId=BaseId??SessionId;
             _sessionId=SessionId;
             this.Generation=Generation;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
@@ -114,7 +117,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IServiceProvider SessionServices { get { return _scope.ServiceProvider; } }
 
-        public String Id { get { return _sessionId; } }
+        public String Id { get => _sessionId; }
+
+        public String BaseId { get => _baseId; }
 
         public CancellationToken CompletionToken { get; private set; }
 

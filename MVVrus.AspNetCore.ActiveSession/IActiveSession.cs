@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <summary>
     /// An interface used to access Active Session object
     /// </summary>
-    public interface IActiveSession
+    public interface IActiveSession: ILocalSession
     {
         /// <summary>
         /// A method used to create a new runner
@@ -53,24 +53,18 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         Task Terminate(HttpContext Context);
 
-        /// <summary>Indicator that the Active Session object is properly initialized and may be used.</summary>
-        Boolean IsAvailable { get; }
-
         /// <summary>Indicator that the Active Session object was just created an is still empty.</summary>
         Boolean IsFresh { get; }
 
-        /// <summary>The service (DI) container for the scope of the Active Session</summary>
-        IServiceProvider SessionServices { get; }
-
-        /// <summary>The ActiveSession identifier</summary>
+        /// <summary>The ActiveSession identifier.</summary>
         String Id { get; }
 
         /// <summary>
-        /// A generation number of this ActiveSession within the containing <see cref="ISession">ASP.NET Core session</see>
+        /// A generation number of this ActiveSession within the containing <see cref="ISession">ASP.NET Core session/</see>
         /// </summary>
         Int32 Generation {  get; }
 
-        /// <summary>Cancellation token that will be fired after session completion (eviction/disposal)</summary>
+        /// <summary>Cancellation token that will be fired after the active session completion (eviction/disposal) at start of cleanup/</summary>
         CancellationToken CompletionToken { get;}
 
         /// <summary>Task that performs asynchronous cleanup of this active session (waits for all runners completion etc).</summary>
@@ -99,20 +93,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout);
 
         /// <summary>
-        /// A set of arbitrary objects associated with this active session accessible via their string keys.
-        /// </summary>
-        /// <remarks> Current implementation of this property is based on a <see cref="SortedList{TKey, TValue}"/> class.
-        /// </remarks>
-        IDictionary<String,Object> Properties { get; }
-
-        /// <summary>
         /// Obtains a task for the runner that tracks the runner's completion and cleanup, 
         /// completing after the runner has been completed and its object has been disposed (if disposal is required).
         /// </summary>
         /// <param name="RunnerNumber">An <see cref="Int32"/>A key specifying the runner for which the task is obtained.</param>
         /// <returns>The task tracking the runner cleanup.</returns>
         public Task? TrackRunnerCleanup(Int32 RunnerNumber);
-
 
     }
 }

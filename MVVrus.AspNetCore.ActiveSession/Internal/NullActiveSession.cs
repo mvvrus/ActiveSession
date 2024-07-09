@@ -1,14 +1,9 @@
 ﻿
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class NullActiveSession : IActiveSession
+    internal class NullActiveSession : NullLocalSession, IActiveSession
     {
-        const String MESSAGE = "Invalid operation: an ActiveSession is not available";
-        public bool IsAvailable => false;
-
         public bool IsFresh => true;
-
-        public IServiceProvider SessionServices => throw new InvalidOperationException(MESSAGE);
 
         public String Id => "<null session Id>";
 
@@ -19,8 +14,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public Int32 Generation => throw new NotImplementedException();
 
         public Boolean IsIdle =>  true;
-
-        public IDictionary<String, Object> Properties => throw new NotImplementedException();
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {

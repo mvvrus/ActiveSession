@@ -13,7 +13,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
         /// <returns>
         /// Reference of type <see cref="IActiveSession"/> to an active session associated to the request if available, 
-        /// or to a dummy active session object which <see cref="IActiveSession.IsAvailable"/> property containing false
+        /// or to a dummy active session object which <see cref="ILocalSession.IsAvailable"/> property containing false
         /// </returns>
         public static IActiveSession GetActiveSession(this HttpContext Context)
         {
