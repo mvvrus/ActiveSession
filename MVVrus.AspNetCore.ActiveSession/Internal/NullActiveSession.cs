@@ -45,7 +45,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout)
+        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout, CancellationToken Token=default)
         {
             throw new NotImplementedException();
         }

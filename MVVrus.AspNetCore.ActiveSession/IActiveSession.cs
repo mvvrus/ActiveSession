@@ -87,10 +87,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="AbortAll">Indicates whether all executing runners should be immediately aborted.</param>
         /// <param name="Timeout">A timeout value for waiting.</param>
+        /// <param name="Token">Can be used to cancel wait</param>
         /// <returns>A task representing a wait process. The task result is <see langword="true"/> if the wait was successfull.</returns>
         /// <remarks> In this version of the library this method is a stub
         /// just returning immediately with the result set to a value of <see cref="IsFresh"/> property.</remarks>
-        ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout);
+        ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout, CancellationToken Token=default);
 
         /// <summary>
         /// Obtains a task for the runner that tracks the runner's completion and cleanup, 

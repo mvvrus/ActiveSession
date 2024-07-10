@@ -150,7 +150,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         //TODO(future) Make real implementation instead of this stub
-        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout)
+        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout, CancellationToken Token = default)
         {
             return new ValueTask<bool>(IsIdle);
         }
