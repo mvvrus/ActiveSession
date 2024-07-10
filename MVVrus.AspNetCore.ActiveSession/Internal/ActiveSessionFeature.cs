@@ -37,6 +37,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
 
+        public ILocalSession LocalSession { get => DummyLocalSession; } //TODO (future) Implement
+
         public async Task CommitAsync(CancellationToken Token = default)
         {
             #if TRACE

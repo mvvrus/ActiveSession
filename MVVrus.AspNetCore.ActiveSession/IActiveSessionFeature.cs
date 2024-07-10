@@ -8,9 +8,30 @@ namespace MVVrus.AspNetCore.ActiveSession
     public interface IActiveSessionFeature
     {
         /// <summary>
-        /// Points to an Active Session for this request.
+        /// Points to an Active Session object for this request.
         /// </summary>
+        /// <remarks><see cref="IActiveSession">Active Session objects</see> serves as a means 
+        /// of creating, searching and controlling <see cref="IRunner{TResult}">runners</see> available to handlers 
+        /// of requests pertaining to the current <see cref="ISession">ASP.NET Core session</see>.
+        /// They, like <see cref="ILocalSession">Local Session objects</see>, 
+        /// can also contain a scoped service (DI) container and a dictionary of named objects, associated with the session.
+        /// A number of different Active Session objects can be associated with a whole ASP.NET Core session, 
+        /// but any specific request handler can have acess to the only Active Session object, 
+        /// that can be terminated and renewed between requests, and, generally speaking,  
+        /// selected on the basis of the request properties (but this feature is not implemented yet).
+        /// </remarks>
         IActiveSession ActiveSession { get; }
+
+        /// <summary>
+        /// Points to an Local Session object for this request.
+        /// </summary>
+        /// <remarks>
+        /// Unlike <see cref="IActiveSession">Active Session objects</see> 
+        /// <see cref="ILocalSession">Local Session objects</see> cannot be used 
+        /// to create, search for an control <see cref="IRunner{TResult}">runners</see>. 
+        /// They can only contain a scoped service (DI) container and a dictionary of named objects, associated with the session.
+        /// Also at most one Local Session object can be associated with an <see cref="ISession">ASP.NET Core session</see></remarks>
+        ILocalSession LocalSession { get; }
 
         /// <summary>
         /// Indicates that <see cref="ActiveSession"/> property contains reference 
