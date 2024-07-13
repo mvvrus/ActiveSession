@@ -52,7 +52,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     {
         const string PARALLELISM_NOT_ALLOWED = "Parallel operations are not allowed.";
 
-        readonly BlockingCollection<TItem> _queue;
+        readonly internal BlockingCollection<TItem> _queue;
         readonly int _defaultAdvance;
         Task? _disposeTask = null;
         List<TItem>? _stashedFetch = null;
@@ -444,22 +444,28 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///  Protected. Adds an item to the queue.
         /// </summary>
         /// <param name="Item">The item to be added</param>
-        /// <param name="Timeout"> Time(ms) to wait if the queue is full, -1 means "wait indefinitely" </param>
-        /// <param name="Token">
-        /// A cancellation token used for coordinated cancellation of the queue wait, if such a feature is used.
-        /// </param>
         /// <returns>
-        /// <see langword="true"/> if the item was added within <paramref name="Timeout"/>, <see langword="false"/> overwise.
+        /// <see langword="true"/> if the item was successfully added , <see langword="false"/> overwise.
         /// </returns>
         /// <remarks>
-        /// The signature of this method is the same as one of <see cref="BlockingCollection{TItem}.TryAdd(TItem, int, CancellationToken)"/>
-        /// The standard runners of the ActiveSession library always call this method 
-        /// with <paramref name="Timeout"/>=-1 (indefinite wait).
-        /// Therefore the only return value that is acceptable by standard library runners is <see langword="true"/> 
+        /// This method is really implemented via a <see cref="BlockingCollection{TItem}.TryAdd(TItem, int, CancellationToken)">
+        /// BlockingCollection&lt;TItem&gt;.TryAdd(TItem, -1, CompletionToken) </see> accompanied by an interception 
+        /// of <see cref="OperationCanceledException"/>. It returns <see langword="false"/> value then and only then 
+        /// <see cref="IRunner.CompletionToken">CompletionToken</see> is canceled 
+        /// (usually via <see cref="IRunner.Abort">Abort()</see> call).
         /// </remarks>
-        protected internal Boolean QueueTryAdd(TItem Item, Int32 Timeout, CancellationToken Token)
+        protected internal Boolean QueueTryAdd(TItem Item)
         {
-            Boolean result = _queue.TryAdd(Item, Timeout, Token);
+            Boolean result;
+            try{
+                result = _queue.TryAdd(Item, -1, CompletionToken);
+            }
+            catch (OperationCanceledException){
+                #if TRACE
+                Logger?.LogTraceEnumerableRunnerQueueAdditionCanceled(Id);
+                #endif
+                result = false;
+            }
             if(result) _queueAddedCount++;
             return result;
         }

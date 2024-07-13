@@ -70,6 +70,21 @@ namespace ActiveSession.Tests
                     Assert.IsType<TestException>(runner.Exception);
                     runner.FetchAndCheck(0, step1);
                 }
+                //Test case Abort call while enumerating with a full queue
+                test_enumerable.ReleaseTestEnumerable();
+                using(TestRunner runner = new TestRunner(test_enumerable, end, end/2)) {
+                    runner.StartBackgroundExecution();
+                    Assert.NotNull(runner.EnumTask);
+                    Thread.Sleep(100);
+                    Assert.False(runner.EnumTask.IsCompleted);
+                    Assert.False(runner.QueueIsAddingCompleted);
+                    Assert.Equal(end/2, runner.GetProgress().Progress);
+                    runner.Abort();
+                    Assert.True(runner.EnumTask.Wait(5000));
+                    Assert.True(runner.EnumTask.IsCompletedSuccessfully);
+                    Assert.True(runner.QueueIsAddingCompleted);
+                    Assert.Null(runner.Exception);
+                }
 
             }
         }
@@ -399,8 +414,9 @@ namespace ActiveSession.Tests
         {
             readonly TestEnumerable _source;
 
-            public TestRunner(TestEnumerable Source, Int32 Max) 
-                : base(Source.GetTestEnumerable(Max), default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory.CreateLogger<EnumAdapterRunner<Int32>>()) 
+            public TestRunner(TestEnumerable Source, Int32 Max, Int32? QLimit = null) 
+                : base(Source.GetTestEnumerable(Max), true, null, true, null, QLimit, false, 
+                      default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory.CreateLogger<EnumAdapterRunner<Int32>>()) 
             {
                 _source = Source;
             }

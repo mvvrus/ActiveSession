@@ -126,6 +126,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceEnumerableRunnerBasePseudoLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEABORTCORE, LogLevel.Trace, "EnumerableRunnerBase: Abort-associated actions to be executed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseAbortCore(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_ENUMRUNNERBASEQUEUEADDITIONCANCELED, LogLevel.Trace, "EnumerableRunnerBase: blocked addition to the background queue is canceled, RunnerId={RunnerId}")]
+        public static partial void LogTraceEnumerableRunnerQueueAdditionCanceled(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(T_ENUMRUNNERBASEGETAVAILABLE, LogLevel.Trace, "Enetring EnumerableRunnerBase.GetAvailable, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceEnumerableRunnerBaseGetAvailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_ENUMRUNNERBASEGETAVAILABLEEXIT, LogLevel.Trace, "Exiting EnumerableRunnerBase.GetAvailable, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]

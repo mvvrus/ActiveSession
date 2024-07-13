@@ -314,7 +314,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #endif
                         break;
                     }
-                    if (QueueTryAdd(item, -1, completion_token))
+                    if (QueueTryAdd(item))
                     {
                         #if TRACE
                         Logger?.LogTraceEnumAdapterRunnerEnumerateSourceItemAdded(Id);

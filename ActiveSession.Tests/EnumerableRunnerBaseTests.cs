@@ -1067,6 +1067,24 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test case: Abort call while background task is blocked on an addition to a full queue
+        [Fact]
+        public void AbortOnBlockedQueue()
+        {
+            Int32 qsize= 256;
+
+            using(TestEnumerableParamRunner runner = new TestEnumerableParamRunner(
+                    new ActiveSessionOptions { DefaultEnumerableQueueSize=qsize}, null, null)) {
+                Assert.Equal(qsize, runner.FillQueueToCapacity());
+                Task<Boolean> add_task=Task<Boolean>.Run(()=>runner.QueueTryAdd(qsize));
+                Assert.False(add_task.IsCompleted);
+                runner.Abort();
+                Assert.True(add_task.Wait(TIMEOUT));
+                Assert.False(add_task.Result);
+            }
+
+        }
+
 
         [Fact]
         //Test group: check parameter passing
@@ -1158,7 +1176,7 @@ namespace ActiveSession.Tests
                 if(!Monitor.TryEnter(this,TIMEOUT)) throw new TimeoutException();
                 try {
                     if(Status.IsFinal()) throw new InvalidOperationException("The runner is already completed.");
-                    for(Int32 i = 0; i < Advance; i++) QueueTryAdd(_progress++,-1,default);
+                    for(Int32 i = 0; i < Advance; i++) QueueTryAdd(_progress++);
                     if(IsTheLast) {
                         QueueCompleteAdding();
                         if(BackgroundException != null) Exception = BackgroundException;
@@ -1327,7 +1345,8 @@ namespace ActiveSession.Tests
             {
                 StartRunning(RunnerStatus.Progressed);
                 Int32 count = 0;
-                while(QueueTryAdd(count, 100, default)) count++;
+                
+                while(_queue.TryAdd(count, 100, default)) count++;
                 return count;
             }
 

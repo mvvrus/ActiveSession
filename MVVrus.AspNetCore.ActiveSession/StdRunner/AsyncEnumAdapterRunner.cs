@@ -337,8 +337,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #if TRACE
                         Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceItemAdded(Id);
                         #endif
-                        QueueTryAdd(_asyncEnumerator.Current, -1, default);
-                        proceed = true;
+                        proceed = QueueTryAdd(_asyncEnumerator.Current);
                     }
                     else {
                         #if TRACE
