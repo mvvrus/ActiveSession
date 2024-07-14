@@ -1524,14 +1524,14 @@ namespace ActiveSession.Tests
             public Expression<Func<IRunnerManager, Object?>> LockObjectExpression = s => s.RunnerCreationLock;
 
             public Boolean LoggerCreated() {
-                return _loggerFactory.LoggerCreationCount(LOGGING_CATEGORY_NAME)>0;
+                return _loggerFactory.LoggerCreationCount(INFRASTRUCTURE_CATEGORY_NAME)>0;
             }
 
             public ConstructorTestSetup(Mock<IMemoryCache>? MockCache)
             {
                 MockRootServiceProvider=new Mock<IServiceProvider>();
                 _loggerFactory=new MockedLoggerFactory();
-                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
+                _logger=_loggerFactory.MonitorLoggerCategory(SESSION_CATEGORY_NAME);
                 this.MockCache=MockCache;
                 IActSessionOptions=Options.Create(ActSessOptions);
                 ISessOptions=Options.Create(SessOptions);
@@ -1547,7 +1547,7 @@ namespace ActiveSession.Tests
             public MockedLogger InitLogger()
             {
                 _loggerFactory.ResetAllCategories();
-                _logger=_loggerFactory.MonitorLoggerCategory(LOGGING_CATEGORY_NAME);
+                _logger=_loggerFactory.MonitorLoggerCategory(INFRASTRUCTURE_CATEGORY_NAME);
                 return _logger;
             }
 

@@ -28,6 +28,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         bool _disposed = false;
         internal Boolean _disposeNoTimedOut;
         ILogger? _logger;
+        ILoggerFactory? _loggerFactory;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
         readonly Object _creation_lock = new Object();
         Int32 _currentSessionCount = 0;
@@ -74,7 +75,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _shutdownTcs=new TaskCompletionSource();
             _shutdownCallback=HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
-            _logger =LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+            _loggerFactory=LoggerFactory;
+            _logger =_loggerFactory?.CreateLogger(INFRASTRUCTURE_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructor();
             #endif
@@ -223,7 +225,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager,info);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 Task runner_completion_task = new Task(RunnerManagerCleanupWait, info);
-                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _logger, new_generation, runner_completion_task, trace_identifier);
+                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
+                                    new_generation, runner_completion_task, trace_identifier);
                                 try {
                                     runner_manager.RegisterSession(result);
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));

@@ -7,9 +7,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> _factory;
         readonly ILogger? _logger;
 
-        public DelegateRunnerFactory(Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> Factory, ILogger? Logger=null)
+        public DelegateRunnerFactory(Func<TRequest, IServiceProvider, RunnerId, IRunner<TResult>> Factory, ILoggerFactory? LoggerFactory=null)
         {
-            _logger = Logger;
+            _logger = LoggerFactory?.CreateLogger(FACTORY_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceConstructDelegateFactory(typeof(TRequest).FullName??UNKNOWN_TYPE, typeof(TResult).FullName??UNKNOWN_TYPE);
             #endif

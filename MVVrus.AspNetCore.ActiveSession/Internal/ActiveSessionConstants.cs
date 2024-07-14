@@ -4,6 +4,10 @@
     {
         public const String CONFIG_SECTION_NAME = "MVVrus.ActiveSessions";
         public const String LOGGING_CATEGORY_NAME = "MVVrus.AspNetCore.ActiveSession";
+        public const String SESSION_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".ActiveSession";
+        public const String INFRASTRUCTURE_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".Infrastructure";
+        public const String INIT_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".Initialization";
+        public const String FACTORY_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".RunnerFactory";
         public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
         public static readonly TimeSpan DEFAULT_RUNNER_IDLE_TIMEOUT = TimeSpan.FromMinutes(2);
         public static readonly String DEFAULT_HOST_NAME = "localhost";

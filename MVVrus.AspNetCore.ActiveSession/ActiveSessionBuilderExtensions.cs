@@ -41,7 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             ILogger? logger = Builder.
                                 ApplicationServices.
                                 GetService<ILoggerFactory>()?.
-                                CreateLogger(ActiveSessionConstants.LOGGING_CATEGORY_NAME);
+                                CreateLogger(ActiveSessionConstants.INIT_CATEGORY_NAME);
             #if TRACE
             logger?.LogTraceUseActiveSessions();
             #endif

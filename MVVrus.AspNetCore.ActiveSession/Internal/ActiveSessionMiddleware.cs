@@ -25,7 +25,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IOptions<ActiveSessionOptions> Options
         )
         {
-            _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+            _logger=LoggerFactory?.CreateLogger(INFRASTRUCTURE_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddleware();
             #endif

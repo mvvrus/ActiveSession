@@ -301,7 +301,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                         .MakeGenericType(type_args);
                     ConstructorInfo factory_impl_object_constructor = typeof(TypeRunnerFactory<,>)
                         .MakeGenericType(type_args)
-                        .GetConstructors()[0];
+                        .GetConstructors().First();
                     Int32 num_req_param = 1;    
                     //Account for RunnerId constructor parameter
                     if (constructor.GetParameters().Count(p => p.ParameterType==typeof(RunnerId))==1) num_req_param++;

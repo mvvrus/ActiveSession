@@ -14,7 +14,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public TypeRunnerFactory(Type RunnerType, object[]? Params, Int32 ReqParamsCount, ILoggerFactory? LoggerFactory)
         {
-            _logger=LoggerFactory?.CreateLogger(LOGGING_CATEGORY_NAME);
+            _logger=LoggerFactory?.CreateLogger(FACTORY_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceConstructTypeFactory(
                 typeof(TRequest).FullName??UNKNOWN_TYPE, 

@@ -49,7 +49,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <inheritdoc cref="TimeSeriesRunner{TResult}.TimeSeriesRunner(Func{TResult}, TimeSpan, int?, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/param[@name="Logger"]'/>
         /// </param>
         [ActiveSessionConstructor]
-        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger? Logger) :
+        public TimeSeriesRunner(ValueTuple<Func<TResult>, TimeSpan> SeriesParam, RunnerId RunnerId, IOptionsSnapshot<ActiveSessionOptions> Options, ILogger<TimeSeriesRunner<TResult>>? Logger) :
             this(SeriesParam.Item1, SeriesParam.Item2, null, null, true, null, null, false, RunnerId, Options, Logger) { }
 
         /// <summary>
