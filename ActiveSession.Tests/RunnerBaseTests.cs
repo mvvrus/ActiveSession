@@ -193,7 +193,6 @@ namespace ActiveSession.Tests
             //Test case: CheckDisposed on disposed runner
             ObjectDisposedException e = Assert.Throws<ObjectDisposedException>(() => runner.CheckDisposedPub());
             Assert.Equal(typeof(RunnerBaseImpl).Name, e.ObjectName);
-
         }
 
         //Test group: Exception thrown while starting background execution
@@ -212,6 +211,16 @@ namespace ActiveSession.Tests
             Assert.Single(aggregate.InnerExceptions);
             Assert.IsType<TestException>(aggregate.InnerExceptions[0]);
             Assert.Equal(RunnerStatus.NotStarted, runner.Status);
+        }
+
+        //Test case: set and access IRunner.ExtraData implemented property
+        [Fact]
+        public void ExraData()
+        {
+            RunnerBaseImpl runner = new RunnerBaseImpl();
+            Object data = new Object();
+            runner.ExtraData=data;
+            Assert.Same(data, runner.ExtraData);
         }
 
         class TestException : Exception { }

@@ -122,6 +122,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc/>
         public abstract RunnerBkgProgress GetProgress();
 
+        /// <inheritdoc/>
+        public virtual Object? ExtraData { get; set; }
+
+
         /// <summary>
         /// Protected. Sets the <see cref="Status"/> property enforcing rules for changing this property.
         /// </summary>

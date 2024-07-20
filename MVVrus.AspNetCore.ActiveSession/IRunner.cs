@@ -65,10 +65,16 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///   <para>EstimatedEnd: estimation of a <see cref="Position"/> value to be at a finish of the background execution(if any)</para>
         /// </returns>
         RunnerBkgProgress GetProgress();
+
         /// <summary>
         /// Indicate whether the background operation is completed.
         /// </summary>
         Boolean IsBackgroundExecutionCompleted { get; }
+
+        /// <summary>
+        /// Allows attach and access to arbitrary data attached to thr runner
+        /// </summary>
+        public Object? ExtraData { get; set; }
     }
 
     /// <summary>

@@ -25,6 +25,8 @@ namespace ActiveSession.Tests
 
         public Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
 
+        public Object? ExtraData { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
         public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
             Int32 Advance = IRunner.DEFAULT_ADVANCE,
             CancellationToken Token = default,

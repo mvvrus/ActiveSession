@@ -577,6 +577,8 @@ namespace ActiveSession.Tests
             public Exception? Exception => throw new NotImplementedException();
 
             public Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
+            public Object? ExtraData { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         }
 
         class RunnerDisposable: RunnerBase, IDisposable
