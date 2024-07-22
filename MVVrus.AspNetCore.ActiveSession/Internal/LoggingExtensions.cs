@@ -70,7 +70,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORESESSIONKEY, Debug, "ActiveSession ID to use: \"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugActiveSessionKeyToUse(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORESESSIONFOUNDTERMINATED, Debug, "Found existing ActiveSession that is terminated, return null instead SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        [LoggerMessage(D_STORESESSIONFOUNDTERMINATED, Debug, "Found existing ActiveSession that is terminated, return null instead, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugFoundTerminatedActiveSession(this ILogger Logger, String SessionId, String TraceIdentifier);
 
         [LoggerMessage(D_STORESESSIONFOUND, Debug, "Found existing ActiveSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
@@ -79,20 +79,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORESESSIONTOCREATE, Debug, "Creating new ActiveSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugCreateNewActiveSession(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORESESSIONCREATEDDISPOSE, Debug, "Before Disposing the ActiveSession, SessionId={SessionId}")]
+        [LoggerMessage(D_STORESESSIONCREATEDDISPOSE, Debug, "Before Disposing the ActiveSession, SessionId=\"{SessionId}\".")]
         public static partial void LogDebugBeforeSessionDisposing(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(D_STORESESSIONEXIT, Debug, "Exit ActiveSessionStore.FetchOrCreateSession due to the exception, the cache entry has been removed, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugFetchOrCreateExceptionalExit(this ILogger Logger, Exception AnException, String TraceIdentifier);
+        [LoggerMessage(D_STORESESSIONEXIT, Debug, "Exit ActiveSessionStore.FetchOrCreateSession due to the exception, the cache entry has been removed, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugFetchOrCreateExceptionalExit(this ILogger Logger, Exception AnException, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORERUNNERCREATED, Debug, "A new runner was created RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugCreateNewRunner(this ILogger Logger, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(D_STORERUNNERCREATED, Debug, "A new runner was created, SessionId=\"{SessionId}\" RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateNewRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(D_STORERUNNERCREATIONFAIL, Debug, "Exit ActiveSessionStore.CreateRunner due to the exception, the cache entry has been removed, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugCreateRunnerFailure(this ILogger Logger, Exception AnException, String TraceIdentifier);
-
-        [LoggerMessage(D_STORERUNNERFACTORYFOUND, Debug, "The runner factory was fetched from the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugGetRunnerFactoryFromCache(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
+        [LoggerMessage(D_STORERUNNERCREATIONFAIL, Debug, "Exit ActiveSessionStore.CreateRunner due to the exception, the cache entry has been removed, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateRunnerFailure(this ILogger Logger, Exception AnException, String SessionId, String TraceIdentifier);
 
         [LoggerMessage(D_STORERUNNERFACTORYNEW, Debug, "The runner factory was created and is to be added to the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugInstatiateNewRunnerFactory(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
@@ -186,6 +183,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORESESSIONEXIT, Trace, "Exit ActiveSessionStore.FetchOrCreateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceFetchOrCreateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
 
+        [LoggerMessage(T_STORECLEANUPOUTDATED, Trace, "Starting cleanup of outdated runner vars in the Session, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCleanupOutdatedRunnerVars(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STORECLEANUPOUTDATEDREMOVE, Trace, "Removing outdated item, Key=\"{Key}\", SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCleanupOutdatedRunnerVarsRemove(this ILogger Logger, String Key, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STORECLEANUPOUTDATEDEXIT , Trace, "Finished cleanup of outdated runner vars in the Session, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCleanupOutdatedRunnerVarsExit(this ILogger Logger, String SessionId, String TraceIdentifier);
+
         [LoggerMessage(T_STORESESSIONCALLBACK, Trace, "Enter ActiveSession eviction callback, acquiring session lock, SessionId={SessionId}")]
         public static partial void LogTraceSessionEvictionCallback(this ILogger Logger, String SessionId);
 
@@ -233,6 +239,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(T_STORERUNNERFACTORY, Trace, "Enter ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactory(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_STORERUNNERFACTORYFOUND, Trace, "The runner factory was fetched from the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerFactoryFromCache(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
 
         [LoggerMessage(T_STORERUNNERFACTORYCACHE, Trace, "Storing the factory in the cache, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceStoreNewRunnerFactoryInCache(this ILogger Logger, String TraceIdentifier);

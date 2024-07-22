@@ -138,6 +138,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
             }
             while(completed!=_shutdownTcs.Task);
+            //Come here if the application is stopping
             List<Task> session_completion_tasks=new List<Task>();
             lock(_creation_lock) {
                 _draining=true;
@@ -153,7 +154,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     }
                 }
             }
-            InitCacheExpiration();
+            InitCacheExpiration(); //Perform eviction of all runners left in the cache 
             await Task.WhenAll(session_completion_tasks.ToArray());
         }
 
@@ -203,9 +204,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(session_id, trace_identifier);
                     #endif
-                    if(_draining) return null;
-                    if(_memoryCache.TryGetValue(key, out result)) FoundInCahe();
-                    if(result==null && !_draining) {  //Not found or evicted due to bad generation (and not stopping)
+                    if(_draining) return null;  //The store is stopping due to the application stopping cannot create more sessions
+                    if(_memoryCache.TryGetValue(key, out result)) FoundInCahe(); //Repeat check under the lock
+                    if(result==null) {  //The requested active session is not found or has been evicted due to bad Generation 
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             _sessionKeys.Add(key);
@@ -247,10 +248,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             } //Commit the entry to the cache via implicit Dispose call 
                         }
                         catch (Exception exception) {
-                            _logger?.LogDebugFetchOrCreateExceptionalExit(exception, trace_identifier);
+                            _logger?.LogDebugFetchOrCreateExceptionalExit(exception, session_id, trace_identifier);
                             _sessionKeys.Remove(key);
                             throw;
                         }
+                        CleanupOutdatedRunnerVars(Session, key, new_generation, session_id, trace_identifier);
                     }
                 }
                 finally {
@@ -298,7 +300,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             Int32 runner_number = -1;
             Boolean use_session_lock = true;
-            Object? runner_lock= RunnerManager.RunnerCreationLock; 
+            Object? runner_lock= RunnerManager.RunnerCreationLock;
+            Int32 generation;
             if (runner_lock==null) {
                 _logger?.LogTraceFallbackToStoreGlobalLock(session_id, trace_identifier);
                 runner_lock=_creation_lock;
@@ -314,7 +317,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 runner_number= RunnerManager.GetNewRunnerNumber(ActiveSession, trace_identifier);
                 String runner_session_key = SessionKey(session_id);
-                String runner_key = RunnerKey(runner_session_key, runner_number);
+                generation = ActiveSession.Generation;
+                String runner_key = RunnerKey(runner_session_key, runner_number, generation);
                 #if TRACE
                 _logger?.LogTraceNewRunnerInfoRunner(session_id, runner_number, trace_identifier);
                 #endif
@@ -323,13 +327,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                         new_entry.SlidingExpiration=_runnerIdleTimeout;
                         new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
                         IRunnerFactory<TRequest, TResult> factory = GetRunnerFactory<TRequest, TResult>(trace_identifier);
-                        runner=factory.Create(Request, ActiveSession.SessionServices,(session_id,runner_number, ActiveSession.Generation));
+                        runner=factory.Create(Request, ActiveSession.SessionServices,(session_id,runner_number, generation));
                         if (runner==null) {
                             _logger?.LogErrorCreateRunnerFailure(trace_identifier);
                             throw new InvalidOperationException("The factory failed to create a runner and returned null");
                         }
                         try {
-                            _logger?.LogDebugCreateNewRunner(runner_number, trace_identifier);
+                            _logger?.LogDebugCreateNewRunner(session_id, runner_number, trace_identifier);
                             Int32 size = GetRunnerSize(runner.GetType());
                             new_entry.Size=size;
                             PostEvictionCallbackRegistration end_runner = new PostEvictionCallbackRegistration();
@@ -343,7 +347,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     runner
                                 );
                             new_entry.PostEvictionCallbacks.Add(end_runner);
-                            RegisterRunnerInSession(Session, runner_session_key, runner_number, typeof(TResult), trace_identifier);
+                            RegisterRunnerInSession(Session, runner_session_key, runner_number, generation, typeof(TResult), trace_identifier);
                             try {
 
                                 IChangeToken expiration_token = new CancellationChangeToken(ActiveSession.CompletionToken);
@@ -369,7 +373,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 }
                             }
                             catch {
-                                UnregisterRunnerInSession(Session, runner_session_key, runner_number);
+                                UnregisterRunnerInSession(Session, runner_session_key, runner_number, generation);
                                 throw;
                             }
                         }
@@ -380,7 +384,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     } //Commit the entry to the cache via implicit Dispose call 
                 }
                 catch (Exception exception) {
-                    _logger?.LogDebugCreateRunnerFailure(exception, trace_identifier);
+                    _logger?.LogDebugCreateRunnerFailure(exception, session_id, trace_identifier);
                     throw;
                 }
 
@@ -414,12 +418,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
             String runner_session_key = SessionKey(session_id);
+            Int32 generation = ActiveSession.Generation;
             IRunner<TResult>? result = null;
             #if TRACE
             _logger?.LogTraceGetRunner(session_id, RunnerNumber, trace_identifier);
             #endif
             String? host_id;
-            String runner_key = RunnerKey(runner_session_key, RunnerNumber);
+            String runner_key = RunnerKey(runner_session_key, RunnerNumber, generation);
             host_id=Session.GetString(runner_key);
             if (host_id==null) {
                 #if TRACE
@@ -428,7 +433,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(RunnerNumber, trace_identifier);
-                result=ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, generation, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(RunnerNumber, host_id, trace_identifier);
@@ -451,6 +456,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
             IRunner<TResult>? result = null;
+            Int32 generation = ActiveSession.Generation;
             #if TRACE
             _logger?.LogTraceGetRunnerAsync(session_id, RunnerNumber, trace_identifier);
             #endif
@@ -460,7 +466,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceGetRunnerAsyncInfoRunner(runner_session_key, RunnerNumber, trace_identifier);
             #endif
             String? host_id;
-            String runner_key = RunnerKey(runner_session_key, RunnerNumber);
+            String runner_key = RunnerKey(runner_session_key, RunnerNumber, ActiveSession.Generation);
             host_id=Session.GetString(runner_key);
             if (host_id==null) {
                 #if TRACE
@@ -470,7 +476,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(RunnerNumber, trace_identifier);
-                result= ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, trace_identifier);
+                result= ExtractRunnerFromCache<TResult>(Session, RunnerManager, runner_session_key, RunnerNumber, generation, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(RunnerNumber, host_id, trace_identifier);
@@ -659,7 +665,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (_factoryCache!=null) {
                 if (_factoryCache.ContainsKey(key)) {
                     factory=(IRunnerFactory<TRequest, TResult>)_factoryCache[key];
-                    _logger?.LogDebugGetRunnerFactoryFromCache(request_type_name, result_type_name, TraceIdentifier);
+                    #if TRACE
+                    _logger?.LogTraceGetRunnerFactoryFromCache(request_type_name, result_type_name, TraceIdentifier);
+                    #endif
                 }
             }
             if (factory==null) {
@@ -702,15 +710,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         //Methods to manage runner information in the session (ISession implementation)
         //
         //Key-value pairs to register/unregister
-        // ( {RuunerKey}=_prefix+"_"+session_id+"_"+RunnerNumber.ToString() )
-        // {RunnerKey} = _hostId
-        // {RunnerKey}+"_Type" = ResultType
-        private void RegisterRunnerInSession(ISession Session, String RunnerSessionKey, Int32 RunnerNumber, Type ResultType, String TraceIdentifier)
+        // runner_key =_prefix+"_"+session_id+"#"+new RunnerKey(RunnerNumber,Generation).ToString()
+        // т.е. runner_key =_prefix+"_"+session_id+"#"+{Generation}.ToString()+'-'+RunnerNumberToString()
+        // $"{runner_key}" = _hostId
+        // $"{runner_key}_Type" = ResultType
+        private void RegisterRunnerInSession(ISession Session, String RunnerSessionKey, Int32 RunnerNumber, Int32 Generation, Type ResultType, String TraceIdentifier)
         {
             #if TRACE
             _logger?.LogTraceRegisterRunnerInSession(RunnerSessionKey, RunnerNumber, TraceIdentifier);
             #endif
-            String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber);
+            String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber, Generation);
             Session.SetString(runner_key, _hostId); 
             Session.SetString(runner_key+TYPE_KEY_PART, ResultType.FullName!);
             #if TRACE
@@ -718,7 +727,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        private void UnregisterRunnerInSession(ISession Session, String RunnerSessionKey, Int32 RunnerNumber)
+        private void UnregisterRunnerInSession(ISession Session, String RunnerSessionKey, Int32 RunnerNumber, Int32 Generation)
         {
             #if TRACE
             _logger?.LogTraceUnregisterRunnerInSession(Session?.Id??UNKNOWN_SESSION_ID, RunnerNumber);
@@ -727,7 +736,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTracePerformUnregisteration(Session?.Id??UNKNOWN_SESSION_ID, RunnerNumber);
                 #endif
-                String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber);
+                String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber, Generation);
                 Session!.Remove(runner_key);
                 Session!.Remove(runner_key+TYPE_KEY_PART);
             }
@@ -736,15 +745,50 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
+        void CleanupOutdatedRunnerVars(ISession Session, String ActiveSessionKey, int CurrentGeneration, 
+            String SessionId, String TraceIdentifier)
+        {
+            #if TRACE
+            _logger?.LogTraceCleanupOutdatedRunnerVars(SessionId, TraceIdentifier);
+            #endif
+            Int32 len = ActiveSessionKey.Length;
+            Int16 char0 = Convert.ToInt16('0');
+            List<String> runner_keys = Session.Keys
+                .Where(key => key.StartsWith(ActiveSessionKey) && key.Length>len+1 && key[len]=='#' && Char.IsDigit(key[len+1]))
+                .ToList();
+            foreach(String key in runner_keys) {
+                int gen = Convert.ToInt16(key[len+1])-char0;
+                bool gen_ok=false;
+                for(int i=len+2; i<key.Length; i++) {
+                    if(key[i]=='-') {
+                        gen_ok=true;
+                        break;
+                    }
+                    else if(Char.IsDigit(key[i])) gen = gen*10+Convert.ToInt16(key[i])-char0;
+                    else break;
+                    if(gen>=CurrentGeneration) break;
+                }
+                if(gen_ok) {
+                    #if TRACE
+                    _logger?.LogTraceCleanupOutdatedRunnerVarsRemove(key, SessionId, TraceIdentifier);
+                    #endif
+                    Session.Remove(key);
+                }
+            }
+            #if TRACE
+            _logger?.LogTraceCleanupOutdatedRunnerVarsExit(SessionId, TraceIdentifier);
+            #endif
+        }
+
         private IRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
-            IRunnerManager RunnerManager, String RunnerSessionKey, Int32 RunnerNumber, String TraceIdentifier)
+            IRunnerManager RunnerManager, String RunnerSessionKey, Int32 RunnerNumber, Int32 Generation, String TraceIdentifier)
         {
             Object? value_from_cache;
             IRunner<TResult>? result;
             #if TRACE
             _logger?.LogTraceExtractRunnerFromCache(Session.Id, RunnerNumber, TraceIdentifier);
             #endif
-            String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber);
+            String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber, Generation);
             if (_memoryCache.TryGetValue(runner_key, out value_from_cache)) {
                 #if TRACE
                 _logger?.LogTraceReturnRunnerFromCache(Session.Id, RunnerNumber, TraceIdentifier);
@@ -758,7 +802,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 //Remove values connected with previosly evicted runner.
                 //One could not do it from runner eviction callback because the session was not available there
-                UnregisterRunnerInSession(Session, RunnerSessionKey, RunnerNumber);
+                UnregisterRunnerInSession(Session, RunnerSessionKey, RunnerNumber, Generation);
                 result = null;
             }
             #if TRACE
@@ -811,9 +855,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return $"{_prefix}_{SessionId}";
         }
 
-        String RunnerKey(String SessionKey, Int32 RunnerNumber)
+        String RunnerKey(String SessionKey, Int32 RunnerNumber, Int32 Generation)
         {
-            return $"{SessionKey}_{RunnerNumber}";
+            return $"{SessionKey}#{Generation}-{RunnerNumber}";
         }
 
         Int32 GetSessionSize()

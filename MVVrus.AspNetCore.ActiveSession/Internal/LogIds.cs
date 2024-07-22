@@ -32,8 +32,7 @@
         public const Int32 D_STORESESSIONEXIT = 3125;
         public const Int32 D_STORERUNNERCREATED = 3140;
         public const Int32 D_STORERUNNERCREATIONFAIL = 3141;
-        public const Int32 D_STORERUNNERFACTORYFOUND = 3142;
-        public const Int32 D_STORERUNNERFACTORYNEW = 3143;
+        public const Int32 D_STORERUNNERFACTORYNEW = 3142;
         public const Int32 D_STORERUNNERFOUND = 3160;
         public const Int32 D_STORERUNNERPROXY = 3161;
         public const Int32 D_MANAGERRUNNERNOTREGISTERED = 3610;
@@ -64,6 +63,9 @@
         public const Int32 T_STORESESSIONACQUIRED = 4123;
         public const Int32 T_STORESESSIONRELEASED = 4124;
         public const Int32 T_STORESESSIONEXIT = 4125;
+        public const Int32 T_STORECLEANUPOUTDATED = 4126;
+        public const Int32 T_STORECLEANUPOUTDATEDREMOVE = 4127;
+        public const Int32 T_STORECLEANUPOUTDATEDEXIT = 4128;
         public const Int32 T_STORESESSIONCALLBACK = 4130;
         public const Int32 T_STORESESSIONCALLBACKLOCKED = 4131;
         public const Int32 T_STORESESSIONCALLBACKUNLOCKED = 4132;
@@ -80,9 +82,10 @@
         public const Int32 T_STORENEWRUNNERRELEASED = 4146;
         public const Int32 T_STORENEWRUNNEREXIT = 4147;
         public const Int32 T_STORERUNNERFACTORY = 4148;
-        public const Int32 T_STORERUNNERFACTORYCACHE = 4149;
-        public const Int32 T_STORERUNNERFACTORYEXIT = 4150;
-        public const Int32 T_STORERUNNERCALLBACK = 4151;
+        public const Int32 T_STORERUNNERFACTORYFOUND = 4149;
+        public const Int32 T_STORERUNNERFACTORYCACHE = 4150;
+        public const Int32 T_STORERUNNERFACTORYEXIT = 4151;
+        public const Int32 T_STORERUNNERCALLBACK = 4152;
         public const Int32 T_STORERUNNERCALLBACKEXIT = 4153;
         public const Int32 T_STORERUNNERCLEANUP = 4154;
         public const Int32 T_STORERUNNERCLEANUPRESULT = 4155;

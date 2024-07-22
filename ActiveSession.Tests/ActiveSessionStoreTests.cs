@@ -318,8 +318,7 @@ namespace ActiveSession.Tests
                         Assert.Equal(RunnerTestSetup.RUNNER_1, runner_and_key.RunnerNumber);
                         Assert.Equal(TEST_ARG1, dummy_runner1?.Arg.Arg);
                         //Check runner keys added to ISession
-                        String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID
-                            +"_"+RunnerTestSetup.RUNNER_1.ToString();
+                        String runner_key = RunnerKey();
                         Assert.Equal(DEFAULT_HOST_NAME, ts.MockSession.Object.GetString(runner_key));
                         Assert.Equal(typeof(Result1).FullName, ts.MockSession.Object.GetString(runner_key+"_Type"));
                         //Check cache entry
@@ -488,14 +487,13 @@ namespace ActiveSession.Tests
             TimeSpan EXPIRATION = TimeSpan.FromMinutes(1);
             TimeSpan RUNNER_EXPIRATION = TimeSpan.FromSeconds(30);
             TimeSpan MAX_LIFETIME = TimeSpan.FromHours(1);
-            String PREFIX = "TestPrefix";
             Int32 ASR_SIZE = 10;
             //Arrange
             using (ts=new RunnerTestSetup()) {
                 ts.SessOptions.IdleTimeout=EXPIRATION;
                 ts.ActSessOptions.RunnerIdleTimeout=RUNNER_EXPIRATION;
                 ts.ActSessOptions.MaxLifetime=MAX_LIFETIME;
-                ts.ActSessOptions.Prefix=PREFIX;
+                ts.ActSessOptions.Prefix=DEFAULT_SESSION_KEY_PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
                 ts.ActSessOptions.DefaultRunnerSize=ASR_SIZE;
                 ts.AddRunnerFactory<Request1, Result1>(
@@ -522,8 +520,7 @@ namespace ActiveSession.Tests
                         //Check cache entry
                         ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                         Assert.True(ts.Cache.IsEntryStored);
-                        String runner_key = PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID
-                            +"_"+RunnerTestSetup.RUNNER_1.ToString();
+                        String runner_key = RunnerKey();
                         Assert.Equal(runner_key, ts.Cache.Key);
                         Assert.Equal(RUNNER_EXPIRATION, ts.Cache.SlidingExpiration);
                         Assert.Equal(MAX_LIFETIME, ts.Cache.AbsoluteExpirationRelativeToNow);
@@ -592,7 +589,7 @@ namespace ActiveSession.Tests
                         Assert.Null(runner);
                         //Test case: search for an already removed runner
                         //Arrange:Evict the runner from the cache (via Remove)
-                        String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
+                        String runner_key = RunnerKey();
                         ts.Cache.CacheMock.Object.Remove(runner_key);
                         //Act
                         runner=store.GetRunner<Result1>(ts.MockSession.Object,
@@ -699,7 +696,7 @@ namespace ActiveSession.Tests
                         Assert.Null(runner);
                         //Test case: search for an already removed runner
                         //Arrange:Evict the runner from the cache (via Remove)
-                        String runner_key = DEFAULT_SESSION_KEY_PREFIX+"_"+ts.MockSession.Object.Id+"_"+runner_and_key.RunnerNumber.ToString();
+                        String runner_key = RunnerKey();
                         ts.Cache.CacheMock.Object.Remove(runner_key);
                         //Act
                         runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
@@ -1266,9 +1263,76 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test case: cleanup key-value pairs left behind by runners from outdated sessions
+        [Fact]
+        public void OutDatedRunnerSessionCleanup()
+        {
+            int number, gen;
+            Active_Session session;
+            String key90, key91, key10, key11;
+
+            OwnCacheTestSetup ts = new OwnCacheTestSetup();
+            var sess_mock = ts.MockSession;
+            Mock<HttpContext> stub_context = new Mock<HttpContext>();
+
+            using(ActiveSessionStore store = ts.CreateStore()) {
+                gen=9;
+                sess_mock.Object.SetInt32(SessionKey(),-(gen-1));
+                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null)??throw new Exception("Cannot create ActiveSession");
+                Assert.Equal(gen, session.Generation);
+                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, session.RunnerManager, "", null );
+                Assert.Equal(0, number);
+                key90 = RunnerKey(number, gen);
+                Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key90));
+                Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key90+"_Type"));
+                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, session.RunnerManager, "", null);
+                Assert.Equal(1, number);
+                key91 = RunnerKey(number, gen);
+                Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key91));
+                Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key91+"_Type"));
+                Assert.True(store.TerminateSession(sess_mock.Object, session, ts.MockRunnerManager.Object, null).Wait(5000));
+                Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key90));
+                Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key90+"_Type"));
+                Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key91));
+                Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key91+"_Type"));
+                gen=11;
+                sess_mock.Object.SetInt32(SessionKey(), -(gen-1));
+                key10=RunnerKey(0, gen-1);
+                sess_mock.Object.SetString(key10, DEFAULT_HOST_NAME);
+                sess_mock.Object.SetString(key10+"_Type", typeof(Result1).FullName!);
+                key11=RunnerKey(0, gen);
+                sess_mock.Object.SetString(key11, DEFAULT_HOST_NAME);
+                sess_mock.Object.SetString(key11+"_Type", typeof(Result1).FullName!);
+                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null)??throw new Exception("Cannot create ActiveSession");
+                Assert.Equal(gen, session.Generation);
+                Assert.Null(sess_mock.Object.GetString(key90));
+                Assert.Null(sess_mock.Object.GetString(key90+"_Type"));
+                Assert.Null(sess_mock.Object.GetString(key91));
+                Assert.Null(sess_mock.Object.GetString(key91+"_Type"));
+                Assert.Null(sess_mock.Object.GetString(key10));
+                Assert.Null(sess_mock.Object.GetString(key10+"_Type"));
+                Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key11));
+                Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key11+"_Type"));
+            }
+
+        }
         /////////////////////////////////////////////////////////////////////////////////////////////
-        //Auxilary clases
+        //Auxilary methods and clases
         /////////////////////////////////////////////////////////////////////////////////////////////
+
+        private static String SessionKey()
+        {
+            return DEFAULT_SESSION_KEY_PREFIX+"_"+RunnerTestSetup.TEST_SESSION_ID;
+        }
+        private static String RunnerKey()
+        {
+            return RunnerKey(RunnerTestSetup.RUNNER_1, RunnerTestSetup.TEST_GENERATION);
+        }
+
+        private static String RunnerKey(int RunnerNumber,int Generation)
+        {
+            return SessionKey() + "#" + Generation+"-"+RunnerNumber;
+        }
 
         class FakeSystemClock : ISystemClock
         {
@@ -1599,6 +1663,7 @@ namespace ActiveSession.Tests
                             return false;
                         }
                     });
+                MockSession.SetupGet(s => s.Keys).Returns(_session_values.Keys);
 
                 ;
             }
