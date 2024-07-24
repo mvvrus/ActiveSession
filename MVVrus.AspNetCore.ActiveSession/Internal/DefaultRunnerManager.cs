@@ -55,22 +55,23 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckSession(SessionKey);
             CheckDisposed();
+            RunnerId runner_id = new RunnerId(SessionKey, RunnerNumber);
             #if TRACE
-            _logger?.LogTraceRegisterRunnerEnter(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceRegisterRunnerEnter(new RunnerId(SessionKey,RunnerNumber));
             #endif
             lock(RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceRegisterRunnerLockAcquired(SessionKey.Id, RunnerNumber);
+                _logger?.LogTraceRegisterRunnerLockAcquired(runner_id);
                 #endif
                 if (_cleanup_mark) {
-                    _logger?.LogWarningRegisterRunnerAfterCleanupInit(SessionKey.Id, RunnerNumber);
+                    _logger?.LogWarningRegisterRunnerAfterCleanupInit(new RunnerId(SessionKey,RunnerNumber));
                     throw new InvalidOperationException("Attempt to register a runner after cleanup initiation.");
                 }
                 _runnersCounter.AddCount();
                 _runners.Add(RunnerNumber, new RunnerInfo(Runner, ResultType, RunnerNumber));
             }
             #if TRACE
-            _logger?.LogTraceRegisterRunnerExit(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceRegisterRunnerExit(runner_id);
             #endif
         }
 
@@ -78,28 +79,29 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckSession(SessionKey);
             CheckDisposed();
+            RunnerId runner_id = new RunnerId(SessionKey, RunnerNumber);
             #if TRACE
-            _logger?.LogTraceUnregisterRunner(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceUnregisterRunner(runner_id);
             #endif
             Task? finish_cleanup = null;
             lock (RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceUnregisterRunnerLockAcquired(SessionKey.Id, RunnerNumber);
+                _logger?.LogTraceUnregisterRunnerLockAcquired(runner_id);
                 #endif
                 RunnerInfo? info=null;
                 if(_runners.TryGetValue(RunnerNumber, out info)) {
                     #if TRACE
-                    _logger?.LogTraceUnregisterRunnerRemove(SessionKey.Id, RunnerNumber);
+                    _logger?.LogTraceUnregisterRunnerRemove(runner_id);
                     #endif
                     _runners.Remove(RunnerNumber);
                     _runnersCounter.Signal();
-                    finish_cleanup=RunDisposeRunnerTask(info!, SessionKey.Id, RunnerNumber);
+                    finish_cleanup=RunDisposeRunnerTask(info!, runner_id);
                 }
                 else
-                    _logger?.LogDebugUnregisterRunnerNotRegistered(SessionKey.Id, RunnerNumber);
+                    _logger?.LogDebugUnregisterRunnerNotRegistered(runner_id);
             }
             #if TRACE
-            _logger?.LogTraceUnregisterRunnerExit(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceUnregisterRunnerExit(runner_id);
             #endif
             return finish_cleanup;
         }
@@ -144,17 +146,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckSession(SessionKey);
             RunnerInfo? result;
+            RunnerId runner_id = new RunnerId(SessionKey, RunnerNumber);
             #if TRACE
-            _logger?.LogTraceGetRunnerInfo(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceGetRunnerInfo(runner_id);
             #endif
             lock (RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceGetRunnerInfoLockAcquired(SessionKey.Id, RunnerNumber);
+                _logger?.LogTraceGetRunnerInfoLockAcquired(runner_id);
                 #endif
                 result=_runners.ContainsKey(RunnerNumber) ? _runners[RunnerNumber] : null;
             }
             #if TRACE
-            _logger?.LogTraceGetRunnerInfoExit(SessionKey.Id, RunnerNumber, result!=null);
+            _logger?.LogTraceGetRunnerInfoExit(runner_id, result!=null);
             #endif
             return result;
         }
@@ -172,7 +175,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 foreach (var runner_info in _runners.Values) {
                     runner_info.Runner.Abort();
                     #if TRACE
-                    _logger?.LogTraceAbortAllAbortRunner(SessionKey.Id, runner_info.Number);
+                    _logger?.LogTraceAbortAllAbortRunner(new RunnerId(SessionKey, runner_info.Number));
                     #endif
                 }
             }
@@ -248,19 +251,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             Task? result=null;
             CheckDisposed();
+            RunnerId runner_id = new RunnerId(SessionKey, RunnerNumber);
             #if TRACE
-            _logger?.LogTraceGetRunnerCleanupTracking(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceGetRunnerCleanupTracking(runner_id);
             #endif
             lock(RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceGetRunnerCleanupTrackingLocked(SessionKey.Id, RunnerNumber);
+                _logger?.LogTraceGetRunnerCleanupTrackingLocked(runner_id);
                 #endif
                 RunnerInfo? info = GetRunnerInfo(SessionKey, RunnerNumber);
                 if(info!=null) {
                     TaskCompletionSource tcs;
                     if(info.TrackCleanup==null) {
                         #if TRACE
-                        _logger?.LogTraceGetRunnerCleanupTrackingNewTaskSource(SessionKey.Id, RunnerNumber);
+                        _logger?.LogTraceGetRunnerCleanupTrackingNewTaskSource(runner_id);
                         #endif
                         info.TrackCleanup=new TaskCompletionSource();
                     }
@@ -269,7 +273,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
             }
             #if TRACE
-            _logger?.LogTraceGetRunnerCleanupTrackingExit(result!=null, SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceGetRunnerCleanupTrackingExit(result!=null, runner_id);
             #endif
             return result;
         }
@@ -280,35 +284,35 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw new InvalidOperationException("DefaultRunnerManager can serve runners from one session only/");
         }
 
-        Task? RunDisposeRunnerTask(RunnerInfo RunnerInfo, String SessionId, Int32 RunnerNumber) 
+        Task? RunDisposeRunnerTask(RunnerInfo RunnerInfo, RunnerId RunnerId) 
             //This method is always performed with RunnerCreationLock acquired
         {
             #if TRACE
-            _logger?.LogTracePrepareDisposeTask(SessionId, RunnerNumber);
+            _logger?.LogTracePrepareDisposeTask(RunnerId);
             #endif
             Task? dispose_task=null;
             if (RunnerInfo.Runner is IAsyncDisposable async_disposable) {
                 dispose_task=async_disposable.DisposeAsync().AsTask();
                 #if TRACE
-                _logger?.LogTraceRunAsyncDisposeTask(SessionId, RunnerNumber);
+                _logger?.LogTraceRunAsyncDisposeTask(RunnerId);
                 #endif
             }
             else if (RunnerInfo.Runner is IDisposable disposable) {
                 dispose_task=Task.Run(() => disposable.Dispose());
                 #if TRACE
-                _logger?.LogTraceRunDisposeTask(SessionId, RunnerNumber);
+                _logger?.LogTraceRunDisposeTask(RunnerId);
                 #endif
             }
             if (dispose_task!=null) {
                 _runningDisposeTasks.Add(dispose_task);
-                Task? result= dispose_task.ContinueWith(FinishDisposalTaskBody,new FinishInfo(SessionId,RunnerNumber));
+                Task? result= dispose_task.ContinueWith(FinishDisposalTaskBody, RunnerId);
                 if(RunnerInfo.TrackCleanup!=null)
                     result.ContinueWith(_ => RunnerInfo.TrackCleanup.SetResult());
                 return result;
             }
             else {
                 #if TRACE
-                _logger?.LogTraceRunNoDisposeTask(SessionId, RunnerNumber);
+                _logger?.LogTraceRunNoDisposeTask(RunnerId);
                 #endif
                 if(RunnerInfo.TrackCleanup!=null)
                     RunnerInfo.TrackCleanup.SetResult();
@@ -316,23 +320,21 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
         }
 
-        record FinishInfo(String SessionId, Int32 RunnerNumber);
-
         void FinishDisposalTaskBody(Task Antecedent, Object? State)
         {
-            FinishInfo fi = (FinishInfo)State!;
+            RunnerId runner_id = (RunnerId)State!;
             #if TRACE
-            _logger?.LogTraceFinishDisposalTask(fi.SessionId, fi.RunnerNumber);
+            _logger?.LogTraceFinishDisposalTask(runner_id);
             #endif
             lock (RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceFinishDisposalTaskLockAcquired(fi.SessionId, fi.RunnerNumber);
+                _logger?.LogTraceFinishDisposalTaskLockAcquired(runner_id);
                 #endif
                 _runningDisposeTasks.Remove(Antecedent);
             }
             Antecedent.Dispose();
             #if TRACE
-            _logger?.LogTraceFinishDisposalTaskExit(fi.SessionId, fi.RunnerNumber);
+            _logger?.LogTraceFinishDisposalTaskExit(runner_id);
             #endif
         }
 

@@ -18,6 +18,7 @@
         public const Int32 I_MIDDLEWAREREGISTERED = 2000;
         public const Int32 I_MIDDLEWAREADDED= 2001;
         public const Int32 I_STOREINCOSNSISTENTTERMINATION = 2100;
+        public const Int32 I_STOREGETRUNNERCLEANUPVARS = 2160;
 
         public const Int32 D_FEATUREACTIVATED = 3000;
         public const Int32 D_SERVICESSUBSTITUTED = 3001;
@@ -90,12 +91,11 @@
         public const Int32 T_STORERUNNERCLEANUP = 4154;
         public const Int32 T_STORERUNNERCLEANUPRESULT = 4155;
         public const Int32 T_STOREGETRUNNER = 4160;
-        public const Int32 T_STOREGETRUNNERCLEANUPVARS = 4161;
-        public const Int32 T_STOREGETRUNNEREXIT = 4162;
-        public const Int32 T_STOREGETRUNNERASYNC = 4163;
-        public const Int32 T_STOREGETRUNNERASYNCLOADED = 4164;
-        public const Int32 T_STOREGETRUNNERASYNCWAITPROXY = 4165;
-        public const Int32 T_STOREGETRUNNERASYNCEXIT = 4166;
+        public const Int32 T_STOREGETRUNNEREXIT = 4161;
+        public const Int32 T_STOREGETRUNNERASYNC = 4162;
+        public const Int32 T_STOREGETRUNNERASYNCLOADED = 4163;
+        public const Int32 T_STOREGETRUNNERASYNCWAITPROXY = 4164;
+        public const Int32 T_STOREGETRUNNERASYNCEXIT = 4165;
         public const Int32 T_STOREREGRUNNER = 4170;
         public const Int32 T_STOREREGRUNNEREXIT = 4171;
         public const Int32 T_STOREUNREGRUNNER = 4172;

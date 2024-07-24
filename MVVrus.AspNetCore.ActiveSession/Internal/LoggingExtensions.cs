@@ -38,8 +38,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(W_ACTIVESESSIONFAIL, Warning, "The exception occered while establishing ActiveSessionFeature.ActiveSession property, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogWarningActiveSessionLoad(this ILogger Logger, Exception exception, String TraceIdentifier);
 
-        [LoggerMessage(W_REGISTERDURINGCLEANUP, Warning, "Attempt to register the runner after it's Active Session cleanup initiation, an exception to be throwed, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber} ")]
-        public static partial void LogWarningRegisterRunnerAfterCleanupInit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(W_REGISTERDURINGCLEANUP, Warning, "Attempt to register the runner after it's Active Session cleanup initiation, an exception to be throwed, RunnerId=\"{RunnerId}\" ")]
+        public static partial void LogWarningRegisterRunnerAfterCleanupInit(this ILogger Logger, RunnerId RunnerId);
 
 
         [LoggerMessage(I_MIDDLEWAREREGISTERED, Information, "ActiveSession middleware is registered for addition to a middleware pipeline.")]
@@ -50,6 +50,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(I_STOREINCOSNSISTENTTERMINATION, Information, "Terminating a session with inconsistent generation {Generation}(current) vs {SessGeneration}(in ASP.NET Core session), SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogInfoInconsistentSessionTermination(this ILogger Logger, Int32 Generation, Int32 SessGeneration, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(I_STOREGETRUNNERCLEANUPVARS, Information, "A runner specified is not registered in the ASP.NET Core session, cannot proceed, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogInformationNoRunnerInSession(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
 
         [LoggerMessage(D_FEATUREACTIVATED, Debug, "ActiveSession feature is activated, TraceIdentifier=\"{TraceIdentifier}\".")]
@@ -85,8 +88,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORESESSIONEXIT, Debug, "Exit ActiveSessionStore.FetchOrCreateSession due to the exception, the cache entry has been removed, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugFetchOrCreateExceptionalExit(this ILogger Logger, Exception AnException, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORERUNNERCREATED, Debug, "A new runner was created, SessionId=\"{SessionId}\" RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugCreateNewRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(D_STORERUNNERCREATED, Debug, "A new runner was created, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugCreateNewRunner(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(D_STORERUNNERCREATIONFAIL, Debug, "Exit ActiveSessionStore.CreateRunner due to the exception, the cache entry has been removed, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugCreateRunnerFailure(this ILogger Logger, Exception AnException, String SessionId, String TraceIdentifier);
@@ -94,14 +97,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORERUNNERFACTORYNEW, Debug, "The runner factory was created and is to be added to the cache, TRequest=\"{TRequest}\", TResult=\"{TResult}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogDebugInstatiateNewRunnerFactory(this ILogger Logger, String TRequest, String TResult, String TraceIdentifier);
 
-        [LoggerMessage(D_STORERUNNERFOUND, Debug, "Extracting the local runner from cache, RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugGetLocalRunnerFromCache(this ILogger Logger, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(D_STORERUNNERFOUND, Debug, "Extracting the local runner from cache, RunnerId=\"{RunnerId}\", , TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugGetLocalRunnerFromCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(D_STORERUNNERPROXY, Debug, "Trying to make a proxy for the remote runner, RunnerNumber={RunnerNumber}, HostId={HostId}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogDebugProcessRemoteRunner(this ILogger Logger, Int32 RunnerNumber, String HostId, String TraceIdentifier);
+        [LoggerMessage(D_STORERUNNERPROXY, Debug, "Trying to make a proxy for the remote runner, RunnerId=\"{RunnerId}\", HostId={HostId}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogDebugProcessRemoteRunner(this ILogger Logger, RunnerId RunnerId, String HostId, String TraceIdentifier);
 
-        [LoggerMessage(D_MANAGERRUNNERNOTREGISTERED, Debug, "The runner to be unregistered is not registered, SessionId=\"{SessionId}\" RunnerNumber={RunnerNumber}.")]
-        public static partial void LogDebugUnregisterRunnerNotRegistered(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(D_MANAGERRUNNERNOTREGISTERED, Debug, "The runner to be unregistered is not registered, RunnerId=\"{RunnerId}\".")]
+        public static partial void LogDebugUnregisterRunnerNotRegistered(this ILogger Logger, RunnerId RunnerId);
 
 
 #if TRACE
@@ -216,8 +219,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORENEWRUNNER, Trace, "Enter ActiveSessionStore.CreateRunner, try to use session-level runner creation lock, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceCreateRunner(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORENEWRUNNERTOCREATE, Trace, "New runner to be created, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceNewRunnerInfoRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORENEWRUNNERTOCREATE, Trace, "New runner to be created, SessionId=\"{SessionId}\", Generation={Generation}, RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceNewRunnerInfoRunner(this ILogger Logger, String SessionId, Int32 Generation, Int32 RunnerNumber, String TraceIdentifier);
 
         [LoggerMessage(T_STORENEWRUNNERWAIVENUMBER, Trace, "Waive to use the runner number previousely acquired because of an exception,  SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceWaiveRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
@@ -234,8 +237,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORENEWRUNNERRELEASED, Trace, "Released the runner creation lock for session \"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceReleasedRunnerCreationLock(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORENEWRUNNEREXIT, Trace, "Exiting ActiveSessionStore.CreateRunner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceCreateRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORENEWRUNNEREXIT, Trace, "Exiting ActiveSessionStore.CreateRunner, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceCreateRunnerExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_STORERUNNERFACTORY, Trace, "Enter ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactory(this ILogger Logger, String TraceIdentifier);
@@ -249,11 +252,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORERUNNERFACTORYEXIT, Trace, "Exiting ActiveSessionStore.GetRunnerFactory, TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetRunnerFactoryExit(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(T_STORERUNNERCALLBACK, Trace, "The ActiveSessionStore.RunnerEvictionCallback entered, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRunnerEvictionCallback(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_STORERUNNERCALLBACK, Trace, "The ActiveSessionStore.RunnerEvictionCallback entered, RunnerId=\"{RunnerId}\".")]
+        public static partial void LogTraceRunnerEvictionCallback(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_STORERUNNERCALLBACKEXIT, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRunnerEvictionCallbackExit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_STORERUNNERCALLBACKEXIT, Trace, "The ActiveSessionStore.RunnerEvictionCallback exited, RunnerId=\"{RunnerId}\".")]
+        public static partial void LogTraceRunnerEvictionCallbackExit(this ILogger Logger, RunnerId RunnerId);
 
         [LoggerMessage(T_STORERUNNERCLEANUP, Trace, "Strting task observing completion of all runners for the ActiveSession, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceActiveSessionCompleteDispose(this ILogger Logger, String SessionId);
@@ -261,32 +264,29 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STORERUNNERCLEANUPRESULT, Trace, "Observing timely completion of all runners for the session done, SessionId=\"{SessionId}\", WithinTimeout={WaitSucceeded}.")]
         public static partial void LogTraceActiveSessionEndWaitingForRunnersCompletion(this ILogger Logger, String SessionId, Boolean WaitSucceeded);
 
-        [LoggerMessage(T_STOREGETRUNNER, Trace, "Entering ActiveSessionStore.GetRunner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNER, Trace, "Entering ActiveSessionStore.GetRunner, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunner(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNERCLEANUPVARS, Trace, "No value for the runner in the session the was found, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceNoRunnerInSession(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNEREXIT, Trace, "Exiting ActiveSessionStore.GetRunner, RunnerId=\"{RunnerId}\", RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerExit(this ILogger Logger, RunnerId RunnerId, Boolean RunnerFound, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNEREXIT, Trace, "Exiting ActiveSessionStore.GetRunner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, Boolean RunnerFound, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNERASYNC, Trace, "Enter ActiveSessionStore.GetRunnerAsync, awaiting until the session is loaded, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsync(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNERASYNC, Trace, "Enter ActiveSessionStore.GetRunnerAsync, awaiting until the session is loaded, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetRunnerAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNERASYNCLOADED, Trace, "The session is loaded and the runner info is known now: RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsyncInfoRunner(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNERASYNCLOADED, Trace, "The session is loaded and the runner info is known now: SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetRunnerAsyncInfoRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNERASYNCWAITPROXY, Trace, "Awaiting until the proxy is created, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceAwaitForProxyCreation(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNERASYNCWAITPROXY, Trace, "Awaiting until the proxy is created, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceAwaitForProxyCreation(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREGETRUNNERASYNCEXIT, Trace, "Exiting ActiveSessionStore.GetRunnerAsync, RunnerId=\"{RunnerId}\", RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceGetRunnerAsyncExit(this ILogger Logger, RunnerId RunnerId, Boolean RunnerFound, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREGETRUNNERASYNCEXIT, Trace, "Exiting ActiveSessionStore.GetRunnerAsync, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, RunnerFound={RunnerFound}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceGetRunnerAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, Boolean RunnerFound, String TraceIdentifier);
+        [LoggerMessage(T_STOREREGRUNNER, Trace, "Enter ActiveSessionStore.RegisterRunnerInSession, RunnerKey=\"{RunnerKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisterRunnerInSession(this ILogger Logger, String RunnerKey, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREREGRUNNER, Trace, "Enter ActiveSessionStore.RegisterRunnerInSession, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceRegisterRunnerInSession(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
-
-        [LoggerMessage(T_STOREREGRUNNEREXIT, Trace, "Exit ActiveSessionStore.RegisterRunnerInSession, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceRegisterRunnerInSessionExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STOREREGRUNNEREXIT, Trace, "Exit ActiveSessionStore.RegisterRunnerInSession, RunnerKey=\"{RunnerKey}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceRegisterRunnerInSessionExit(this ILogger Logger, String RunnerKey, String TraceIdentifier);
 
         [LoggerMessage(T_STOREUNREGRUNNER, Trace, "Enter ActiveSessionStore.UnregisterRunnerInSession, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceUnregisterRunnerInSession(this ILogger Logger, String SessionId, Int32 RunnerNumber);
@@ -297,17 +297,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STOREUNREGRUNNEREXIT, Trace, "Exit ActiveSessionStore.UnregisterRunnerInSession, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceUnregisterRunnerInSessionExit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
 
-        [LoggerMessage(T_STORERUNNERCACHE, Trace, "Enter ActiveSessionStore.ExtractRunnerFromCache, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceExtractRunnerFromCache(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORERUNNERCACHE, Trace, "Enter ActiveSessionStore.ExtractRunnerFromCache, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceExtractRunnerFromCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORERUNNERCACHEFOUND, Trace, "The local runner is found in the cache, returning it, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceReturnRunnerFromCache(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORERUNNERCACHEFOUND, Trace, "The local runner is found in the cache, returning it, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceReturnRunnerFromCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORERUNNERCACHENOTFOUND, Trace, "The local runner is not found in the cache, while being registered in the session (possibly evicted), unregister it, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceNoExpectedRunnerInCache(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORERUNNERCACHENOTFOUND, Trace, "The local runner is not found in the cache, while being registered in the session (possibly evicted), unregister it, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceNoExpectedRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_STORERUNNERCACHEEXIT, Trace, "Exit ActiveSessionStore.ExtractRunnerFromCache, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, TraceIdentifier=\"{TraceIdentifier}\".")]
-        public static partial void LogTraceExtractRunnerFromCacheExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_STORERUNNERCACHEEXIT, Trace, "Exit ActiveSessionStore.ExtractRunnerFromCache, RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
+        public static partial void LogTraceExtractRunnerFromCacheExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(T_STORETERMINATE, Trace, "Eneter ActiveSessionStore.FetchOrCreateSession, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\". ")]
         public static partial void LogTraceSessionTerminate(this ILogger Logger, String SessionId, String TraceIdentifier);
@@ -429,38 +429,38 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_TYPEFACTORYINVOKE, Trace, "Invoke type-based runner factory implementing IRunnerFactory<{TRequest}, {TResult}> for RunnerId=\"{RunnerId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceInvokingTypeFactory(this ILogger Logger, String TRequest, String TResult, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(T_MANAGERREGACQUIRING, Trace, "DefaultRunnerManager.RegisterRunner entered, acquiring runners lock SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRegisterRunnerEnter(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERREGACQUIRING, Trace, "DefaultRunnerManager.RegisterRunner entered, acquiring runners lock, RunnerId={RunnerId}.")]
+        public static partial void LogTraceRegisterRunnerEnter(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERREGACQUIRED, Trace, "DefaultRunnerManager.RegisterRunner: runners lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRegisterRunnerLockAcquired(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERREGACQUIRED, Trace, "DefaultRunnerManager.RegisterRunner: runners lock acquired, RunnerId={RunnerId}.")]
+        public static partial void LogTraceRegisterRunnerLockAcquired(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERREGRELEASED, Trace, "DefaultRunnerManager.RegisterRunner exited, runners lock released, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRegisterRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERREGRELEASED, Trace, "DefaultRunnerManager.RegisterRunner exited, runners lock released, RunnerId={RunnerId}.")]
+        public static partial void LogTraceRegisterRunnerExit(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGACQUIRING, Trace, "DefaultRunnerManager.UnregisterRunner entered, acquiring runners lock, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGACQUIRING, Trace, "DefaultRunnerManager.UnregisterRunner entered, acquiring runners lock, RunnerId={RunnerId}.")]
+        public static partial void LogTraceUnregisterRunner(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGACQUIRED, Trace, "DefaultRunnerManager.UnregisterRunner runners lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunnerLockAcquired(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGACQUIRED, Trace, "DefaultRunnerManager.UnregisterRunner runners lock acquired, RunnerId={RunnerId}.")]
+        public static partial void LogTraceUnregisterRunnerLockAcquired(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGPERFORM, Trace, "DefaultRunnerManager.UnregisterRunner, performing the runner unregistartion and cleanup SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunnerRemove(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGPERFORM, Trace, "DefaultRunnerManager.UnregisterRunner, performing the runner unregistartion and cleanup, RunnerId={RunnerId}.")]
+        public static partial void LogTraceUnregisterRunnerRemove(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGPREPTASK, Trace, "DefaultRunnerManager, preparing task for disposal of the runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTracePrepareDisposeTask(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGPREPTASK, Trace, "DefaultRunnerManager, preparing task for disposal of the runner, RunnerId={RunnerId}.")]
+        public static partial void LogTracePrepareDisposeTask(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGDISPASYNC, Trace, "DefaultRunnerManager, run a task returned by DisposeAsync(), SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRunAsyncDisposeTask(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGDISPASYNC, Trace, "DefaultRunnerManager, run a task returned by DisposeAsync(), RunnerId={RunnerId}.")]
+        public static partial void LogTraceRunAsyncDisposeTask(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGDISPTASK, Trace, "DefaultRunnerManager, run Dispose() in a separate task, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRunDisposeTask(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGDISPTASK, Trace, "DefaultRunnerManager, run Dispose() in a separate task, RunnerId={RunnerId}.")]
+        public static partial void LogTraceRunDisposeTask(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGNODISP, Trace, "DefaultRunnerManager, no disposal needed, run no task, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceRunNoDisposeTask(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGNODISP, Trace, "DefaultRunnerManager, no disposal needed, run no task, RunnerId={RunnerId}.")]
+        public static partial void LogTraceRunNoDisposeTask(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERUNREGEXIT, Trace, "DefaultRunnerManager.UnregisterRunner exited, runners lock released, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceUnregisterRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERUNREGEXIT, Trace, "DefaultRunnerManager.UnregisterRunner exited, runners lock released, RunnerId={RunnerId}.")]
+        public static partial void LogTraceUnregisterRunnerExit(this ILogger Logger, RunnerId RunnerId);
 
         [LoggerMessage(T_MANAGERNUMGET, Trace, "Enter DefaultRunnerManager.GetNewRunnerNumber, SessionId=\"{SessionId}\", TraceIdentifier=\"{TraceIdentifier}\".")]
         public static partial void LogTraceGetNewRunnerNumber(this ILogger Logger, String SessionId, String TraceIdentifier);
@@ -471,23 +471,23 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MANAGERNUMRETURN, Trace, "DefaultRunnerManager: Return back unused runner number, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
         public static partial void LogTraceReturnRunnerNumber(this ILogger Logger, String SessionId, Int32 RunnerNumber);
 
-        [LoggerMessage(T_MANAGERINFOACQUIRING, Trace, "DefaultRunnerManager.GetRunnerInfo entered, acquiring runners lock, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerInfo(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERINFOACQUIRING, Trace, "DefaultRunnerManager.GetRunnerInfo entered, acquiring runners lock, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerInfo(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERINFOACQUIRED, Trace, "DefaultRunnerManager.GetRunnerInfo runners lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerInfoLockAcquired(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERINFOACQUIRED, Trace, "DefaultRunnerManager.GetRunnerInfo runners lock acquired, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerInfoLockAcquired(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERINFORELEASED, Trace, "DefaultRunnerManager.GetRunnerInfo exited, runners lock released, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}, RunnerInfo found: {Found}.")]
-        public static partial void LogTraceGetRunnerInfoExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, Boolean Found);
+        [LoggerMessage(T_MANAGERINFORELEASED, Trace, "DefaultRunnerManager.GetRunnerInfo exited, runners lock released, RunnerId={RunnerId}, RunnerInfo found: {Found}.")]
+        public static partial void LogTraceGetRunnerInfoExit(this ILogger Logger, RunnerId RunnerId, Boolean Found);
 
-        [LoggerMessage(T_MANAGERDISPENDACQUIRING, Trace, "DefaultRunnerManager.FinishDisposalTask entered, acquiring runners lock, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceFinishDisposalTask(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERDISPENDACQUIRING, Trace, "DefaultRunnerManager.FinishDisposalTask entered, acquiring runners lock, RunnerId={RunnerId}.")]
+        public static partial void LogTraceFinishDisposalTask(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERDISPENDACQUIRED, Trace, "DefaultRunnerManager.FinishDisposalTask runners lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceFinishDisposalTaskLockAcquired(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERDISPENDACQUIRED, Trace, "DefaultRunnerManager.FinishDisposalTask runners lock acquired, RunnerId={RunnerId}.")]
+        public static partial void LogTraceFinishDisposalTaskLockAcquired(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERDISPENDRELEASED, Trace, "DefaultRunnerManager.FinishDisposalTask exited, runners lock released, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}")]
-        public static partial void LogTraceFinishDisposalTaskExit(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERDISPENDRELEASED, Trace, "DefaultRunnerManager.FinishDisposalTask exited, runners lock released, RunnerId={RunnerId}")]
+        public static partial void LogTraceFinishDisposalTaskExit(this ILogger Logger, RunnerId RunnerId);
 
         [LoggerMessage(T_MANAGERABORTALLACQUIRING, Trace, "DefaultRunnerManager.AbortAll entered, acquiring runners lock, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceAbortAll(this ILogger Logger, String SessionId);
@@ -495,8 +495,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MANAGERABORTALLACQUIRED, Trace, "DefaultRunnerManager.AbortAll entered, runners lock acquired, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceAbortAllLockAcqired(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(T_MANAGERABORTALLABORTING, Trace, "DefaultRunnerManager.AbortAll, aborting a runner, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}")]
-        public static partial void LogTraceAbortAllAbortRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERABORTALLABORTING, Trace, "DefaultRunnerManager.AbortAll, aborting a runner, RunnerId={RunnerId}")]
+        public static partial void LogTraceAbortAllAbortRunner(this ILogger Logger, RunnerId RunnerId);
 
         [LoggerMessage(T_MANAGERABORTALLRELEASED, Trace, "DefaultRunnerManager.AbortAll exited, runners lock released, SessionId=\"{SessionId}\".")]
         public static partial void LogTraceAbortAllExit(this ILogger Logger, String SessionId);
@@ -540,17 +540,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MANAGERCLEANUPENDED, Trace, "DefaultRunnerManager.PerformRunnerCleanupAsync finished, SessionId=\"{SessionId}\".")]
         public static partial void LogTracePerformRunnersCleanupComplete(this ILogger Logger, String SessionId);
 
-        [LoggerMessage(T_MANAGERTRACKCLEANUP, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask entered, acquiring lock, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerCleanupTracking(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERTRACKCLEANUP, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask entered, acquiring lock, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerCleanupTracking(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERTRACKCLEANUPLOCKED, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock acquired, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerCleanupTrackingLocked(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERTRACKCLEANUPLOCKED, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock acquired, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingLocked(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERTRACKCLEANUPNEW, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask creating new source for the task, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerCleanupTrackingNewTaskSource(this ILogger Logger, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERTRACKCLEANUPNEW, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask creating new source for the task, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingNewTaskSource(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(T_MANAGERTRACKCLEANUPEXIT, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock released exiting with Found={Found}, SessionId=\"{SessionId}\", RunnerNumber={RunnerNumber}.")]
-        public static partial void LogTraceGetRunnerCleanupTrackingExit(this ILogger Logger, Boolean Found, String SessionId, Int32 RunnerNumber);
+        [LoggerMessage(T_MANAGERTRACKCLEANUPEXIT, Trace, "DefaultRunnerManager.GetRunnerCleanupTrackingTask lock released exiting with Found={Found}, RunnerId={RunnerId}.")]
+        public static partial void LogTraceGetRunnerCleanupTrackingExit(this ILogger Logger, Boolean Found, RunnerId RunnerId);
 
 #endif
 

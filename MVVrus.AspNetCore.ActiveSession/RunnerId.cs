@@ -48,6 +48,16 @@
         }
 
         /// <summary>
+        /// <inheritdoc cref="RunnerId.RunnerId(string, int, int)" path="/summary" />
+        /// </summary>
+        /// <param name="Session"><see cref="IActiveSession">Active session</see> to which the runner belongs.</param>
+        /// <param name="RunnerNumber">
+        /// <inheritdoc cref="RunnerId.RunnerId(string, int, int)" path='/param[@name="RunnerNumber"]' />
+        /// </param>
+        public RunnerId(IActiveSession Session, Int32 RunnerNumber):
+            this(Session.Id, RunnerNumber, Session.Generation) { }
+
+        /// <summary>
         /// Converts a tuple value to a <see cref="RunnerId"/> instance.
         /// </summary>
         /// <param name="Value">Value of type ValueTuple&lt;String,Int32&gt; to be converted.</param>
@@ -60,12 +70,12 @@
         /// Returns a string representation of the value assigned to this instance.
         /// </summary>
         /// <returns>
-        /// String "{<see cref="SessionId"/>}:#{<see cref="Generation"/>-{<see cref="RunnerNumber"/>}" if the instance has a value
+        /// String "{<see cref="SessionId"/>}:{<see cref="RunnerNumber"/>}#{<see cref="Generation"/>" if the instance has a value
         /// or "&lt;Unknown RunnerId&gt;" if the instance is unassigned (has the default value).
         /// </returns>
         public override String ToString()
         {
-            return this!=default?$"{SessionId}:#{RunnerNumber}-{Generation}":"<Unknown RunnerId>";
+            return this!=default?$"{SessionId}:{Generation}#{RunnerNumber}":"<Unknown RunnerId>";
         }
     }
 }
