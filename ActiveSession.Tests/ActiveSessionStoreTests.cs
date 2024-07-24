@@ -1684,6 +1684,7 @@ namespace ActiveSession.Tests
             public readonly Expression<Func<IRunnerManager,Object?>> RunnerCreationLockExpression = (s => s.RunnerCreationLock);
 
             public const Int32 RUNNER_1 = 1;
+            public const Int32 TEST_GENERATION = 2;
 
             public Action? CreateStage1Callback { get; set; }
             public Action? CreateStage3Callback { get; set; }
@@ -1701,6 +1702,7 @@ namespace ActiveSession.Tests
                 _cts=new CancellationTokenSource();
                 StubActiveSession.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
                 StubActiveSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
+                StubActiveSession.SetupGet(s => s.Generation).Returns(TEST_GENERATION);
                 if (PerSessionLock) _lockObject=new Object();
                 GetRunnerNumberExpression=(s => s.GetNewRunnerNumber(StubActiveSession.Object, It.IsAny<String>()));
                 ReturnRunnerNumberExpression=(s => s.ReturnRunnerNumber(StubActiveSession.Object, It.IsAny<Int32>()));

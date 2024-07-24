@@ -78,7 +78,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceActiveSessionGetRunner(_sessionId, trace_identifier);
             #endif
             IRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier);
-            _isFresh=false;
+            if(fetched!=null) _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
             #endif
@@ -93,10 +93,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceActiveSessionGetRunnerAsync(_sessionId, trace_identifier);
             #endif
             Task<IRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier, Token);
-            _isFresh=false;
-            #if TRACE
+            if(_isFresh)
+                fetched.ContinueWith((task) => { if(task.Result!=null) _isFresh=false; },
+                    TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+#if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
-            #endif
+#endif
             return fetched;
         }
 

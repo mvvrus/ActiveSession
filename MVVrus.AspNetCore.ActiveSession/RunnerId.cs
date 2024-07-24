@@ -20,6 +20,7 @@
     /// </remarks>
     public record struct RunnerId
     {
+        //TODO Add Generation
         /// <summary>
         /// <see cref="IActiveSession.Id"/> of the active session to which the runner belongs.
         /// </summary>
