@@ -96,9 +96,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if(_isFresh)
                 fetched.ContinueWith((task) => { if(task.Result!=null) _isFresh=false; },
                     TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
-#if TRACE
+            #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
-#endif
+            #endif
             return fetched;
         }
 

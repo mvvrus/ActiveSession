@@ -14,13 +14,13 @@
     /// In these cases value of the identifier returned by the property equals <see langword="default"/>
     /// </para>
     /// <para>
-    /// The sting represetation of an identifier (returned by its <see cref="ToString"/> method) has the form 
-    /// <br/>"{<see cref="SessionId"/>}:#{<see cref="RunnerNumber"/>}"
+    /// The string represetation of an identifier (returned by its <see cref="ToString"/> method) has the form 
+    /// <br/>"{<see cref="SessionId"/>}:#{<see cref="Generation"/>-{<see cref="RunnerNumber"/>}"
     /// </para>
     /// </remarks>
     public record struct RunnerId
     {
-        //TODO Add Generation
+
         /// <summary>
         /// <see cref="IActiveSession.Id"/> of the active session to which the runner belongs.
         /// </summary>
@@ -29,37 +29,43 @@
         /// A number assigned to the runner within the session.
         /// </summary>
         public Int32 RunnerNumber { get; init; }
+        /// <summary>
+        /// An <see cref="IActiveSession.Generation"/> value to which the runner belongs.
+        /// </summary>
+        public Int32  Generation { get; init; }
 
         /// <summary>
         /// Constructor that initializes RunnerId instance value.
         /// </summary>
-        /// <param name="SessionId"><see cref="IActiveSession.Id"/> of the avtive session to which the runner belongs</param>
-        /// <param name="RunnerNumber">A number assigned to the runner within the session</param>
-        public RunnerId(String SessionId, Int32 RunnerNumber)
+        /// <param name="SessionId"><see cref="IActiveSession.Id"/> of the active session to which the runner belongs.</param>
+        /// <param name="RunnerNumber">A number assigned to the runner within the session.</param>
+        /// <param name="Generation">An <see cref="IActiveSession.Generation"/> value of the active session to which the runner belongs.</param>
+        public RunnerId(String SessionId, Int32 RunnerNumber, Int32 Generation)
         {
             this.SessionId=SessionId;
             this.RunnerNumber=RunnerNumber;
+            this.Generation=Generation;
         }
 
         /// <summary>
         /// Converts a tuple value to a <see cref="RunnerId"/> instance.
         /// </summary>
         /// <param name="Value">Value of type ValueTuple&lt;String,Int32&gt; to be converted.</param>
-        public static implicit operator RunnerId(ValueTuple<String, Int32> Value) 
+        public static implicit operator RunnerId((String SessionId, Int32 RunnerNumber, Int32 Generation) Value) 
         { 
-            return new RunnerId(Value.Item1,Value.Item2);
+            return new RunnerId(Value.SessionId,Value.RunnerNumber,Value.Generation);
         }
 
         /// <summary>
         /// Returns a string representation of the value assigned to this instance.
         /// </summary>
         /// <returns>
-        /// String "{<see cref="SessionId"/>}:#{<see cref="RunnerNumber"/>}" if the instance has a value
+        /// String "{<see cref="SessionId"/>}:#{<see cref="Generation"/>-{<see cref="RunnerNumber"/>}" if the instance has a value
         /// or "&lt;Unknown RunnerId&gt;" if the instance is unassigned (has the default value).
         /// </returns>
         public override String ToString()
         {
-            return this!=default?$"{SessionId}:#{RunnerNumber}":"<Unknown RunnerId>";
+            return this!=default?$"{SessionId}:#{RunnerNumber}-{Generation}":"<Unknown RunnerId>";
         }
     }
 }

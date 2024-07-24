@@ -90,7 +90,9 @@ namespace ActiveSession.Tests
         }
 
         const String REQ_ARG = "Request1 argument";
-        static RunnerId REQ_ID = ("TEST_SESSION", 42);
+        const Int32 TEST_NUMBER = 42;
+        const Int32 TEST_GENERATION = 10;
+        static RunnerId REQ_ID = ("TEST_SESSION", TEST_NUMBER, TEST_GENERATION);
 
         [Fact]
         public void DelegateFactory_OneParam_NoConfig()
@@ -217,7 +219,7 @@ namespace ActiveSession.Tests
             ConstructorInfo ci = typeof(FactoryDelegateTargetTestObject).GetConstructors().FirstOrDefault()!;
             Object[] extra_params = new Object[] {"Test", 1 };
 
-            var fdt = new ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget(ci,typeof(String), 42, extra_params);
+            var fdt = new ActiveSessionServiceCollectionExtensions.FactoryDelegateTarget(ci,typeof(String), TEST_NUMBER, extra_params);
             Object result = fdt.Invoke(mock_sp.Object);
 
             mock_sp.Verify(get_lf_service, Times.Once);
@@ -227,7 +229,7 @@ namespace ActiveSession.Tests
             Assert.Equal(typeof(String), fdto.RunnerType);
             Assert.Equal(extra_params, fdto.Params);
             Assert.Equal(dummy_logger_factory, fdto.LoggerFactory);
-            Assert.Equal(42, fdto.NumberOfRequiredParams);
+            Assert.Equal(TEST_NUMBER, fdto.NumberOfRequiredParams);
         }
 
 
