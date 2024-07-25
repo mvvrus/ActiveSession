@@ -75,7 +75,7 @@ namespace ActiveSession.Tests
                 using(TestRunner runner = new TestRunner(test_enumerable, end, end/2)) {
                     runner.StartBackgroundExecution();
                     Assert.NotNull(runner.EnumTask);
-                    Thread.Sleep(100);
+                    Thread.Sleep(300);
                     Assert.False(runner.EnumTask.IsCompleted);
                     Assert.False(runner.QueueIsAddingCompleted);
                     Assert.Equal(end/2, runner.GetProgress().Progress);
