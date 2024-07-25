@@ -12,16 +12,16 @@ namespace MVVrus.AspNetCore.ActiveSession
     ///<br/> The string represetation of an identifier (returned by its <see cref="ToString"/> method) has the form 
     /// <br/>"{<see cref="Generation"/>-{<see cref="RunnerNumber"/>"
     /// </remarks>
-    public record struct RunnerKey(Int32 RunnerNumber, Int32 Generation)
+    public record struct ExtRunnerKey(Int32 RunnerNumber, Int32 Generation)
     {
 
         /// <summary>
         /// Converts a tuple of two integers to a RunnerKey value.
         /// </summary>
         /// <param name="Value">The tuple to be converted.</param>
-        public static implicit operator  RunnerKey((Int32 RunnerNumber, Int32 Generation) Value)
+        public static implicit operator  ExtRunnerKey((Int32 RunnerNumber, Int32 Generation) Value)
         {
-            return new RunnerKey(Value.RunnerNumber, Value.Generation);
+            return new ExtRunnerKey(Value.RunnerNumber, Value.Generation);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="RunnerKey">Parse result if the parsing operation was successful.</param>
         /// <returns>A value showing was the parsing operation successful.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static Boolean TryParse(String Source, out RunnerKey RunnerKey)
+        public static Boolean TryParse(String Source, out ExtRunnerKey RunnerKey)
         {
             Int32 num, gen;
             if(Source == null) throw new ArgumentNullException(nameof(Source));
@@ -65,19 +65,19 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// <inheritdoc cref="TryParse(string, out RunnerKey)" path='/summary'/>
+        /// <inheritdoc cref="TryParse(string, out ExtRunnerKey)" path='/summary'/>
         /// </summary>
         /// <param name="Source">
-        /// <inheritdoc cref="TryParse(string, out RunnerKey)" path='/param[@name="Source"]'/>
+        /// <inheritdoc cref="TryParse(string, out ExtRunnerKey)" path='/param[@name="Source"]'/>
         /// </param>
         /// <returns>
-        /// <inheritdoc cref="TryParse(string, out RunnerKey)" path='/param[@name="RunnerKey]'/>
+        /// <inheritdoc cref="TryParse(string, out ExtRunnerKey)" path='/param[@name="RunnerKey]'/>
         /// </returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="FormatException"></exception>
-        public static RunnerKey Parse(String Source)
+        public static ExtRunnerKey Parse(String Source)
         {
-            RunnerKey result;
+            ExtRunnerKey result;
             if(TryParse(Source, out result)) return result;
             else throw new FormatException("Bad RunnerKey format:"+Source);
         }
