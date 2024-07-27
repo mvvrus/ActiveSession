@@ -92,13 +92,13 @@ namespace ActiveSession.Tests
                     //Test case: end of background process, StartPosition+Advance>_progress
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                     //Test case: call while Status is Complete
                     (result, status, position, exception) = runner.GetAvailable();
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                 }
@@ -311,7 +311,7 @@ namespace ActiveSession.Tests
                     Assert.True(task_sync.IsCompletedSuccessfully);
                     (result, status, position, exception) = task_sync.Result;
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                     Assert.Equal(COUNT, runner.Position);
@@ -320,7 +320,7 @@ namespace ActiveSession.Tests
                     Assert.True(task_sync.IsCompletedSuccessfully);
                     (result, status, position, exception) = task_sync.Result;
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                     Assert.Equal(COUNT, runner.Position);
@@ -359,16 +359,16 @@ namespace ActiveSession.Tests
                     Assert.True(task1.IsCompletedSuccessfully);
                     (result, status, position, exception) = task1.Result;
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
-                    Assert.Equal(RunnerStatus.Complete, runner.Status);
+                    Assert.Equal(RunnerStatus.Completed, runner.Status);
                     Assert.Equal(COUNT, runner.Position);
                     Assert.True(task2.Wait(TIMEOUT));
                     Assert.True(task2.IsCompletedSuccessfully);
                     (result, status, position, exception) = task2.Result;
                     Assert.Equal(COUNT*2, result);
-                    Assert.Equal(RunnerStatus.Complete, status);
+                    Assert.Equal(RunnerStatus.Completed, status);
                     Assert.Equal(COUNT, position);
                     Assert.Null(exception);
                 }
@@ -496,7 +496,7 @@ namespace ActiveSession.Tests
                 runner = new SessionProcessRunner<Int32>(test_setup.FuncBody, default, test_setup.LoggerFactory.CreateLogger<SessionProcessRunner<Int32>>());
                 Assert.True(test_setup.Wait(TIMEOUT, runner));
                 runner.GetAvailable();
-                Assert.Equal(RunnerStatus.Complete, runner.Status);
+                Assert.Equal(RunnerStatus.Completed, runner.Status);
                 Assert.True(Task.Run(() => runner.Dispose()).Wait(TIMEOUT));
                 Assert.True(runner.IsBackgroundExecutionCompleted);
             }
@@ -554,7 +554,7 @@ namespace ActiveSession.Tests
                     Assert.True(test_setup.Wait(TIMEOUT, runner));
                     runner.GetAvailable();
                     runner.Abort();
-                    Assert.Equal(RunnerStatus.Complete, runner.Status);
+                    Assert.Equal(RunnerStatus.Completed, runner.Status);
                 }
             }
             //Test case: Background failed, Status in not Failed yet

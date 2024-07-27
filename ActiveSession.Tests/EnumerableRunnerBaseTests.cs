@@ -126,7 +126,7 @@ namespace ActiveSession.Tests
                 //Test all available data extraction
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, PAGE_SIZE, 2*PAGE_SIZE));
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Assert.Null(exception);
                 Assert.Equal((PAGE_SIZE * 3, (Int32?)(PAGE_SIZE * 3)), runner.GetProgress());
             }
@@ -222,10 +222,10 @@ namespace ActiveSession.Tests
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 runner.SimulateBackgroundFetch(PAGE_SIZE * 3, true);
                 (result, status, position, exception) = runner.GetAvailable();
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 (result, status, position, exception) = runner.GetAvailable();
                 Assert.True(CheckRange(result, PAGE_SIZE * 3, 0));
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Assert.Null(exception);
             }
             //Test GetAvailablle while runner has Failed status
@@ -398,7 +398,7 @@ namespace ActiveSession.Tests
                 Assert.True(result_task.IsCompletedSuccessfully);
                 (result, status, position, exception) = result_task.Result;
                 Assert.True(CheckRange(result, PAGE_SIZE, PAGE_SIZE));
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Assert.Equal(PAGE_SIZE * 2, position);
                 Assert.Null(exception);
                 runner.GetAvailable(); //To check pseudo-lock release
@@ -514,7 +514,7 @@ namespace ActiveSession.Tests
                 Assert.True(result_as_task.IsCompletedSuccessfully);
                 (result, status, position, exception) = result_as_task.Result;
                 Assert.True(CheckRange(result, 0, PAGE_SIZE));
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Assert.Null(exception);
                 Assert.Equal((PAGE_SIZE, (Int32?)(PAGE_SIZE)), runner.GetProgress());
                 Assert.True(runner.IsBackgroundExecutionCompleted);
@@ -811,12 +811,12 @@ namespace ActiveSession.Tests
                 result_task = runner.GetRequiredAsync(PAGE_SIZE*3).Preserve();
                 Assert.True(result_task.IsCompletedSuccessfully);
                 (result, status, position, exception) = result_task.Result;
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 result_task = runner.GetRequiredAsync(PAGE_SIZE * 3).Preserve();
                 Assert.True(result_task.IsCompletedSuccessfully);
                 (result, status, position, exception) = result_task.Result;
                 Assert.True(CheckRange(result, PAGE_SIZE * 3, 0));
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Assert.Null(exception);
                 runner.GetAvailable(); //To check pseudo-lock release
             }

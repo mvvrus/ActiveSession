@@ -627,7 +627,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #endif
             Position = Position+ResultList.Count;
             if (_queue.Count==0 && _queue.IsAddingCompleted) {
-                RunnerStatus new_status = Exception==null ? Complete : Failed;
+                RunnerStatus new_status = Exception==null ? Completed : Failed;
                 SetStatus(new_status);
                 #if TRACE
                 Logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);

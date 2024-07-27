@@ -646,7 +646,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #if TRACE
                         Logger?.LogTraceSessionProcessBkgEndedRanToCompletion(Id);
                         #endif
-                        _backgroundStatus=RunnerStatus.Complete;
+                        _backgroundStatus=RunnerStatus.Completed;
                         _progress++;
                         if(_bkgTaskReturnsResult) {
                             #if TRACE

@@ -12,7 +12,7 @@
         /// <summary> Advanced to a new position or completed and has new data available</summary>
         Progressed=2,
         /// <summary> Completed and has no new data available</summary>
-        Complete=10,
+        Completed=10,
         /// <summary> An error occured while the object is running, no data available</summary>
         Failed=11,
         /// <summary> An error occured while the object is running, no data available</summary>
@@ -32,7 +32,7 @@
         /// <returns>true if the <paramref name="State"/> specified is a final one (Complete, Failed or Aborted), false otherwise</returns>
         public static Boolean IsFinal(this RunnerStatus State)
         {
-            return State>=RunnerStatus.Complete;
+            return State>=RunnerStatus.Completed;
         }
 
         /// <summary>

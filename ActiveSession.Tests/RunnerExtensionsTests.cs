@@ -23,7 +23,7 @@ namespace ActiveSession.Tests
         //Test group: test RunExtensions.GetStatusAsync
         public void StatusAsyncTest()
         {
-            using(TestSetupNoParams<RunnerStatus> ts=new (RunnerStatus.Complete
+            using(TestSetupNoParams<RunnerStatus> ts=new (RunnerStatus.Completed
                 , RunnerStatus.Aborted
                 , s => s.Status
                 , s => s.GetStatusAsync(It.IsAny<CancellationToken>())
@@ -146,7 +146,7 @@ namespace ActiveSession.Tests
         {
             using(TestSetupGetAvailable ts = new(
                 new RunnerResult<Int32>(1,RunnerStatus.Stalled, 1),
-                new RunnerResult<Int32>(42, RunnerStatus.Complete, 42))) 
+                new RunnerResult<Int32>(42, RunnerStatus.Completed, 42))) 
             {
                 //Test case: IRunnerProxy not implemented
                 ts.VerifyNoProxy();

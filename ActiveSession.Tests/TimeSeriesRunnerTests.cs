@@ -152,7 +152,7 @@ namespace ActiveSession.Tests
                 var result_task = runner.GetRequiredAsync(COUNT).AsTask();
                 Assert.True(result_task.Wait((Int32)INTERVAL.TotalMilliseconds*COUNT*2));
                 (var result, RunnerStatus status, Int32 position, Exception? exception) = result_task.Result;
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Int32 count=0;
                 TimeSpan last_delay=TimeSpan.Zero;
                 foreach(var t in result) {
@@ -181,7 +181,7 @@ namespace ActiveSession.Tests
                 var result_task = runner.GetRequiredAsync().AsTask();
                 Assert.True(result_task.Wait((Int32)INTERVAL.TotalMilliseconds*COUNT*2));
                 (var result, RunnerStatus status, Int32 position, Exception? exception) = result_task.Result;
-                Assert.Equal(RunnerStatus.Complete, status);
+                Assert.Equal(RunnerStatus.Completed, status);
                 Int32 count = 0;
                 TimeSpan last_delay = TimeSpan.Zero;
                 foreach(var t in result) {
