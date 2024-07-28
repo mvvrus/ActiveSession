@@ -1,7 +1,5 @@
 ﻿using System.Net;
-using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
-using System.Web;
 
 namespace MVVrus.AspNetCore.ActiveSession
 {
@@ -54,7 +52,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </returns>
         public override String ToString()
         {
-            return $"{RunnerNumber}-{Generation}-{HttpUtility.UrlEncode(ActiveSessionId)}";
+            return $"{RunnerNumber}-{Generation}-{WebUtility.UrlEncode(ActiveSessionId)}";
         }
 
         /// <summary>
@@ -94,7 +92,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 && key_parts.Groups.Count==4
                 && Int32.TryParse(key_parts.Groups[1].Value, out num)
                 && Int32.TryParse(key_parts.Groups[2].Value, out gen)) {
-                    ExtRunnerKey=(num, HttpUtility.UrlDecode(key_parts.Groups[3].Value), gen);
+                    ExtRunnerKey=(num, WebUtility.UrlDecode(key_parts.Groups[3].Value), gen);
                     return true;
             }
             else return false;
