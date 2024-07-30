@@ -74,12 +74,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///The method is intended to be safe for calling even if the runner has been disposed already.
         ///</remarks>
         /// <inheritdoc/>
-        public void Abort(String? TraceIdentifier = null) 
+        public RunnerStatus Abort(String? TraceIdentifier = null) 
         {
             if(SetStatus(RunnerStatus.Aborted)) {
                 Logger?.LogTraceRunnerBaseAbortCalled(Id, TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
                 DoAbort(TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
             }
+            return Status;
         }
 
         ///<summary>

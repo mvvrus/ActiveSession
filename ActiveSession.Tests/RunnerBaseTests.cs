@@ -143,39 +143,40 @@ namespace ActiveSession.Tests
         [Fact]
         public void Abort()
         {
+            RunnerStatus status;
             RunnerBaseImpl runner;
             //Test case: Abort NotStarted runner
             runner=new RunnerBaseImpl();
-            runner.Abort();
+            status=runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.Status);
+            Assert.Equal(RunnerStatus.Aborted, status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
             runner.Dispose();
 
             //Test case: Abort running runner
             runner=new RunnerBaseImpl();
             Assert.True(runner.StartRunningPub(RunnerStatus.Stalled));
-            runner.Abort();
+            status=runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.Status);
+            Assert.Equal(RunnerStatus.Aborted, status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
             runner.Dispose();
 
             //Test case: Abort runner in the final state
             runner=new RunnerBaseImpl();
             Assert.True(runner.StartRunningPub(RunnerStatus.Completed));
-            runner.Abort();
+            status=runner.Abort();
             Assert.False(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Completed, runner.Status);
+            Assert.Equal(RunnerStatus.Completed, status);
             runner.Dispose();
 
             //Test case: Abort runner disposed while running. 
             runner=new RunnerBaseImpl();
             Assert.True(runner.StartRunningPub(RunnerStatus.Stalled));
             runner.Dispose();
-            runner.Abort();
+            status = runner.Abort();
             Assert.True(runner.DoAbortCalled);
-            Assert.Equal(RunnerStatus.Aborted, runner.Status);
+            Assert.Equal(RunnerStatus.Aborted, status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
         }
 

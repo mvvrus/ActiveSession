@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 
 namespace ActiveSession.Tests
 {
@@ -9,7 +8,7 @@ namespace ActiveSession.Tests
 
         public int Position => throw new NotImplementedException();
 
-        public void Abort(String? TraceIdentifier = null)
+        public RunnerStatus Abort(String? TraceIdentifier = null)
         {
             throw new NotImplementedException();
         }

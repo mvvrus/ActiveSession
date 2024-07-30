@@ -561,10 +561,11 @@ namespace ActiveSession.Tests
 
             public Int32 Position => 0;
 
-            public void Abort(String? TraceIdentifier = null)
+            public RunnerStatus Abort(String? TraceIdentifier = null)
             {
                 Status=RunnerStatus.Aborted;
                 _completionTokenSource.Cancel();
+                return Status;
             }
 
             public RunnerBkgProgress GetProgress()
