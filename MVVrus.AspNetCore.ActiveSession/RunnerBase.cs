@@ -151,7 +151,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         protected internal Boolean SetStatus(RunnerStatus Status)
         {
-            if (Status==RunnerStatus.NotStarted) {
+            //TODO(future) Add a Boolean parameter for implementing cancellation delay
+            if(Status==RunnerStatus.NotStarted) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(Id);
                 #endif
@@ -171,6 +172,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Logger?.LogTraceRunnerBaseStateChanged(Id, Status);
             #endif
             if (((RunnerStatus)new_status).IsFinal())
+                //TODO(future) Implement cancellation delay
                 try {
                     #if TRACE
                     Logger?.LogTraceRunnerBaseComeToFinalState(Id);

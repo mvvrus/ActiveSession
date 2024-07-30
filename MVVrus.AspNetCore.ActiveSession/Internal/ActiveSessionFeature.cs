@@ -22,6 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, ILogger? Logger, String? TraceIdentifier)
         {
+            //TODO(future) Implement setting suffix for ActiveSession.Id
             _logger=Logger;
             _traceIdentifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
