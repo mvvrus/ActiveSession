@@ -183,30 +183,32 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            String session_id = Session.Id;
+            String nogen_session_id = Session.Id;
+            String session_id = Session.Id+":?";
             #if TRACE
-            _logger?.LogTraceFetchOrCreate(session_id, trace_identifier);
+            _logger?.LogTraceFetchOrCreate(nogen_session_id, trace_identifier);
             #endif
 
             ActiveSession? result=null;
-            String key = SessionKey(session_id);
-            _logger?.LogDebugActiveSessionKeyToUse(session_id, trace_identifier);
+            String key = SessionKey(nogen_session_id);
+            _logger?.LogDebugActiveSessionKeyToUse(nogen_session_id, trace_identifier);
             Int32 insession_generation = Session.GetInt32(key)??0;
             Int32 new_generation= insession_generation<=0?-insession_generation+1:0;
 
             if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
             if(result==null) { //Not found or evicted due to bad generation
                 #if TRACE
-                _logger?.LogTraceAcquiringSessionCreationLock(session_id, trace_identifier);
+                _logger?.LogTraceAcquiringSessionCreationLock(nogen_session_id, trace_identifier);
                 #endif
                 Monitor.Enter(_creation_lock);
                 try {
                     #if TRACE
-                    _logger?.LogTraceAcquiredSessionCreationLock(session_id, trace_identifier);
+                    _logger?.LogTraceAcquiredSessionCreationLock(nogen_session_id, trace_identifier);
                     #endif
                     if(_draining) return null;  //The store is stopping due to the application stopping cannot create more sessions
                     if(_memoryCache.TryGetValue(key, out result)) FoundInCahe(); //Repeat check under the lock
                     if(result==null) {  //The requested active session is not found or has been evicted due to bad Generation 
+                        session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
                         _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                         try {
                             _sessionKeys.Add(key);
@@ -252,8 +254,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             _sessionKeys.Remove(key);
                             throw;
                         }
-                        CleanupOutdatedRunnerVars(Session, key, new_generation, session_id, trace_identifier);
+                        CleanupOutdatedRunnerVars(Session, key, new_generation, nogen_session_id, trace_identifier);
                     }
+                    else  session_id = result.MakeSessionId();
                 }
                 finally {
                     #if TRACE
@@ -270,9 +273,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
             void FoundInCahe()
             {
+                String session_id=result!.MakeSessionId();
                 if (result!.Generation<new_generation) {
                     #if TRACE
-                    _logger?.LogTraceFetchOrCreateTerminatedFound(session_id, trace_identifier);
+                    _logger?.LogTraceFetchOrCreateOutdatedSessionFound(session_id, trace_identifier);
                     #endif
                     DoTerminateSession(result!, trace_identifier);
                     result=null;
@@ -293,7 +297,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            String session_id = ActiveSession.Id;
+            String session_id = ActiveSession.MakeSessionId();
             IRunner<TResult>? runner;
             #if TRACE
             _logger?.LogTraceCreateRunner(session_id, trace_identifier);
@@ -316,10 +320,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceAcquiredRunnerCreationLock(use_session_lock ? session_id : "<global>", trace_identifier);
                 #endif
                 runner_number= RunnerManager.GetNewRunnerNumber(ActiveSession, trace_identifier);
-                String runner_session_key = SessionKey(session_id);
+                String runner_session_key = SessionKey(ActiveSession.Id);
                 generation = ActiveSession.Generation;
                 String runner_key = RunnerKey(runner_session_key, runner_number, generation);
-                RunnerId runner_id = (session_id, runner_number, generation);
+                RunnerId runner_id = (ActiveSession.Id, runner_number, generation);
                 #if TRACE
                 _logger?.LogTraceNewRunnerInfoRunner(session_id, generation, runner_number, trace_identifier);
                 #endif
@@ -495,7 +499,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceSessionTerminate(ActiveSession.Id, trace_identifier);
+            String session_id = ActiveSession.MakeSessionId();
+            _logger?.LogTraceSessionTerminate(session_id, trace_identifier);
             #endif
             Int32 insession_generation = Session.GetInt32(SessionKey(ActiveSession.Id))??0;
             if(insession_generation!=-ActiveSession.Generation) {
@@ -507,11 +512,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else 
                 #if TRACE
-                _logger?.LogTraceSessionAlreadyTerminated(ActiveSession.Id, trace_identifier)
+                _logger?.LogTraceSessionAlreadyTerminated(session_id, trace_identifier)
                 #endif
                 ;
             #if TRACE
-            _logger?.LogTraceSessionTerminateExit(ActiveSession.Id, trace_identifier);
+            _logger?.LogTraceSessionTerminateExit(session_id, trace_identifier);
             #endif
             return ActiveSession.CleanupCompletionTask;
         }
@@ -523,23 +528,32 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             Object? dummy;
             String key= SessionKey(ActiveSession.Id);
+            String session_id = ActiveSession.MakeSessionId();
             Boolean removed = false;
             Monitor.Enter(_creation_lock);
             try {
-                _logger?.LogTraceSessionDoTerminateLockAcquired(ActiveSession.Id, TraceIdentifier);
+                #if TRACE
+                _logger?.LogTraceSessionDoTerminateLockAcquired(session_id, TraceIdentifier);
+                #endif
                 if(_memoryCache.TryGetValue(key, out dummy) && Object.ReferenceEquals(dummy, ActiveSession)) {
                     //Try to free a cache slot synchronously, all disposing will be done by ActiveSessionEviction callback (asynchronously) 
-                    _logger?.LogTraceSessionDoTerminateViaEvict(ActiveSession.Id, TraceIdentifier);
+#if TRACE
+#endif
+                    _logger?.LogTraceSessionDoTerminateViaEvict(session_id, TraceIdentifier);
                     _memoryCache.Remove(key);
                     removed=true;
                 }
             }
             finally {
-                _logger?.LogTraceSessionDoTerminateLockReleased(ActiveSession.Id, TraceIdentifier);
+#if TRACE
+#endif
+                _logger?.LogTraceSessionDoTerminateLockReleased(session_id, TraceIdentifier);
                 Monitor.Exit(_creation_lock);
             }
             if(!removed) {
-                //Already have been evicted from cache. Do all disposing here
+                //Already have been evicted from cache. Nothing to do.
+#if TRACE
+#endif
                 _logger?.LogTraceSessionDoTerminateDisposeEvicted(ActiveSession.Id, TraceIdentifier);
             }
             #if TRACE
@@ -621,7 +635,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             session_info.RunnerMangerInfo.CleanupTask=runners_cleanup_task;
             active_session.CleanupCompletionTask.Start();
             //Start logger task waiting for a specified time while the runners complete
-            TimeoutLoggerInfo tl_info = new TimeoutLoggerInfo(active_session.Id, runners_cleanup_task);
+            TimeoutLoggerInfo tl_info = new TimeoutLoggerInfo(active_session.MakeSessionId(), runners_cleanup_task);
             if(_cleanupLoggingTimeoutMs!=null)
                 _cleanupLoggingTask=Task.WhenAny(active_session.CleanupCompletionTask, Task.Delay(_cleanupLoggingTimeoutMs.Value))
                     .ContinueWith(TimeoutLoggerBody, tl_info);
@@ -719,12 +733,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             String runner_key = RunnerKey(RunnerSessionKey, RunnerNumber, Generation);
             #if TRACE
-            _logger?.LogTraceRegisterRunnerInSession(runner_key, TraceIdentifier);
+            _logger?.LogTraceRegisterRunnerInSession(Session.Id, runner_key, TraceIdentifier);
             #endif
             Session.SetString(runner_key, _hostId); 
             Session.SetString(runner_key+TYPE_KEY_PART, ResultType.FullName!);
             #if TRACE
-            _logger?.LogTraceRegisterRunnerInSessionExit(runner_key, TraceIdentifier);
+            _logger?.LogTraceRegisterRunnerInSessionExit(Session.Id, runner_key, TraceIdentifier);
             #endif
         }
 

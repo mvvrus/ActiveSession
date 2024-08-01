@@ -110,7 +110,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckSession(SessionKey);
             #if TRACE
-            _logger?.LogTraceReturnRunnerNumber(SessionKey.Id, RunnerNumber);
+            _logger?.LogTraceReturnRunnerNumber(SessionKey.MakeSessionId(), RunnerNumber);
             #endif
             //Do nothing until RunnerNumber reusage is implemented
         }
@@ -120,16 +120,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckSession(SessionKey);
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            String session_id = SessionKey.MakeSessionId();
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumber(SessionKey.Id, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumber(session_id, trace_identifier);
             #endif
             if (_newRunnerNumber>=_maxRunnerNumber) {
-                _logger?.LogErrorCannotAllocateRunnerNumber(SessionKey.Id, trace_identifier);
+                _logger?.LogErrorCannotAllocateRunnerNumber(session_id, trace_identifier);
                 throw new InvalidOperationException("Cannot acquire a new runner number");
             }
             int result = _newRunnerNumber++;
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumberExit(SessionKey.Id, result, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumberExit(session_id, result, trace_identifier);
             #endif
             return result;
         }
@@ -165,12 +166,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public void AbortAll(IActiveSession SessionKey)
         {
             CheckSession(SessionKey);
+            String session_id = SessionKey.MakeSessionId();
             #if TRACE
-            _logger?.LogTraceAbortAll(SessionKey.Id);
+            _logger?.LogTraceAbortAll(session_id);
             #endif
             lock (RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceAbortAllLockAcqired(SessionKey.Id);
+                _logger?.LogTraceAbortAllLockAcqired(session_id);
                 #endif
                 foreach (var runner_info in _runners.Values) {
                     runner_info.Runner.Abort();
@@ -180,7 +182,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
             }
             #if TRACE
-            _logger?.LogTraceAbortAllExit(SessionKey.Id);
+            _logger?.LogTraceAbortAllExit(session_id);
             #endif
         }
 
@@ -188,17 +190,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             CheckSession(SessionKey);
+            String session_id = SessionKey.MakeSessionId();
             Boolean has_runners;
             #if TRACE
-            _logger?.LogTracePerformRunnersCleanup(SessionKey.Id);
+            _logger?.LogTracePerformRunnersCleanup(session_id);
             #endif
             lock (RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTracePerformRunnersCleanupAcquired(SessionKey.Id);
+                _logger?.LogTracePerformRunnersCleanupAcquired(session_id);
                 #endif
                 if (_cleanup_mark) {
                     #if TRACE
-                    _logger?.LogTracePerformRunnersCleanupDuplicate(SessionKey.Id);
+                    _logger?.LogTracePerformRunnersCleanupDuplicate(session_id);
                     #endif
                     return;
                 }
@@ -208,42 +211,42 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 else {
                     //LogTrace no runners
                     #if TRACE
-                    _logger?.LogTracePerformRunnersCleanupNoRunners(SessionKey.Id);
+                    _logger?.LogTracePerformRunnersCleanupNoRunners(session_id);
                     #endif
                 }
             }
             #if TRACE
-            _logger?.LogTracePerformRunnersCleanupReleased(SessionKey.Id);
+            _logger?.LogTracePerformRunnersCleanupReleased(session_id);
             #endif
             _runnersCounter.Signal();
             if(has_runners) {
-                Task unreg_task = new Task(WaitUnregistration, SessionKey.Id);
+                Task unreg_task = new Task(WaitUnregistration, session_id);
                 unreg_task.Start();
                 #if TRACE
-                _logger?.LogTracePerformRunnersCleanupAwaiting(SessionKey.Id);
+                _logger?.LogTracePerformRunnersCleanupAwaiting(session_id);
                 #endif
                 await unreg_task;
                 Task[] dispose_tasks;
                 #if TRACE
-                _logger?.LogPerformRunnersCleanupAcquiringLock2(SessionKey.Id);
+                _logger?.LogPerformRunnersCleanupAcquiringLock2(session_id);
                 #endif
                 lock (RunnerCreationLock) {
                     #if TRACE
-                    _logger?.LogTracePerformRunnersCleanupLockAcquired2(SessionKey.Id);
+                    _logger?.LogTracePerformRunnersCleanupLockAcquired2(session_id);
                     #endif
                     dispose_tasks=_runningDisposeTasks.ToArray();
                 }
                 #if TRACE
-                _logger?.LogTracePerformRunnersCleanupLockReleased2(SessionKey.Id);
+                _logger?.LogTracePerformRunnersCleanupLockReleased2(session_id);
                 #endif
                 await Task.WhenAll(dispose_tasks);
             }
             #if TRACE
-            _logger?.LogTracePerformRunnersCleanupDisposing(SessionKey.Id);
+            _logger?.LogTracePerformRunnersCleanupDisposing(session_id);
             #endif
             Dispose();
             #if TRACE
-            _logger?.LogTracePerformRunnersCleanupComplete(SessionKey.Id);
+            _logger?.LogTracePerformRunnersCleanupComplete(session_id);
             #endif
         }
 
