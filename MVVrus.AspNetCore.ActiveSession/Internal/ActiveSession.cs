@@ -1,4 +1,6 @@
-﻿using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
@@ -14,7 +16,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         bool _isFresh = true;
         readonly IRunnerManager _runnerManager;
         readonly CancellationTokenSource _cts;
-        readonly IDictionary<String, Object> _properties;
+        readonly ConcurentSortedDictionary<String, Object> _properties;
 
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
@@ -47,7 +49,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
             this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
-            _properties= new SortedList<String, Object>();
+            _properties= new ConcurentSortedDictionary<String, Object>();
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(_logSessionId, trace_identifier);
             #endif
@@ -140,6 +142,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             _cts.Cancel();
             _cts.Dispose();
+            _properties.Dispose();
         }
 
         private void CheckDisposed()
@@ -167,6 +170,87 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal Boolean Disposed { get { return _disposed!=0; }}
 
         public Int32 Generation { get; init; }
+
+        class ConcurentSortedDictionary<TKey, TValue> : IDisposable, IDictionary<TKey, TValue> where TKey: notnull 
+        {
+            ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+            SortedDictionary<TKey, TValue> _base = new SortedDictionary<TKey, TValue>();
+
+            public void Dispose()
+            {
+                _lock.Dispose();
+            }
+
+            public TValue this[TKey key] { get
+                {
+                    _lock.EnterReadLock(); try { return _base[key]; } finally { _lock.ExitReadLock(); }
+                } set
+                {
+                    _lock.EnterWriteLock(); try { _base[key]=value; } finally { _lock.ExitWriteLock(); }
+                } 
+            }
+
+            public Int32 Count { get { _lock.EnterReadLock(); try { return _base.Count; } finally { _lock.ExitReadLock(); } } }
+
+            public void Add(TKey key, TValue value)
+            {
+                _lock.EnterWriteLock(); try { _base.Add(key,value); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public void Add(KeyValuePair<TKey, TValue> item)
+            {
+                _lock.EnterWriteLock(); try { ((ICollection<KeyValuePair<TKey,TValue>>)_base).Add(item); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public void Clear()
+            {
+                _lock.EnterWriteLock(); try { _base.Clear(); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public Boolean Contains(KeyValuePair<TKey, TValue> item)
+            {
+                _lock.EnterReadLock(); try { return _base.Contains(item); } finally { _lock.ExitReadLock(); }
+            }
+
+            public Boolean ContainsKey(TKey key)
+            {
+                _lock.EnterReadLock(); try { return _base.ContainsKey(key); } finally { _lock.ExitReadLock(); }
+            }
+
+            public void CopyTo(KeyValuePair<TKey, TValue>[] array, Int32 arrayIndex)
+            {
+                _lock.EnterWriteLock(); try { ((ICollection<KeyValuePair<TKey, TValue>>)_base).CopyTo(array,arrayIndex); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public Boolean Remove(TKey key)
+            {
+                _lock.EnterWriteLock(); try { return _base.Remove(key); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public Boolean Remove(KeyValuePair<TKey, TValue> item)
+            {
+                _lock.EnterWriteLock(); try { return ((ICollection<KeyValuePair<TKey, TValue>>)_base).Remove(item); } finally { _lock.ExitWriteLock(); }
+            }
+
+            public Boolean TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+            {
+                _lock.EnterReadLock(); try { return _base.TryGetValue(key,out value); } finally { _lock.ExitReadLock(); }
+            }
+
+            public ICollection<TKey> Keys => _base.Keys;
+            public ICollection<TValue> Values => _base.Values;
+            public Boolean IsReadOnly => ((IDictionary<TKey,TValue>)_base).IsReadOnly;
+            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+            {
+                return _base.GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+        }
 
     }
 }
