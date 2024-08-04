@@ -76,7 +76,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _shutdownTcs=new TaskCompletionSource();
             _shutdownCallback=HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
             _loggerFactory=LoggerFactory;
-            _logger =_loggerFactory?.CreateLogger(INFRASTRUCTURE_CATEGORY_NAME);
+            _logger =_loggerFactory?.CreateLogger(STORE_CATEGORY_NAME);
             #if TRACE
             _logger?.LogTraceActiveSessionStoreConstructor();
             #endif
@@ -219,7 +219,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_entry.Size=size;
                                 IServiceScope session_scope = _rootServiceProvider.CreateScope();
                                 IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
-                                    _logger,
+                                    _loggerFactory?.CreateLogger(RUNNERMANAGER_CATEGORY_NAME),
                                     session_scope.ServiceProvider
                                     ); //TODO(future) Set MinRunnerNumber & MaxRunnerNumber
                                 RunnerManagerInfo info = new RunnerManagerInfo();
@@ -572,7 +572,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IActiveSessionFeature AcquireFeatureObject(ISession? Session, String? TraceIdentier)
         {
-            return new ActiveSessionFeature(this, Session, _logger, TraceIdentier);
+            return new ActiveSessionFeature(this, Session, _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), TraceIdentier);
         }
 
         public void ReleaseFeatureObject(IActiveSessionFeature AnObject)

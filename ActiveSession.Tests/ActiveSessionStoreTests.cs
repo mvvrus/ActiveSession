@@ -1588,7 +1588,7 @@ namespace ActiveSession.Tests
             public Expression<Func<IRunnerManager, Object?>> LockObjectExpression = s => s.RunnerCreationLock;
 
             public Boolean LoggerCreated() {
-                return _loggerFactory.LoggerCreationCount(INFRASTRUCTURE_CATEGORY_NAME)>0;
+                return _loggerFactory.LoggerCreationCount(STORE_CATEGORY_NAME)>0;
             }
 
             public ConstructorTestSetup(Mock<IMemoryCache>? MockCache)
@@ -1608,10 +1608,10 @@ namespace ActiveSession.Tests
                 _stubAppLifetime=new Mock<IHostApplicationLifetime>();
             }
 
-            public MockedLogger InitLogger()
+            public MockedLogger InitLogger(String CategoryName= STORE_CATEGORY_NAME)
             {
                 _loggerFactory.ResetAllCategories();
-                _logger=_loggerFactory.MonitorLoggerCategory(INFRASTRUCTURE_CATEGORY_NAME);
+                _logger=_loggerFactory.MonitorLoggerCategory(CategoryName);
                 return _logger;
             }
 

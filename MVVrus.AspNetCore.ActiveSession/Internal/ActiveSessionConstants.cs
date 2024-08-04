@@ -6,6 +6,10 @@
         public const String LOGGING_CATEGORY_NAME = "MVVrus.AspNetCore.ActiveSession";
         public const String SESSION_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".ActiveSession";
         public const String INFRASTRUCTURE_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".Infrastructure";
+        public const String FEATURE_CATEGORY_NAME = INFRASTRUCTURE_CATEGORY_NAME+".Feature";
+        public const String MIDDLEWARE_CATEGORY_NAME = INFRASTRUCTURE_CATEGORY_NAME+".Middleware";
+        public const String STORE_CATEGORY_NAME = INFRASTRUCTURE_CATEGORY_NAME+".Store";
+        public const String RUNNERMANAGER_CATEGORY_NAME = INFRASTRUCTURE_CATEGORY_NAME+".RunnerManager";
         public const String INIT_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".Initialization";
         public const String FACTORY_CATEGORY_NAME = LOGGING_CATEGORY_NAME+".RunnerFactory";
         public static readonly TimeSpan DEFAULT_MAX_LIFETIME = TimeSpan.FromHours(2);
