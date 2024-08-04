@@ -442,7 +442,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(runner_id, host_id, trace_identifier);
-                result=MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, runner_key, trace_identifier).GetAwaiter().GetResult();
+                result=MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier).GetAwaiter().GetResult();
             }
             #if TRACE
             _logger?.LogTraceGetRunnerExit(runner_id, result!=null,trace_identifier);
@@ -487,7 +487,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceAwaitForProxyCreation(runner_id, trace_identifier);
                 #endif
-                result= await MakeRemoteRunnerAsync<TResult>(RunnerManager, runner_key, host_id, trace_identifier, Token);
+                result= await MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier, Token);
             }
             #if TRACE
             _logger?.LogTraceGetRunnerAsyncExit(runner_id, result!=null, trace_identifier);
@@ -812,7 +812,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceReturnRunnerFromCache(runner_id, TraceIdentifier);
                 #endif
                 result=value_from_cache as IRunner<TResult>;
-                if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(TraceIdentifier);
+                if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(runner_id, TraceIdentifier);
             }
             else {
                 #if TRACE
@@ -834,20 +834,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning disable IDE0060 // Remove unused parameter
             IRunnerManager RunnerManager,
             String HostId,
-            String RunnerKey,
+            IActiveSession ActiveSession,
+            Int32 RunnerNumber,
             String TraceIdentifier,
             CancellationToken Token=default
 #pragma warning restore IDE0060 // Remove unused parameter
         )
         {
-            _logger?.LogWarningRemoteRunnerUnavailable(TraceIdentifier);
+            RunnerId runner_id = new RunnerId(ActiveSession, RunnerNumber);
+            _logger?.LogWarningRemoteRunnerUnavailable(runner_id, TraceIdentifier);
             if (_throwOnRemoteRunner) {
                 _logger?.LogErrorRemoteRunnerUnavailable(TraceIdentifier);
                 throw new InvalidOperationException("Using remote runners is not allowed  configuration setting ThrowOnRemoteRunner");
             }
             return Task.FromResult<IRunner<TResult>?>(null); //Just now I do not want to implement remote runner
-
             //Possible future implementation draft
+            //String RunnerKey = this.RunnerKey(SessionKey(ActiveSession.Id), RunnerNumber, ActiveSession.Generation);
             //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
             //if (runner_type_name==null) {
             //    // Log that runner has unknown type

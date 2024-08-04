@@ -30,11 +30,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(W_NOOWNCACHE, Warning, "ActiveSessionStore constructor: cannot create our own cache, fall back to the shared cache.")]
         public static partial void LogWarningActiveSessionStoreCannotCreateOwnCache(this ILogger Logger, Exception AnException);
 
-        [LoggerMessage(W_INCOMPATRUNNERTYPE, Warning, "The runner is found in the local cache but cannot be returned: the runner type is incompatible, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogWarningNoExpectedRunnerInCache(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(W_INCOMPATRUNNERTYPE, Warning, "The runner is found in the local cache but cannot be returned: the runner type is incompatible, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningNoExpectedRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(W_REMOTENOTIMPLMENTED, Warning, "Accessing the remote runner is not implemented, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogWarningRemoteRunnerUnavailable(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(W_REMOTENOTIMPLMENTED, Warning, "Accessing the remote runner is not implemented, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningRemoteRunnerUnavailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(W_ACTIVESESSIONFAIL, Warning, "The exception occered while establishing ActiveSessionFeature.ActiveSession property, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningActiveSessionLoad(this ILogger Logger, Exception exception, String TraceIdentifier);
