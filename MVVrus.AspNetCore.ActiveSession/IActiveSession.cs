@@ -37,32 +37,32 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
         /// <returns>A task wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
+        ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(
             int RunnerNumber,
             HttpContext Context, 
             CancellationToken CancellationToken = default
         );
 
         /// <summary>
-        /// A method used to search for and return a base, type-agnostic, part of interface of an existing runner
+        /// A method used to search for and return a base, non-typed interface of an existing runner
         /// </summary>
         /// <param name="RunnerNumber"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' /></param>
         /// <param name="Context"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' /></param>
-        /// <returns>A base, type-agnostic part of the runner interface.</returns>
+        /// <returns>A base, non-typed runner interface.</returns>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        IRunner? GetResultAgnosticRunner(int RunnerNumber, HttpContext Context);
+        IRunner? GetNonTypedRunner(int RunnerNumber, HttpContext Context);
 
         /// <summary>
-        /// An asynchronous version of <see cref="GetResultAgnosticRunner(int, HttpContext)"/> method.
+        /// An asynchronous version of <see cref="GetNonTypedRunner(int, HttpContext)"/> method.
         /// </summary>
         /// <param name="RunnerNumber"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' /></param>
         /// <param name="Context"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' /></param>
         /// <param name="CancellationToken">
         /// <inheritdoc cref="GetRunnerAsync{TResult}(int, HttpContext, CancellationToken)" path='/param[@name="CancellationToken"]' />
         /// </param>
-        /// <returns>A task wrapping a base, type-agnostic, part of an interface of the existing runner (of type <see cref="IRunner"/>) if any or null</returns>
+        /// <returns>A task wrapping a base, non-typed interface of the existing runner (of type <see cref="IRunner"/>) if any or null</returns>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        Task<IRunner?> GetResultAgnosticRunnerAsync(
+        ValueTask<IRunner?> GetNonTypedRunnerAsync(
             int RunnerNumber,
             HttpContext Context,
             CancellationToken CancellationToken = default

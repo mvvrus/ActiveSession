@@ -30,7 +30,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public Task<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
+        public ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException(MESSAGE);
         }
@@ -50,17 +50,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public IRunner? GetResultAgnosticRunner(Int32 RunnerNumber, HttpContext Context)
+        public IRunner? GetNonTypedRunner(Int32 RunnerNumber, HttpContext Context)
         {
             throw new InvalidOperationException(MESSAGE);
         }
 
-        public Task<IRunner?> GetResultAgnosticRunnerAsync<TResult>(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
-        {
-            throw new InvalidOperationException(MESSAGE);
-        }
-
-        public Task<IRunner?> GetResultAgnosticRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
+        public ValueTask<IRunner?> GetNonTypedRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
         {
             throw new InvalidOperationException(MESSAGE);
         }

@@ -358,11 +358,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_SESSIONGETRUNNEREXIT, Trace, "Exit ActiveSession.GetRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionGetRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERNOTYPE, Trace, "Enter ActiveSession.GetResultAgnosticRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerNoType(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPE, Trace, "Enter ActiveSession.GetNonTypedRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetNonTypedRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEEXIT, Trace, "Exit ActiveSession.GetResultAgnosticRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerNoTypeExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEEXIT, Trace, "Exit ActiveSession.GeNonTypedRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetNonTypedRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
         [LoggerMessage(T_SESSIONGETRUNNERASYNC, Trace, "Enter ActiveSession.GetRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionGetRunnerAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
@@ -370,11 +370,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_SESSIONGETRUNNERASYNCEXIT, Trace, "Exit ActiveSession.GetRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionGetRunnerAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNC, Trace, "Enter ActiveSession.GetResultAgnosticRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerNoTypeAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNC, Trace, "Enter ActiveSession.GetNonTypedRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetNonTypedRunnerAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNCEXIT, Trace, "Exit ActiveSession.GetResultAgnosticRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerNoTypeAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNCEXIT, Trace, "Exit ActiveSession.GetNonTypedRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetNonTypedRunnerAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
         [LoggerMessage(T_SESSIONTERMINATE, Trace, "ActiveSession.Terminate called, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionTerminateCalled(this ILogger Logger, String SessionId, String TraceIdentifier);

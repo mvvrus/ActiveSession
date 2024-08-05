@@ -81,7 +81,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunner(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? base_result = GetResultAgnosticRunner(RunnerNumber, Context);
+            IRunner? base_result = GetNonTypedRunner(RunnerNumber, Context);
             IRunner<TResult>? result = base_result as IRunner<TResult>;
             if (result==null && base_result!=null) 
                 _logger?.LogWarningNoExpectedRunnerInCache(new RunnerId(this,RunnerNumber), trace_identifier);
@@ -91,14 +91,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public async Task<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RunnerNumber, HttpContext Context, CancellationToken Token)
+        public async ValueTask<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RunnerNumber, HttpContext Context, CancellationToken Token)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
             _logger?.LogTraceActiveSessionGetRunnerAsync(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? base_result = await GetResultAgnosticRunnerAsync(RunnerNumber, Context, Token);
+            IRunner? base_result = await GetNonTypedRunnerAsync(RunnerNumber, Context, Token);
             IRunner<TResult>? result = base_result as IRunner<TResult>;
             if(result==null && base_result!=null)
                 _logger?.LogWarningNoExpectedRunnerInCache(new RunnerId(this, RunnerNumber), trace_identifier);
@@ -108,33 +108,33 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public IRunner? GetResultAgnosticRunner(Int32 RunnerNumber, HttpContext Context)
+        public IRunner? GetNonTypedRunner(Int32 RunnerNumber, HttpContext Context)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerNoType(_logSessionId, RunnerNumber, trace_identifier);
+            _logger?.LogTraceActiveSessionGetNonTypedRunner(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             IRunner? fetched = _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerNoTypeExit(_logSessionId, RunnerNumber, trace_identifier);
+            _logger?.LogTraceActiveSessionGetNonTypedRunnerExit(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             return fetched;
         }
 
-        public async Task<IRunner?> GetResultAgnosticRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken Token = default)
+        public async ValueTask<IRunner?> GetNonTypedRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken Token = default)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerNoTypeAsync(_logSessionId, RunnerNumber, trace_identifier);
+            _logger?.LogTraceActiveSessionGetNonTypedRunnerAsync(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier, Token);
             _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerNoTypeAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
+            _logger?.LogTraceActiveSessionGetNonTypedRunnerAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             return fetched;
         }

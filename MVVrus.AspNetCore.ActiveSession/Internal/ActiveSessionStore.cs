@@ -450,7 +450,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public async Task<IRunner?> GetRunnerAsync(
+        public async ValueTask<IRunner?> GetRunnerAsync(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
