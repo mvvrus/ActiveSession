@@ -413,7 +413,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return new KeyedRunner<TResult>() { Runner=runner, RunnerNumber=runner_number };
         }
 
-        public IRunner<TResult>? GetRunner<TResult>(ISession Session,
+        public IRunner? GetRunner(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, 
@@ -425,7 +425,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String runner_session_key = SessionKey(session_id);
             Int32 generation = ActiveSession.Generation;
             RunnerId runner_id = new RunnerId(ActiveSession, RunnerNumber);
-            IRunner<TResult>? result = null;
+            IRunner? result = null;
             #if TRACE
             _logger?.LogTraceGetRunner(runner_id, trace_identifier);
             #endif
@@ -438,11 +438,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(runner_id, trace_identifier);
-                result=ExtractRunnerFromCache<TResult>(Session, RunnerManager, ActiveSession, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache(Session, RunnerManager, ActiveSession, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(runner_id, host_id, trace_identifier);
-                result=MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier).GetAwaiter().GetResult();
+                result=MakeRemoteRunnerAsync(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier).GetAwaiter().GetResult();
             }
             #if TRACE
             _logger?.LogTraceGetRunnerExit(runner_id, result!=null,trace_identifier);
@@ -450,7 +450,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public async Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
+        public async Task<IRunner?> GetRunnerAsync(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
@@ -460,7 +460,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = ActiveSession.Id;
-            IRunner<TResult>? result = null;
+            IRunner? result = null;
             RunnerId runner_id = new RunnerId(ActiveSession, RunnerNumber);
             Int32 generation = ActiveSession.Generation;
             #if TRACE
@@ -480,14 +480,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogDebugGetLocalRunnerFromCache(runner_id, trace_identifier);
-                result=ExtractRunnerFromCache<TResult>(Session, RunnerManager, ActiveSession, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache(Session, RunnerManager, ActiveSession, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(runner_id, host_id, trace_identifier);
                 #if TRACE
                 _logger?.LogTraceAwaitForProxyCreation(runner_id, trace_identifier);
                 #endif
-                result= await MakeRemoteRunnerAsync<TResult>(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier, Token);
+                result= await MakeRemoteRunnerAsync(RunnerManager, host_id, ActiveSession, RunnerNumber, trace_identifier, Token);
             }
             #if TRACE
             _logger?.LogTraceGetRunnerAsyncExit(runner_id, result!=null, trace_identifier);
@@ -795,11 +795,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        private IRunner<TResult>? ExtractRunnerFromCache<TResult>(ISession Session, 
+        private IRunner? ExtractRunnerFromCache(ISession Session, 
             IRunnerManager RunnerManager, IActiveSession ActiveSession, Int32 RunnerNumber, String TraceIdentifier)
         {
             Object? value_from_cache;
-            IRunner<TResult>? result;
+            IRunner? result;
             RunnerId runner_id = new RunnerId(ActiveSession, RunnerNumber);
             Int32 generation = ActiveSession.Generation;
             String runner_session_key = SessionKey(ActiveSession.Id);
@@ -811,8 +811,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceReturnRunnerFromCache(runner_id, TraceIdentifier);
                 #endif
-                result=value_from_cache as IRunner<TResult>;
-                if (result==null)  _logger?.LogWarningNoExpectedRunnerInCache(runner_id, TraceIdentifier);
+                result=value_from_cache as IRunner;
+                if(result==null) _logger?.LogWarningNotRunnerInCache(runner_id, TraceIdentifier);
+
             }
             else {
                 #if TRACE
@@ -830,7 +831,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
 
-        private Task<IRunner<TResult>?> MakeRemoteRunnerAsync<TResult>(
+        private Task<IRunner?> MakeRemoteRunnerAsync(
 #pragma warning disable IDE0060 // Remove unused parameter
             IRunnerManager RunnerManager,
             String HostId,
@@ -847,7 +848,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogErrorRemoteRunnerUnavailable(TraceIdentifier);
                 throw new InvalidOperationException("Using remote runners is not allowed  configuration setting ThrowOnRemoteRunner");
             }
-            return Task.FromResult<IRunner<TResult>?>(null); //Just now I do not want to implement remote runner
+            return Task.FromResult<IRunner?>(null); //Just now I do not want to implement remote runner
             //Possible future implementation draft
             //String RunnerKey = this.RunnerKey(SessionKey(ActiveSession.Id), RunnerNumber, ActiveSession.Generation);
             //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
@@ -859,7 +860,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //    // Log that type is unregistered
             //    throw new InvalidOperationException(); //TODO Add message
             //}
-            //if (runner_type.IsAssignableTo(typeof(TResult))) { } //
             //                                                     //
             //throw new NotImplementedException();
         }

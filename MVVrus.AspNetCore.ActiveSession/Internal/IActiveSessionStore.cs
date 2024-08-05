@@ -7,11 +7,11 @@
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             TRequest Request, String? TraceIdentifier);
-        public IRunner<TResult>? GetRunner<TResult>(ISession Session,
+        public IRunner? GetRunner(ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier);
-        public Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
+        public Task<IRunner?> GetRunnerAsync(
             ISession Session,
             IActiveSession ActiveSession,
             IRunnerManager RunnerManager, 

@@ -10,8 +10,9 @@
 
         public const Int32 W_NOSTORE = 1000;
         public const Int32 W_NOOWNCACHE = 1100;
-        public const Int32 W_INCOMPATRUNNERTYPE = 1160;
+        public const Int32 W_NONRUNNERTYPE = 1160;
         public const Int32 W_REMOTENOTIMPLMENTED = 1169;
+        public const Int32 W_INCOMPATRUNNERTYPE = 1220;
         public const Int32 W_ACTIVESESSIONFAIL = 1300;
         public const Int32 W_REGISTERDURINGCLEANUP = 1500;
 
@@ -120,8 +121,12 @@
         public const Int32 T_SESSIONNEWRUNNEREXIT = 4211;
         public const Int32 T_SESSIONGETRUNNER = 4220;
         public const Int32 T_SESSIONGETRUNNEREXIT = 4221;
+        public const Int32 T_SESSIONGETRUNNERNOTYPE = 4222;
+        public const Int32 T_SESSIONGETRUNNERNOTYPEEXIT = 4223;
         public const Int32 T_SESSIONGETRUNNERASYNC = 4230;
         public const Int32 T_SESSIONGETRUNNERASYNCEXIT = 4231;
+        public const Int32 T_SESSIONGETRUNNERNOTYPEASYNC = 4232;
+        public const Int32 T_SESSIONGETRUNNERNOTYPEASYNCEXIT = 4233;
         public const Int32 T_SESSIONDISPOSE = 4240;
         public const Int32 T_SESSIONTERMINATE = 4250;
         public const Int32 T_FEATURECONS = 4300;

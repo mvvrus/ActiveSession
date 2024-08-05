@@ -30,6 +30,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(W_NOOWNCACHE, Warning, "ActiveSessionStore constructor: cannot create our own cache, fall back to the shared cache.")]
         public static partial void LogWarningActiveSessionStoreCannotCreateOwnCache(this ILogger Logger, Exception AnException);
 
+        [LoggerMessage(W_NONRUNNERTYPE, Warning, "Something found in the local cache but but it is not a runner, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningNotRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+
         [LoggerMessage(W_INCOMPATRUNNERTYPE, Warning, "The runner is found in the local cache but cannot be returned: the runner type is incompatible, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningNoExpectedRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
@@ -349,17 +352,29 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_SESSIONNEWRUNNEREXIT, Trace, "Exit ActiveSession.CreateRunner, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceCreateActiveSessionCreateRunnerExit(this ILogger Logger, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNER, Trace, "Enter ActiveSession.GetRunner, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunner(this ILogger Logger, String SessionId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNER, Trace, "Enter ActiveSession.GetRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunner(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNEREXIT, Trace, "Exit ActiveSession.GetRunner, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerExit(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNEREXIT, Trace, "Exit ActiveSession.GetRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERASYNC, Trace, "Enter ActiveSession.GetRunnerAsync, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerAsync(this ILogger Logger, String SessionId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPE, Trace, "Enter ActiveSession.GetResultAgnosticRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerNoType(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONGETRUNNERASYNCEXIT, Trace, "Exit ActiveSession.GetRunnerAsync, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionGetRunnerAsyncExit(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEEXIT, Trace, "Exit ActiveSession.GetResultAgnosticRunner, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerNoTypeExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONGETRUNNERASYNC, Trace, "Enter ActiveSession.GetRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONGETRUNNERASYNCEXIT, Trace, "Exit ActiveSession.GetRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNC, Trace, "Enter ActiveSession.GetResultAgnosticRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerNoTypeAsync(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
+
+        [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNCEXIT, Trace, "Exit ActiveSession.GetResultAgnosticRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionGetRunnerNoTypeAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
         [LoggerMessage(T_SESSIONTERMINATE, Trace, "ActiveSession.Terminate called, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionTerminateCalled(this ILogger Logger, String SessionId, String TraceIdentifier);

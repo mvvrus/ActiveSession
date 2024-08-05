@@ -22,26 +22,52 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// A method used to search for an existing runner
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="RunnerNumber">An <see cref="Int32"/>  a number (key) specifying the runner to search for</param>
-        /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
-        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
+        /// <param name="RunnerNumber">A number (key) specifying the runner to search for</param>
+        /// <param name="Context">Context of the HTTP request from handler of which the method is called</param>
         /// <returns>The runner with specified number and result type (<see cref="IRunner{TResult}"/>) if such a runner exists or null</returns>
+        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
         IRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext Context);
 
         /// <summary>
         /// An asynchronous version of <see cref="GetRunner{TResult}(int, HttpContext)"/> method.
         /// </summary>
         /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="RunnerNumber">A key specifying the runner to search for</param>
-        /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
-        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
+        /// <param name="RunnerNumber"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' /></param>
+        /// <param name="Context"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' /></param>
         /// <param name="CancellationToken">Cancellation token that may be used to cancel this async operation</param>
-        /// <returns>A <see cref="Task{T}"/> wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        /// <returns>A task wrapping the existing runner (of type <see cref="IRunner{TResult}"/>) if any or null</returns>
+        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
         Task<IRunner<TResult>?> GetRunnerAsync<TResult>(
             int RunnerNumber,
             HttpContext Context, 
             CancellationToken CancellationToken = default
         );
+
+        /// <summary>
+        /// A method used to search for and return a base, type-agnostic, part of interface of an existing runner
+        /// </summary>
+        /// <param name="RunnerNumber"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' /></param>
+        /// <param name="Context"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' /></param>
+        /// <returns>A base, type-agnostic part of the runner interface.</returns>
+        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
+        IRunner? GetResultAgnosticRunner(int RunnerNumber, HttpContext Context);
+
+        /// <summary>
+        /// An asynchronous version of <see cref="GetResultAgnosticRunner(int, HttpContext)"/> method.
+        /// </summary>
+        /// <param name="RunnerNumber"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="RunnerNumber"]' /></param>
+        /// <param name="Context"><inheritdoc cref="GetRunner{TResult}(int, HttpContext)" path='/param[@name="Context"]' /></param>
+        /// <param name="CancellationToken">
+        /// <inheritdoc cref="GetRunnerAsync{TResult}(int, HttpContext, CancellationToken)" path='/param[@name="CancellationToken"]' />
+        /// </param>
+        /// <returns>A task wrapping a base, type-agnostic, part of an interface of the existing runner (of type <see cref="IRunner"/>) if any or null</returns>
+        /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
+        Task<IRunner?> GetResultAgnosticRunnerAsync(
+            int RunnerNumber,
+            HttpContext Context,
+            CancellationToken CancellationToken = default
+        );
+
 
         /// <summary>
         /// Terminate the active session aborting all runners. 

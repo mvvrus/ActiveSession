@@ -11,7 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
-        public Int32 Generation => throw new NotImplementedException();
+        public Int32 Generation => throw new InvalidOperationException(MESSAGE);
 
         public Boolean IsIdle =>  true;
 
@@ -37,7 +37,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Task? TrackRunnerCleanup(Int32 RunnerNumber)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException(MESSAGE);
         }
 
         public Task Terminate(HttpContext Context)
@@ -47,7 +47,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout, CancellationToken Token=default)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException(MESSAGE);
+        }
+
+        public IRunner? GetResultAgnosticRunner(Int32 RunnerNumber, HttpContext Context)
+        {
+            throw new InvalidOperationException(MESSAGE);
+        }
+
+        public Task<IRunner?> GetResultAgnosticRunnerAsync<TResult>(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
+        {
+            throw new InvalidOperationException(MESSAGE);
+        }
+
+        public Task<IRunner?> GetResultAgnosticRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
+        {
+            throw new InvalidOperationException(MESSAGE);
         }
     }
 }

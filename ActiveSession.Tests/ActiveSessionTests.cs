@@ -16,7 +16,7 @@ namespace ActiveSession.Tests
     public class ActiveSessionTests
     {
         /////////////////////////////////////////////////////////////////////////////////////////////////////
-        // IActiveSession tests
+        // ActiveSession tests
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         [Fact]
         public void CreateActiveSession()
@@ -143,6 +143,10 @@ namespace ActiveSession.Tests
                 Assert.IsType<SpyRunner1>(runner);
                 Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
 
+                var badtype_runner = active_session.GetRunner<String>(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
+                Assert.Null(unknown_runner);
+
                 //Test case: runner search after disposal
                 active_session.SetDisposedForTests();
                 Assert.Throws<ObjectDisposedException>(() => active_session.GetRunner<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
@@ -173,9 +177,71 @@ namespace ActiveSession.Tests
                 Assert.IsType<SpyRunner1>(runner);
                 Assert.Equal(test_setup.ExistingRunner, (SpyRunner1)runner);
 
+                var badtype_runner = active_session.GetRunnerAsync<String>(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+                Assert.Null(unknown_runner);
+
                 //Test case: async runner search after disposal
                 active_session.SetDisposedForTests();
                 Assert.Throws<ObjectDisposedException>(() => active_session.GetRunnerAsync<Result1>(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
+            }
+        }
+
+        [Fact]
+        public void GetResultAgnosticRunner()
+        {
+            //Test case: successful and unsuccessful runner search
+            using(RunnerTestSetup test_setup = new RunnerTestSetup()) {
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.MockStore.Object,
+                    test_setup.StubSession.Object.Id,
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+
+                IRunner? unknown_runner = active_session.GetResultAgnosticRunner(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
+                Assert.Null(unknown_runner);
+                Assert.True(active_session.IsFresh);
+
+                IRunner? runner = active_session.GetResultAgnosticRunner(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object);
+
+                Assert.False(active_session.IsFresh);
+                Assert.NotNull(runner);
+                Assert.Same(test_setup.ExistingRunner, runner);
+
+                //Test case: runner search after disposal
+                active_session.SetDisposedForTests();
+                Assert.Throws<ObjectDisposedException>(() => active_session.GetResultAgnosticRunner(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object));
+
+            }
+        }
+
+        [Fact]
+        public void GetResultAgnosticRunnerAsync()
+        {
+            //Test case: successful and unsuccessful async runner search
+            using(RunnerTestSetup test_setup = new RunnerTestSetup()) {
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                test_setup.MockServiceScope.Object,
+                test_setup.MockStore.Object,
+                test_setup.StubSession.Object.Id,
+                test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+
+                IRunner? unknown_runner = active_session.GetResultAgnosticRunnerAsync(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER - 1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+                Assert.Null(unknown_runner);
+                Assert.True(active_session.IsFresh);
+                IRunner? runner = active_session.GetResultAgnosticRunnerAsync(
+                    RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
+
+                Assert.False(active_session.IsFresh);
+                Assert.NotNull(runner);
+                Assert.Same(test_setup.ExistingRunner, runner);
+
+                //Test case: async runner search after disposal
+                active_session.SetDisposedForTests();
+                Assert.Throws<ObjectDisposedException>(() => active_session.GetResultAgnosticRunnerAsync(RunnerTestSetup.TEST_RUNNER_NUMBER, test_setup.StubContext.Object, default).GetAwaiter().GetResult());
             }
         }
 
@@ -361,9 +427,9 @@ namespace ActiveSession.Tests
             public const String EXISTING_TEST_RUNNER_ARG = "ExistingRunnerArg";
 
             readonly Expression<Func<IActiveSessionStore, KeyedRunner<Result1>>> _createRunnerExpression;
-            readonly Expression<Func<IActiveSessionStore,IRunner<Result1>?>> _getRunnerExpression;
-            readonly Expression<Func<IActiveSessionStore, Task<IRunner<Result1>?>>> _getRunnerExpressionAsync;
-            public readonly IRunner<Result1> ExistingRunner = new SpyRunner1(new Request1 { Arg = EXISTING_TEST_RUNNER_ARG });
+            readonly Expression<Func<IActiveSessionStore,IRunner?>> _getRunnerExpression;
+            readonly Expression<Func<IActiveSessionStore, Task<IRunner?>>> _getRunnerExpressionAsync;
+            public readonly IRunner ExistingRunner = new SpyRunner1(new Request1 { Arg = EXISTING_TEST_RUNNER_ARG });
             public readonly Mock<HttpContext> StubContext;
 
             public RunnerTestSetup() : base()
@@ -377,14 +443,14 @@ namespace ActiveSession.Tests
                         );
                 MockStore.Setup(_createRunnerExpression)
                     .Returns((ISession _, IActiveSession _, IRunnerManager _, Request1 r, String _) => new KeyedRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
-                MockStore.Setup(s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
-                    .Returns((IRunner<Result1>?)null);
-                _getRunnerExpression=s => s.GetRunner<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
+                MockStore.Setup(s => s.GetRunner(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
+                    .Returns((IRunner?)null);
+                _getRunnerExpression=s => s.GetRunner(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
                 MockStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
-                MockStore.Setup(s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
-                    .Returns(Task<IRunner<Result1>?>.FromResult((IRunner<Result1>?)null));
-                _getRunnerExpressionAsync=s => s.GetRunnerAsync<Result1>(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
-                MockStore.Setup(_getRunnerExpressionAsync).Returns(Task<IRunner<Result1>?>.FromResult((IRunner<Result1>?)ExistingRunner));
+                MockStore.Setup(s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
+                    .Returns(Task<IRunner?>.FromResult((IRunner?)null));
+                _getRunnerExpressionAsync=s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
+                MockStore.Setup(_getRunnerExpressionAsync).Returns(Task<IRunner?>.FromResult((IRunner?)ExistingRunner));
                 StubContext=new Mock<HttpContext>();
                 StubContext.SetupGet(s => s.Session).Returns(StubSession.Object);
             }

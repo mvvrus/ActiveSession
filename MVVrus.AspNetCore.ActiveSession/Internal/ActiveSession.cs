@@ -74,34 +74,67 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return created;
         }
 
-        public IRunner<TResult>? GetRunner<TResult>(int RequestedKey, HttpContext Context)
+        public IRunner<TResult>? GetRunner<TResult>(int RunnerNumber, HttpContext Context)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunner(_logSessionId, trace_identifier);
+            _logger?.LogTraceActiveSessionGetRunner(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner<TResult>? fetched = _store.GetRunner<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier);
+            IRunner? base_result = GetResultAgnosticRunner(RunnerNumber, Context);
+            IRunner<TResult>? result = base_result as IRunner<TResult>;
+            if (result==null && base_result!=null) 
+                _logger?.LogWarningNoExpectedRunnerInCache(new RunnerId(this,RunnerNumber), trace_identifier);
+            #if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerExit(_logSessionId, RunnerNumber, trace_identifier);
+            #endif
+            return result;
+        }
+
+        public async Task<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RunnerNumber, HttpContext Context, CancellationToken Token)
+        {
+            CheckDisposed();
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            #if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerAsync(_logSessionId, RunnerNumber, trace_identifier);
+            #endif
+            IRunner? base_result = await GetResultAgnosticRunnerAsync(RunnerNumber, Context, Token);
+            IRunner<TResult>? result = base_result as IRunner<TResult>;
+            if(result==null && base_result!=null)
+                _logger?.LogWarningNoExpectedRunnerInCache(new RunnerId(this, RunnerNumber), trace_identifier);
+            #if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
+            #endif
+            return result;
+        }
+
+        public IRunner? GetResultAgnosticRunner(Int32 RunnerNumber, HttpContext Context)
+        {
+            CheckDisposed();
+            String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            #if TRACE
+            _logger?.LogTraceActiveSessionGetRunnerNoType(_logSessionId, RunnerNumber, trace_identifier);
+            #endif
+            IRunner? fetched = _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerExit(trace_identifier);
+            _logger?.LogTraceActiveSessionGetRunnerNoTypeExit(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             return fetched;
         }
 
-        public Task<IRunner<TResult>?> GetRunnerAsync<TResult>(Int32 RequestedKey, HttpContext Context, CancellationToken Token)
+        public async Task<IRunner?> GetResultAgnosticRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken Token = default)
         {
             CheckDisposed();
             String trace_identifier = Context.TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerAsync(_logSessionId, trace_identifier);
+            _logger?.LogTraceActiveSessionGetRunnerNoTypeAsync(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            Task<IRunner<TResult>?> fetched = _store.GetRunnerAsync<TResult>(Context.Session, this, _runnerManager, RequestedKey, trace_identifier, Token);
-            if(_isFresh)
-                fetched.ContinueWith((task) => { if(task.Result!=null) _isFresh=false; },
-                    TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+            IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier, Token);
+            _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
+            if(fetched!=null) _isFresh=false;
             #if TRACE
-            _logger?.LogTraceActiveSessionGetRunnerAsyncExit(trace_identifier);
+            _logger?.LogTraceActiveSessionGetRunnerNoTypeAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
             #endif
             return fetched;
         }

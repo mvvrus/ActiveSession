@@ -3,9 +3,9 @@
 namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// Contains collection of common, type-indendent constants, properies and methods 
-    /// for a generic runner ( IRunner{TResult} ) interface
+    /// A base, type-agnostic part of any generic runner interface, <see cref="IRunner{TResult}"/>
     /// </summary>
+    /// <remarks>Contains properties and methods of any runner that are independent on its result type.</remarks>
     public interface IRunner
     {
         /// <summary>
@@ -84,7 +84,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// <typeparam name="TResult">The type of the result returned by the interface methods of the runner.</typeparam>
     /// <remarks>
     /// Inherited from non-generic <see cref="IRunner"></see> interface 
-    /// that contains properties and methosds independent of the type of the result.
+    /// that contains properties and methosds which does not depend on the type of the result.
     /// </remarks>
     public interface IRunner<TResult>:IRunner
     {

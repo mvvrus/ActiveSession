@@ -283,7 +283,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test group: test normal flow around CreatRunner method called for an ActiveSessinonStore object created with default options
+        //Test group: test normal flow around CreateRunner method called for an ActiveSessinonStore object created with default options
         [Fact]
         public void CreateRunner()
         {
@@ -472,7 +472,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test group: call CreatRunner method for an ActiveSessinonStore object created with non-default options
+        //Test group: call CreateRunner method for an ActiveSessinonStore object created with non-default options
         [Fact]
         public void CreateRunner_NonDefaultOptions()
         {
@@ -550,7 +550,7 @@ namespace ActiveSession.Tests
             Request1 request = new Request1() { Arg=TEST_ARG1 };
             MockedRunner<Request1, Result1>? dummy_runner1 = null;
             CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
-            IRunner<Result1>? runner;
+            IRunner? runner;
 
             //Test case: search for an existing runner
             //Arrange
@@ -570,7 +570,7 @@ namespace ActiveSession.Tests
                             request,
                             null);
                         //Act
-                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
@@ -580,7 +580,7 @@ namespace ActiveSession.Tests
 
                         //Test case: search for a non-existing runner, no associated session values (already arranged)
                         //Act
-                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber+1,
@@ -592,7 +592,7 @@ namespace ActiveSession.Tests
                         String runner_key = RunnerKey();
                         ts.Cache.CacheMock.Object.Remove(runner_key);
                         //Act
-                        runner=store.GetRunner<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
@@ -608,40 +608,15 @@ namespace ActiveSession.Tests
                 //Test case: try to get a runner from the disposed store (Already arranged)
                 //Act & assess
                 Assert.Throws<ObjectDisposedException>(
-                        () =>
-                        {
-                            store.GetRunner<Result1>(ts.MockSession.Object,
-                                ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
-                                runner_and_key.RunnerNumber,
-                                null);
-                        }
-                        );
-
-                //Test case: search for an existing runner with incompatible type
-                //Arrange
-                MockedLogger logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        IRunner<String>? runner2 = store.GetRunner<String>(ts.MockSession.Object,
+                    () => {
+                        store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
-                            null);
-                        //Assess
-                        Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
+                            null
+                        );
                     }
-                }
-                logger_mock=ts.InitLogger();
-
+                );
             }
         }
 
@@ -655,7 +630,7 @@ namespace ActiveSession.Tests
             Request1 request = new Request1() { Arg=TEST_ARG1 };
             MockedRunner<Request1, Result1>? dummy_runner1 = null;
             CancellationTokenSource cts = null!;  //Inialize to avoid false error concerning use of an uninitialized variable
-            IRunner<Result1>? runner;
+            IRunner? runner;
 
             //Test case: search for an existing runner
             //Arrange
@@ -675,7 +650,7 @@ namespace ActiveSession.Tests
                             request,
                             null);
                         //Act
-                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
@@ -686,7 +661,7 @@ namespace ActiveSession.Tests
 
                         //Test case: search for a non-existing runner, no associated session values (already arranged)
                         //Act
-                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber+1,
@@ -699,7 +674,7 @@ namespace ActiveSession.Tests
                         String runner_key = RunnerKey();
                         ts.Cache.CacheMock.Object.Remove(runner_key);
                         //Act
-                        runner=store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                        runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
                             ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
@@ -718,64 +693,14 @@ namespace ActiveSession.Tests
                 Assert.Throws<ObjectDisposedException>(
                         () =>
                         {
-                            store.GetRunnerAsync<Result1>(ts.MockSession.Object,
+                            store.GetRunnerAsync(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
                                 ts.MockRunnerManager.Object,
                                 runner_and_key.RunnerNumber,
                                 null,
                                 CancellationToken.None).GetAwaiter().GetResult();
                         }
-                        );
-
-                //Test case: search for an existing runner with incompatible type
-                //Arrange
-                MockedLogger logger_mock = ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        IRunner<String>? runner2 = store.GetRunnerAsync<String>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            runner_and_key.RunnerNumber,
-                            null,
-                            CancellationToken.None).GetAwaiter().GetResult();
-                        //Assess
-                        Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
-                    }
-                }
-                logger_mock=ts.InitLogger();
-
-                //Test case: search for an existing runner, cached as task, incompatible type
-                //Arrange
-                logger_mock=ts.InitLogger();
-                logger_mock.MonitorLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE);
-                using (store=ts.CreateStore()) {
-                    using (cts=new CancellationTokenSource()) {
-                        runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            request,
-                            null);
-                        //Act
-                        IRunner<String>? runner2 = store.GetRunnerAsync<String>(ts.MockSession.Object,
-                            ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
-                            runner_and_key.RunnerNumber,
-                            null,
-                            CancellationToken.None).GetAwaiter().GetResult();
-                        //Assess
-                        Assert.Null(runner2);
-                        logger_mock.VerifyLogEntry(LogLevel.Warning, W_INCOMPATRUNNERTYPE, Times.Once());
-                    }
-                }
-                logger_mock=ts.InitLogger();
+                    );
 
             }
         }
@@ -914,7 +839,7 @@ namespace ActiveSession.Tests
                 Assert.Equal(1, stat.SessionCount);
                 Assert.Equal(0, stat.RunnerCount);
                 Assert.True(runner.Disposed);
-                Assert.Null(store.GetRunner<Result1>(
+                Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
                     (session as Active_Session)!.RunnerManager,
@@ -960,14 +885,14 @@ namespace ActiveSession.Tests
                 stat=store.GetCurrentStatistics()!;
                 Assert.Equal(0, stat.RunnerCount);
                 Assert.True(runner.Disposed);
-                Assert.Null(store.GetRunner<Result1>(
+                Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
                     (session as Active_Session)!.RunnerManager,
                     keyed_runner.RunnerNumber,
                     null));
                 Assert.True(runner2.Disposed);
-                Assert.Null(store.GetRunner<Result1>(
+                Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
                     (session as Active_Session)!.RunnerManager,
