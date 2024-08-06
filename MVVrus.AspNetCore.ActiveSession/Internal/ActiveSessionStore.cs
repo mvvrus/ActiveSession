@@ -25,12 +25,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly TimeSpan _runnerIdleTimeout;
         readonly TimeSpan _maxLifetime;
         readonly Boolean _throwOnRemoteRunner;
-        bool _disposed = false;
-        internal Boolean _disposeNoTimedOut;
-        ILogger? _logger;
-        ILoggerFactory? _loggerFactory;
+        readonly ILoggerFactory? _loggerFactory;
+        readonly IActiveSessionIdSupplier _idSupplier;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
         readonly Object _creation_lock = new Object();
+        ILogger? _logger;
+        internal Boolean _disposeNoTimedOut;
+        bool _disposed = false;
         Int32 _currentSessionCount = 0;
         Int32 _currentRunnerCount = 0;
         Int32 _currentStoreSize = 0;
@@ -63,6 +64,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IOptions<ActiveSessionOptions> Options,
             IOptions<SessionOptions> SessionOptions,
             IHostApplicationLifetime HostApplicationLifetime,
+            IActiveSessionIdSupplier IdSupplier,
             ILoggerFactory? LoggerFactory = null
         )
         {
@@ -75,6 +77,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _shutdownTcs=new TaskCompletionSource();
             _shutdownCallback=HostApplicationLifetime.ApplicationStopping.Register(() => _shutdownTcs.TrySetResult());
+            _idSupplier=IdSupplier;
             _loggerFactory=LoggerFactory;
             _logger =_loggerFactory?.CreateLogger(STORE_CATEGORY_NAME);
             #if TRACE
@@ -183,8 +186,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            String nogen_session_id = Session.Id;
-            String session_id = Session.Id+":?";
+            String nogen_session_id = _idSupplier.GetActiveSessionId(Session);
+            String session_id = nogen_session_id+":?";
             #if TRACE
             _logger?.LogTraceFetchOrCreate(nogen_session_id, trace_identifier);
             #endif
@@ -228,7 +231,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager,info);
                                 new_entry.PostEvictionCallbacks.Add(end_activesession);
                                 Task runner_completion_task = new Task(RunnerManagerCleanupWait, info);
-                                result=new ActiveSession(runner_manager, session_scope, this, Session.Id, _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
+                                result=new ActiveSession(runner_manager, session_scope, this, nogen_session_id, _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
                                     new_generation, runner_completion_task, trace_identifier);
                                 try {
                                     runner_manager.RegisterSession(result);
