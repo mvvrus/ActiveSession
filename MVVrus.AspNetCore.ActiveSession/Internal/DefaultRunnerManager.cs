@@ -19,6 +19,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 #pragma warning restore IDE0052 // Remove unread private members
         readonly Dictionary<int, RunnerInfo> _runners;
         readonly HashSet<Task> _runningDisposeTasks;
+        readonly int? _cleanupLoggingTimeoutMs;
+        internal Task? _cleanupLoggingTask;  //For unit tests only, no need to take into account any parallelism
         Boolean _cleanup_mark;
         Int32 _disposed;
 
@@ -28,6 +30,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public DefaultRunnerManager(
             ILogger? logger
             , IServiceProvider Services
+            , int? CleanupLoggingTimeoutMs=null
             , Int32 MinRunnerNumber = 0
             , Int32 MaxRunnerNumber = Int32.MaxValue
         )
@@ -40,6 +43,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (MaxRunnerNumber!=Int32.MaxValue) {
                 //TODO (future) Implement runner number reusage
             }
+            _cleanupLoggingTimeoutMs=CleanupLoggingTimeoutMs;
             _runners=new Dictionary<int, RunnerInfo>();
             _runningDisposeTasks=new HashSet<Task>();
         }
@@ -51,27 +55,28 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
 
-        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IRunner Runner, Type ResultType)
+        public void RegisterRunner(IActiveSession SessionKey, int RunnerNumber, IRunner Runner, Type ResultType, String TraceIdentifier)
         {
             CheckSession(SessionKey);
             CheckDisposed();
             RunnerId runner_id = new RunnerId(SessionKey, RunnerNumber);
             #if TRACE
-            _logger?.LogTraceRegisterRunnerEnter(new RunnerId(SessionKey,RunnerNumber));
+            _logger?.LogTraceRegisterRunnerEnter(runner_id, TraceIdentifier);
             #endif
             lock(RunnerCreationLock) {
                 #if TRACE
-                _logger?.LogTraceRegisterRunnerLockAcquired(runner_id);
+                _logger?.LogTraceRegisterRunnerLockAcquired(runner_id, TraceIdentifier);
                 #endif
                 if (_cleanup_mark) {
-                    _logger?.LogWarningRegisterRunnerAfterCleanupInit(new RunnerId(SessionKey,RunnerNumber));
+                    _logger?.LogWarningRegisterRunnerAfterCleanupInit(runner_id, TraceIdentifier);
                     throw new InvalidOperationException("Attempt to register a runner after cleanup initiation.");
                 }
                 _runnersCounter.AddCount();
                 _runners.Add(RunnerNumber, new RunnerInfo(Runner, ResultType, RunnerNumber));
             }
+            _logger?.LogDebugNewRunnerAvailable(runner_id, TraceIdentifier);
             #if TRACE
-            _logger?.LogTraceRegisterRunnerExit(runner_id);
+            _logger?.LogTraceRegisterRunnerExit(runner_id, TraceIdentifier);
             #endif
         }
 
@@ -95,6 +100,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #endif
                     _runners.Remove(RunnerNumber);
                     _runnersCounter.Signal();
+                    _logger?.LogDebugRunnerExecutionEnded(runner_id);
                     finish_cleanup=RunDisposeRunnerTask(info!, runner_id);
                 }
                 else
@@ -116,21 +122,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
 
-        public Int32 GetNewRunnerNumber(IActiveSession SessionKey, String? TraceIdentifier = null)
+        public Int32 GetNewRunnerNumber(IActiveSession SessionKey, String TraceIdentifier)
         {
             CheckSession(SessionKey);
-            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String session_id = SessionKey.MakeSessionId();
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumber(session_id, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumber(session_id, TraceIdentifier);
             #endif
             if (_newRunnerNumber>=_maxRunnerNumber) {
-                _logger?.LogErrorCannotAllocateRunnerNumber(session_id, trace_identifier);
+                _logger?.LogErrorCannotAllocateRunnerNumber(session_id, TraceIdentifier);
                 throw new InvalidOperationException("Cannot acquire a new runner number");
             }
             int result = _newRunnerNumber++;
             #if TRACE
-            _logger?.LogTraceGetNewRunnerNumberExit(session_id, result, trace_identifier);
+            _logger?.LogTraceGetNewRunnerNumberExit(session_id, result, TraceIdentifier);
             #endif
             return result;
         }
@@ -311,14 +316,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 Task? result= dispose_task.ContinueWith(FinishDisposalTaskBody, RunnerId);
                 if(RunnerInfo.TrackCleanup!=null)
                     result.ContinueWith(_ => RunnerInfo.TrackCleanup.SetResult());
+                Utilities.TimeoutLoggerContext tl_info = new Utilities.TimeoutLoggerContext(result,
+                    #if TRACE
+                    () =>_logger?.LogTraceRunnerCompleteDispose(RunnerId),
+                    #else
+                    ()=>{},
+                    #endif
+                    wait_ok=> _logger?.LogDebugRunnerEndWaitingForCleanup(RunnerId, wait_ok)
+                );
+                if(_cleanupLoggingTimeoutMs!=null)
+                    _cleanupLoggingTask=Task.WhenAny(result, Task.Delay(_cleanupLoggingTimeoutMs.Value))
+                        .ContinueWith(Utilities.TimeoutLoggerBody, tl_info);
+                else _cleanupLoggingTask=Task.WhenAny(result).ContinueWith(Utilities.TimeoutLoggerBody, tl_info); ;
+
                 return result;
             }
             else {
                 #if TRACE
                 _logger?.LogTraceRunNoDisposeTask(RunnerId);
                 #endif
-                if(RunnerInfo.TrackCleanup!=null)
-                    RunnerInfo.TrackCleanup.SetResult();
+                _logger?.LogDebugRunnerEndWaitingForCleanup(RunnerId, true);
+                if(RunnerInfo.TrackCleanup!=null) RunnerInfo.TrackCleanup.SetResult();
                 return null;
             }
         }

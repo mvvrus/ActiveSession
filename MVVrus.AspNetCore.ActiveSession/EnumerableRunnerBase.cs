@@ -438,7 +438,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Protected. Marks the end of the background execution. That means that no more items will be added to the queue.
         /// </summary>
-        protected internal void QueueCompleteAdding() => _queue.CompleteAdding();
+        protected internal void QueueCompleteAdding() { 
+            _queue.CompleteAdding();
+            LogFinishBackgroundProcess();
+        }
 
         /// <summary>
         ///  Protected. Adds an item to the queue.

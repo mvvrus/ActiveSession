@@ -306,7 +306,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #endif
         }
 
-        void ItemAction(Task<bool> NextStep)
+        void ItemAction(Task<bool> CompletedStep)
         {
             bool proceed = false;
             bool result_ready;
@@ -317,23 +317,23 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceStepComplete(Id);
                 #endif
-                if(NextStep.IsCanceled) {
+                if(CompletedStep.IsCanceled) {
                     #if TRACE
                     Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceStepCanceled(Id);
                     #endif
                     Abort();
                 }
                 result_ready = status_is_final = Status.IsFinal();
-                if (NextStep.IsFaulted) {
-                    Exception = (NextStep.Exception as AggregateException)?.InnerExceptions.ElementAtOrDefault(0)?? NextStep.Exception;
+                if (CompletedStep.IsFaulted) {
+                    Exception = (CompletedStep.Exception as AggregateException)?.InnerExceptions.ElementAtOrDefault(0)?? CompletedStep.Exception;
                     Logger?.LogErrorAsyncEnumAdapterRunnerSourceEnumerationException(Exception, Id);
                     QueueCompleteAdding();
                     #if TRACE
                     Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceChainBreak(Id);
                     #endif
                 }
-                else if (NextStep.IsCompletedSuccessfully)  {
-                    if(NextStep.Result && !status_is_final) {
+                else if (CompletedStep.IsCompletedSuccessfully)  {
+                    if(CompletedStep.Result && !status_is_final) {
                         #if TRACE
                         Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceItemAdded(Id);
                         #endif
@@ -351,7 +351,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         }
                     }
                 }
-                else { // NextStep.IsCanceled==true here
+                else { // CompletedStep.IsCanceled==true here
                     #if TRACE
                     Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceChainBreak(Id);
                     #endif

@@ -179,6 +179,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     Logger?.LogTraceRunnerBaseComeToFinalState(Id);
                     #endif
                     _completionTokenSource?.Cancel();
+                    Logger?.LogDebugRunnerCompleted(Id, Status);
                 }
                 catch (ObjectDisposedException) { }
             return true;
@@ -244,6 +245,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (result) try 
                 {
                     StartBackgroundExecution();
+                    Logger?.LogDebugStartBackground(Id);
                 }
                 catch (Exception exception) {
                     Logger?.LogErrorStartBkgProcessingFailed(exception, Id);
@@ -278,6 +280,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             if(result) {
                 try {
                     await StartBackgroundExecutionAsync();
+                    Logger?.LogDebugStartBackground(Id);
                 }
                 catch(Exception exception) {
                     Logger?.LogErrorStartBkgProcessingFailed(exception, Id);
@@ -391,6 +394,18 @@ namespace MVVrus.AspNetCore.ActiveSession
         protected Boolean Disposed()
         {
             return Volatile.Read(ref _disposed)!=0;
+        }
+
+        /// <summary>
+        /// Protected. Write message about comletion of a renner background process.
+        /// </summary>
+        /// <remarks>
+        /// This method is defined here just for consistency. 
+        /// It should be called by descendants in any point where their backgound process came to an end.
+        /// </remarks>
+        protected void LogFinishBackgroundProcess()
+        {
+            Logger?.LogDebugFinishBackground(Id);
         }
 
     }

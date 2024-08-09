@@ -35,7 +35,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(I_SESSIONPROCESSRUNNERTASKRESULTALREADYSET, LogLevel.Information, "SessionProcessRunner: pending task result is already set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogInfoTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        
+
+        [LoggerMessage(D_RUNNERBASECOMPLETED, LogLevel.Debug, "The runner came to its final state, RunnerId={RunnerId}, Status={FinalStatus}.")]
+        public static partial void LogDebugRunnerCompleted(this ILogger Logger, RunnerId RunnerId, RunnerStatus FinalStatus);
+        [LoggerMessage(D_RUNNERBASEBKGSTARTED, LogLevel.Debug, "The runner background processing started, RunnerId={RunnerId}.")]
+        public static partial void LogDebugStartBackground(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(D_RUNNERBASEBKGFINISHED, LogLevel.Debug, "The runner background processing ended, RunnerId={RunnerId}.")]
+        public static partial void LogDebugFinishBackground(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugEnumerableRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(D_ENUMADAPTERRUNNERPARAMS, LogLevel.Debug, 

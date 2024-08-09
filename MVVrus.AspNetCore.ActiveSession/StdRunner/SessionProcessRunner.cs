@@ -740,6 +740,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     }
                 }
             }
+            LogFinishBackgroundProcess();
             #if TRACE
             Logger?.LogTraceSessionProcessBkgEndedExit(Id);
             #endif

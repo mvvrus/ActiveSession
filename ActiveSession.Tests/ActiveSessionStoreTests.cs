@@ -166,7 +166,7 @@ namespace ActiveSession.Tests
                 ts.ActSessOptions.Prefix=PREFIX;
                 ts.ActSessOptions.TrackStatistics=true;
                 ts.ActSessOptions.ActiveSessionSize=AS_SIZE;
-                using (store=ts.CreateStore()) {
+                using(store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null);
                     //Assess
                     Assert.NotNull(session);
@@ -196,7 +196,7 @@ namespace ActiveSession.Tests
                 }
 
                 const Int32 CLEANUP_TIMEOUT = 2000;
-                //Test case: logging timely runners cleanup after eviction - in time
+                //Test case: logging timely active session cleanup after eviction - ended in time
                 //Arrange
                 ts.ActSessOptions.CleanupLoggingTimeoutMs=CLEANUP_TIMEOUT;
                 Boolean? in_time;
@@ -204,7 +204,7 @@ namespace ActiveSession.Tests
                 MockedLogger mock_logger;
                 mock_logger=ts.InitLogger();
                 in_time=null;
-                mock_logger.MonitorLogEntry(LogLevel.Trace, T_STORERUNNERCLEANUPRESULT, log_callback);
+                mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT/2); });
                 using (store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null);
@@ -216,10 +216,10 @@ namespace ActiveSession.Tests
                     Assert.Equal(true, in_time);
                 }
 
-                //Test case: logging timely runners cleanup after eviction - timeout
+                //Test case: logging timely active session cleanup after eviction - timeout
                 mock_logger=ts.InitLogger();
                 in_time=null;
-                mock_logger.MonitorLogEntry(LogLevel.Trace, T_STORERUNNERCLEANUPRESULT, log_callback);
+                mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
                 using (store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null);
@@ -230,6 +230,25 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.Equal(false, in_time);
                 }
+
+                //Test case: logging active session runners cleanup - no timeout set
+                //Arrange
+                ts.ActSessOptions.CleanupLoggingTimeoutMs=null;
+                mock_logger=ts.InitLogger();
+                in_time=null;
+                mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
+                ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
+                using(store=ts.CreateStore()) {
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    //Act
+                    ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
+                    session!.CleanupCompletionTask.GetAwaiter().GetResult();
+                    store._cleanupLoggingTask?.GetAwaiter().GetResult();
+                    //Assess
+                    Assert.Equal(true, in_time);
+                }
+
+
 
             }
         }
@@ -1110,7 +1129,7 @@ namespace ActiveSession.Tests
         public void Dispose_Store()
         {
             const Int32 TIMEOUT = 8000;
-            const Int32 SMALL_TIMEOUT = 200;
+            const Int32 SMALL_TIMEOUT = 400;
             OwnCacheTestSetup ts = new OwnCacheTestSetup();
             ActiveSessionStore store;
             const String ID1 = "Session1";
@@ -1129,7 +1148,7 @@ namespace ActiveSession.Tests
             Task dispose_task;
             MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession? as1, as2;
             Task cleanup_task1, cleanup_task2;
-            //Test case: disposing in the case some sessions an runners haven't been completed within timeout
+            //Test case: disposing in the case some sessions and runners haven't been completed within timeout
             //Arrange
             Arrange(true);
             //Act
@@ -1303,7 +1322,6 @@ namespace ActiveSession.Tests
             static  void DoReset(FakeSystemClock Item)
             {
                 Item._advancedTo=Item._advanceMoment=DateTimeOffset.Now;
-                Debug.Print("Reset at "+Item._advanceMoment.ToString());
             }
 
             public FakeSystemClock()
@@ -1315,7 +1333,6 @@ namespace ActiveSession.Tests
             {
                 _advanceMoment=DateTimeOffset.Now;
                 _advancedTo=UtcNow+Value;
-                Debug.Print("Advanced by "+Value.ToString()+" at "+_advanceMoment.ToString()+" to "+_advancedTo.ToString());
             }
 
             public void Reset() { DoReset(this); }
@@ -1325,7 +1342,6 @@ namespace ActiveSession.Tests
                     DateTimeOffset current = DateTimeOffset.Now;
                     if (current<_advancedTo) 
                         current = _advancedTo+(current-_advanceMoment)/2;
-                    Debug.Print(current.ToString());
                     return current;
                 }  
             } 
@@ -1737,14 +1753,14 @@ namespace ActiveSession.Tests
                 if (PerSessionLock) _lockObject=new Object();
                 GetRunnerNumberExpression=(s => s.GetNewRunnerNumber(StubActiveSession.Object, It.IsAny<String>()));
                 ReturnRunnerNumberExpression=(s => s.ReturnRunnerNumber(StubActiveSession.Object, It.IsAny<Int32>()));
-                RegisterRunnerExpression=(s => s.RegisterRunner(StubActiveSession.Object, It.IsAny<Int32>(), It.IsAny<IRunner>(),It.IsAny<Type>()));
+                RegisterRunnerExpression=(s => s.RegisterRunner(StubActiveSession.Object, It.IsAny<Int32>(), It.IsAny<IRunner>(),It.IsAny<Type>(),It.IsAny<String>()));
                 UnregisterRunnerExpression=(s => s.UnregisterRunner(StubActiveSession.Object, It.IsAny<Int32>()));
                 MockRunnerManager.Setup(GetRunnerNumberExpression)
                     .Callback((IActiveSession _, String _) => { CreateStage1Callback?.Invoke(); })
                     .Returns(RUNNER_1);
                 MockRunnerManager.Setup(ReturnRunnerNumberExpression);
                 MockRunnerManager.Setup(RegisterRunnerExpression)
-                    .Callback((IActiveSession _,Int32 _,IRunner _, Type _) => { CreateStage4Callback?.Invoke(); });
+                    .Callback((IActiveSession _,Int32 _,IRunner _, Type _, String _) => { CreateStage4Callback?.Invoke(); });
                 MockRunnerManager.Setup(UnregisterRunnerExpression);
                 MockRunnerManager.SetupGet(RunnerCreationLockExpression).Returns(_lockObject);
             }
@@ -1772,7 +1788,6 @@ namespace ActiveSession.Tests
 
             public OwnCacheTestSetup(): base(null) 
             {
-                _runnerManagerFactory=new RunnerManagerFactory();
                 _mockedSessionServiceProvider=new ServiceProviderMock(MockRootServiceProvider);
                 SessOptions.IdleTimeout=SESSION_IDLE; 
                 ActSessOptions.UseOwnCache=true;
@@ -1782,6 +1797,7 @@ namespace ActiveSession.Tests
                     Clock=Clock, 
                     ExpirationScanFrequency=TimeSpan.FromSeconds(10) 
                 };
+                _runnerManagerFactory=new RunnerManagerFactory(IActSessionOptions);
                 AddRunnerFactory<String, Result1>(SpyRunnerFactory);
             }
 

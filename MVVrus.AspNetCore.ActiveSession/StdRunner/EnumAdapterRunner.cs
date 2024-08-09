@@ -131,7 +131,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     StartInConstructor);
             }
             _runAwaitContinuationDelegate = RunAwaitContinuation;
-            _queueAwaitContinuationDelegate = QueueAwaitContinuationForRunning;
+            _queueAwaitContinuationDelegate = EnqueueAwaitContinuationForRunning;
             if (StartInConstructor) this.StartRunning();
             #if TRACE
             Logger?.LogTraceEnumAdapterConstructorExit(Id);
@@ -190,7 +190,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDispose(Id);
             #endif
-            QueueAwaitContinuationForRunning();
+            EnqueueAwaitContinuationForRunning();
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDisposeExit(Id);
             #endif
@@ -291,7 +291,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerDoAbort(Id, TraceIdentifier);
             #endif
-            QueueAwaitContinuationForRunning();
+            EnqueueAwaitContinuationForRunning();
             base.DoAbort(TraceIdentifier);
         }
 
@@ -319,7 +319,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #if TRACE
                         Logger?.LogTraceEnumAdapterRunnerEnumerateSourceItemAdded(Id);
                         #endif
-                        QueueAwaitContinuationForRunning();
+                        EnqueueAwaitContinuationForRunning();
                     }
                     else if (completion_token.IsCancellationRequested) {
                         //Apparently somewhat excessive check. It's intended to sped up a cancellation
@@ -347,7 +347,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #endif
                 QueueCompleteAdding();
                 ReleaseSource();
-                QueueAwaitContinuationForRunning();
+                EnqueueAwaitContinuationForRunning();
             }
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerEnumerateSourceExit(Id);
@@ -405,14 +405,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerSheduleQueueContnuationToRunAsLastChancePossible(Id);
                 #endif
-                QueueAwaitContinuationForRunning();
+                EnqueueAwaitContinuationForRunning();
             }
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerEnumerateScheduleContinuationDone(Id);
             #endif
         }
 
-        void QueueAwaitContinuationForRunning()
+        void EnqueueAwaitContinuationForRunning()
         {
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRun(Id);
