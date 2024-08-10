@@ -32,16 +32,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningBadParam(this ILogger Logger, String MethodName, String ParamName, Int32 ParamValue, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_SESSIONPROCESSRUNNERBADPARAM, LogLevel.Warning, "SessionProcessRunner: bad parameter, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningSessionProcessBadParameters(this ILogger Logger, Exception? AnException, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(W_SESSIONPROCESSRUNNERTASKRESULTALREADYSET, LogLevel.Warning, "SessionProcessRunner: pending task result is already set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
-        [LoggerMessage(I_SESSIONPROCESSRUNNERTASKRESULTALREADYSET, LogLevel.Information, "SessionProcessRunner: pending task result is already set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogInfoTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(I_RUNNERBASESTARTING, LogLevel.Information, "The runner to be started, RunnerId={RunnerId}.")]
+        public static partial void LogInfoRunnerStarting(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(I_RUNNERBASESTARTFAILED, LogLevel.Information, "An attempt to start the runer failed, RunnerId={RunnerId}.")]
+        public static partial void LogInfoRunnerStartFailed(this ILogger Logger, Exception Exception, RunnerId RunnerId);
+        [LoggerMessage(I_RUNNERBASECOMPLETED, LogLevel.Information, "The runner came to its final state, RunnerId={RunnerId}, Status={FinalStatus}.")]
+        public static partial void LogInfoRunnerCompleted(this ILogger Logger, RunnerId RunnerId, RunnerStatus FinalStatus);
+        [LoggerMessage(I_RUNNERBASEBKGSTARTED, LogLevel.Information, "The runner background processing started, RunnerId={RunnerId}.")]
+        public static partial void LogInfoStartBackground(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(I_RUNNERBASEBKGFINISHED, LogLevel.Information, "The runner background processing ended, RunnerId={RunnerId}.")]
+        public static partial void LogInfoFinishBackground(this ILogger Logger, RunnerId RunnerId);
 
-        [LoggerMessage(D_RUNNERBASECOMPLETED, LogLevel.Debug, "The runner came to its final state, RunnerId={RunnerId}, Status={FinalStatus}.")]
-        public static partial void LogDebugRunnerCompleted(this ILogger Logger, RunnerId RunnerId, RunnerStatus FinalStatus);
-        [LoggerMessage(D_RUNNERBASEBKGSTARTED, LogLevel.Debug, "The runner background processing started, RunnerId={RunnerId}.")]
-        public static partial void LogDebugStartBackground(this ILogger Logger, RunnerId RunnerId);
-        [LoggerMessage(D_RUNNERBASEBKGFINISHED, LogLevel.Debug, "The runner background processing ended, RunnerId={RunnerId}.")]
-        public static partial void LogDebugFinishBackground(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugEnumerableRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(D_ENUMADAPTERRUNNERPARAMS, LogLevel.Debug, 

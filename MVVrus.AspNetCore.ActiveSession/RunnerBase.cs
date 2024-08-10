@@ -179,7 +179,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     Logger?.LogTraceRunnerBaseComeToFinalState(Id);
                     #endif
                     _completionTokenSource?.Cancel();
-                    Logger?.LogDebugRunnerCompleted(Id, Status);
+                    Logger?.LogInfoRunnerCompleted(Id, Status);
                 }
                 catch (ObjectDisposedException) { }
             return true;
@@ -244,12 +244,13 @@ namespace MVVrus.AspNetCore.ActiveSession
             #endif
             if (result) try 
                 {
+                    Logger?.LogInfoRunnerStarting(Id);
                     StartBackgroundExecution();
-                    Logger?.LogDebugStartBackground(Id);
+                    Logger?.LogInfoStartBackground(Id);
                 }
                 catch (Exception exception) {
                     Logger?.LogErrorStartBkgProcessingFailed(exception, Id);
-                    FailStartRunning(NewStatus);
+                    FailStartRunning(NewStatus, exception);
                     throw;
                 }
             if (result&&NewStatus.IsFinal()) {
@@ -257,6 +258,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 Logger?.LogTraceRunnerBaseComeToFinalState(Id);
                 #endif
                 _completionTokenSource?.Cancel();
+                Logger?.LogInfoRunnerCompleted(Id, NewStatus);
             }
             return result; 
         }
@@ -279,12 +281,13 @@ namespace MVVrus.AspNetCore.ActiveSession
             Boolean result = prev_status == RunnerStatus.NotStarted;
             if(result) {
                 try {
+                    Logger?.LogInfoRunnerStarting(Id);
                     await StartBackgroundExecutionAsync();
-                    Logger?.LogDebugStartBackground(Id);
+                    Logger?.LogInfoStartBackground(Id);
                 }
                 catch(Exception exception) {
                     Logger?.LogErrorStartBkgProcessingFailed(exception, Id);
-                    FailStartRunning(NewStatus);
+                    FailStartRunning(NewStatus, exception);
                     throw;
                 }
                 #if TRACE
@@ -296,6 +299,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 Logger?.LogTraceRunnerBaseComeToFinalState(Id);
                 #endif
                 _completionTokenSource?.Cancel();
+                Logger?.LogInfoRunnerCompleted(Id, NewStatus);
             }
             return result;
 
@@ -307,11 +311,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// in the case of unsuccessful start of background execution.
         /// </summary>
         /// <param name="FromNewStatus">Expected value from wich the property to be changed to <see cref="RunnerStatus.NotStarted"/></param>
+        /// <param name="Exception">An exception occured.</param>
         /// <remarks>The value of the <see cref="Status"/> property is changed in a thread-safe manner</remarks>
-        protected internal void FailStartRunning(RunnerStatus FromNewStatus)
+        protected internal void FailStartRunning(RunnerStatus FromNewStatus, Exception Exception)
         {
             RunnerStatus rolled_back = (RunnerStatus)Interlocked.Exchange(ref _status, (int)RunnerStatus.NotStarted);
             if(rolled_back!=FromNewStatus) Logger?.LogWarningUnexpectedStatusChange(Id, FromNewStatus, rolled_back);
+            Logger?.LogInfoRunnerStartFailed(Exception, Id);
         }
 
         /// <summary>
@@ -405,7 +411,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         protected void LogFinishBackgroundProcess()
         {
-            Logger?.LogDebugFinishBackground(Id);
+            Logger?.LogInfoFinishBackground(Id);
         }
 
     }

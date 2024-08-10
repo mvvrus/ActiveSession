@@ -623,7 +623,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #endif
             }
             else {
-                Logger?.LogInfoTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
             }
             task_item.TaskSourceToComplete = null; //To skip completing the task defined by this task_item.TaskSourceToComplete
                                               // in the AdvanceProgress method
@@ -711,7 +711,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                                 #endif
                             }
                             else {
-                                Logger?.LogInfoTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                             }
                         }
                         else {
@@ -729,7 +729,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                                     result.Status, result.Position, Id, task_item.TraceIdentifier);
                             }
                             else {
-                                Logger?.LogInfoTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                             }
                         }
                     }
@@ -786,7 +786,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                                 #endif
                             }
                             else {
-                                Logger?.LogInfoTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                             }
                         }
                         else {
@@ -804,7 +804,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                             }
                             else {
                                 SetStatus(old_status);
-                                Logger?.LogInfoTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                             }
                         }
                     }
