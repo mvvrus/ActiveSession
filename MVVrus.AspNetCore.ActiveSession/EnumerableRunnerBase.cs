@@ -326,13 +326,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         ///<inheritdoc/>
         public override RunnerBkgProgress GetProgress()
         {
-            CheckDisposed();
+            if(Disposed()) return (Position, Position);
             Int32 progress = _queueAddedCount;
             return (progress, (IsBackgroundExecutionCompleted ? progress : null));
         }
 
         /// <inheritdoc/>
-        public override Boolean IsBackgroundExecutionCompleted { get { CheckDisposed(); return _queue.IsAddingCompleted; } }
+        public override Boolean IsBackgroundExecutionCompleted { get => Disposed() || _queue.IsAddingCompleted; }
 
         ///<summary>
         ///Protected, overrides <see cref="RunnerBase.PreDispose">RunnerBase.PreDispose()</see>. 
