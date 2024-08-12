@@ -207,7 +207,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerStartBackgroundEnter(Id);
             #endif
-            _enumTask = Task.Run(EnumerateSource);
+            _enumTask = new Task(EnumerateSource, CompletionToken, TaskCreationOptions.LongRunning);
+            _enumTask.Start();
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerStartBackgroundExit(Id);
             #endif
