@@ -195,6 +195,17 @@ namespace ActiveSession.Tests
             TestRunner runner;
 
             using(test_enumerable = new TestEnumerable()) {
+                //Test case: pass already canceled token
+                PerformTest(() => { },
+                    () =>
+                    {
+                        AggregateException e = Assert.Throws<AggregateException>(() => fetch_task.Wait(5000));
+                        Assert.Single(e.InnerExceptions);
+                        Assert.IsType<TaskCanceledException>(e.InnerExceptions[0]);
+                        Assert.True(fetch_task.IsCanceled);
+                    },
+                    ()=>new CancellationToken(true));
+
                 //Test case: cancel the awaiting fetch task
                 PerformTest(() => fetch_cts!.Cancel(),
                     () =>
@@ -220,10 +231,11 @@ namespace ActiveSession.Tests
                     () => { CheckTaskTerminatedByDispose(fetch_task!); vt.AsTask().Wait(5000); });
             }
 
-            void PerformTest(Action Act, Action Assess)
+            void PerformTest(Action Act, Action Assess, Func<CancellationToken>? MakeToken=null)
             {
                 test_enumerable.ReleaseTestEnumerable();
                 fetch_cts = new CancellationTokenSource();
+                MakeToken = MakeToken??(()=>fetch_cts.Token);
                 try {
                     step1 = 5;
                     test_enumerable.AddFirstPause(step1);
@@ -233,7 +245,7 @@ namespace ActiveSession.Tests
                         Assert.True(test_enumerable.WaitForPause());
                         advance = 10;
                         result = new List<Int32>();
-                        fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                        fetch_task = runner.FetchRequiredAsync(advance, result, MakeToken(), "<unknown>");
                         Act();
                         Assess();
                     }

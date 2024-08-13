@@ -586,7 +586,7 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        //Test: GetRequiredAsync cancellation
+        //Test group: GetRequiredAsync cancellation
         public void GetRequiredAsync_Canceled() 
         {
             MockedLoggerFactory logger_factory_mock = new MockedLoggerFactory();
@@ -598,15 +598,26 @@ namespace ActiveSession.Tests
             ValueTask<RunnerResult<IEnumerable<Int32>>> result_task;
             using(TestEnumerableRunner runner = new TestEnumerableRunner(logger_mock.Logger)) {
                 using (CancellationTokenSource cts=new CancellationTokenSource()) {
+                    //Test case: pass already canceled Token to a synchronous call
+                    runner.SimulateBackgroundFetch(PAGE_SIZE/2);
+                    Task<RunnerResult<IEnumerable<Int32>>> result_as_task =runner.GetRequiredAsync(1, new CancellationToken(true)).AsTask();
+                    (result, status, position, exception)=result_as_task.Result;
+                    Assert.True(result_as_task.IsCompletedSuccessfully);
+                    //Test case: pass already canceled Token to an asynchronous call
+                    result_as_task = runner.GetRequiredAsync(2 * PAGE_SIZE, new CancellationToken(true)).AsTask();
+                    AggregateException ex= Assert.Throws<AggregateException>(()=>result_as_task.Wait(TIMEOUT));
+                    Assert.Single(ex.InnerExceptions);
+                    Assert.IsType<TaskCanceledException>(ex.InnerExceptions[0]);
+                    //Test case: canceling pending (asynchronous) call
                     result_task = runner.GetRequiredAsync(2 * PAGE_SIZE, cts.Token).Preserve();
                     Assert.False(result_task.IsCompleted);
-                    runner.SimulateBackgroundFetchWithWait(PAGE_SIZE);
+                    runner.SimulateBackgroundFetchWithWait(PAGE_SIZE/2);
                     Assert.False(result_task.IsCompleted);
                     cts.Cancel();
                     Assert.Throws<TaskCanceledException>(() => result_task.GetAwaiter().GetResult());
                     Assert.Equal(TaskStatus.Canceled, result_task.AsTask().Status);
                     (result, status, position, exception) = runner.GetAvailable();
-                    Assert.True(CheckRange(result, 0, PAGE_SIZE));
+                    Assert.True(CheckRange(result, 1, PAGE_SIZE-1));
                     Assert.Equal((PAGE_SIZE, (Int32?)(null)), runner.GetProgress());
                     Assert.False(runner.IsBackgroundExecutionCompleted);
                     runner.GetAvailable(); //To check pseudo-lock release
@@ -1250,6 +1261,7 @@ namespace ActiveSession.Tests
                 _result = Result;
                 _cancellationToken = Token;
                 _fetchException = null;
+                if(Token.IsCancellationRequested) return _fetchingTask=Task.FromCanceled(Token);
                 return _fetchingTask=Task.Run(FetchBody, Token);
             }
 

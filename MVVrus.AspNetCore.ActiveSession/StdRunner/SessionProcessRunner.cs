@@ -551,9 +551,10 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     #if TRACE
                     Logger?.LogTraceSessionProcessGetRequiredAsyncAsynchronous(Id, trace_identifier);
                     #endif
+                    TaskCompletionSource<RunnerResult<TResult>> tcs = new TaskCompletionSource<RunnerResult<TResult>>();
                     TaskListItem task_item = new TaskListItem
                     {
-                        TaskSourceToComplete = new TaskCompletionSource<RunnerResult<TResult>>(),
+                        TaskSourceToComplete = tcs,
                         Token = Token,
                         DesiredPosition = StartPosition+max_advance,
                         TraceIdentifier = trace_identifier
@@ -563,7 +564,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     #if TRACE
                     Logger?.LogTraceSessionProcessGetRequiredAsyncTaskEnqueued(Id, trace_identifier);
                     #endif
-                    result_task=new ValueTask<RunnerResult<TResult>>(task_item.TaskSourceToComplete.Task);
+                    result_task=new ValueTask<RunnerResult<TResult>>(tcs.Task);
                 }
             }
             #if TRACE
