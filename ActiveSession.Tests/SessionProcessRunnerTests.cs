@@ -205,6 +205,16 @@ namespace ActiveSession.Tests
                     Assert.Null(exception);
                     Assert.Equal(COUNT/2, runner.Position);
                     Assert.Equal(RunnerStatus.Stalled, runner.Status);
+                    //Test case: default Advance & StartPosition==Position, must be synchronous (StartPosition+Advance==_progress)
+                    task_sync = runner.GetRequiredAsync(StartPosition: COUNT/2).AsTask();
+                    Assert.True(task_sync.IsCompletedSuccessfully);
+                    (result, status, position, exception) = task_sync.Result;
+                    Assert.Equal(COUNT, result);
+                    Assert.Equal(RunnerStatus.Stalled, status);
+                    Assert.Equal(COUNT/2, position);
+                    Assert.Null(exception);
+                    Assert.Equal(COUNT/2, runner.Position);
+                    Assert.Equal(RunnerStatus.Stalled, runner.Status);
                     //Test case: passing already canceled Token to an asynchronous call
                     //           (default StartPosition & Advance, StartPosition+Advance>_progress)
                     Task<RunnerResult<Int32>> task1_2p0 = runner.GetRequiredAsync(Token:new CancellationToken(true)).AsTask();

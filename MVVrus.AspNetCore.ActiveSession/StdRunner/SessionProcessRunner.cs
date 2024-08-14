@@ -589,8 +589,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceSessionProcessCheckAndNormalizeParams(Id,TraceIdentifier);
             #endif
-            if(StartPosition == IRunner.CURRENT_POSITION) StartPosition = Position ;
-            if(StartPosition < Position ) {
+            if(StartPosition < Position && StartPosition != IRunner.CURRENT_POSITION) {
                 String classname = Utilities.MakeClassCategoryName(GetType());
                 ex=new ArgumentException(nameof(StartPosition),
                         $"{classname}.{MethodName}:StartPosition value ({StartPosition}) is behind current runner Position({Position})");
@@ -604,12 +603,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 Logger?.LogWarningSessionProcessBadParameters(ex,Id,TraceIdentifier);
                 throw ex;
             }
-            if(StartPosition==Position  && Advance == IRunner.DEFAULT_ADVANCE) {
+            if(StartPosition== IRunner.CURRENT_POSITION  && Advance == IRunner.DEFAULT_ADVANCE) {
                 Advance = 1;
                 #if TRACE
                 Logger?.LogTraceSessionProcessCheckAndNormalizeParamsDefaultAdjusted(Id,TraceIdentifier);
                 #endif
             }
+            if(StartPosition == IRunner.CURRENT_POSITION) StartPosition = Position ;
             #if TRACE
             Logger?.LogTraceSessionProcessCheckAndNormalizeParamsExit(Id,TraceIdentifier);
             #endif
