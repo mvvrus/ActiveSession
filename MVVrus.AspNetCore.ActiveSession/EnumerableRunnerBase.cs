@@ -355,7 +355,10 @@ namespace MVVrus.AspNetCore.ActiveSession
                 #if TRACE
                 Logger?.LogTraceEnumerableRunnerBasePreDispose(Id);
                 #endif
-                waiting_task_source!.TrySetException(new ObjectDisposedException(DisposedObjectName()));
+                Exception exception = new ObjectDisposedException(DisposedObjectName());
+                if(waiting_task_source!.TrySetException(exception))
+                    Logger?.LogDebugGetRequiredAsyncFailed(exception, Id, UNKNOWN_TRACE_IDENTIFIER);
+                else Logger?.LogWarningTaskOutcomeAlreadySet(Id, UNKNOWN_TRACE_IDENTIFIER);
                 ReleasePseudoLock();
                 #if TRACE
                 Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, UNKNOWN_TRACE_IDENTIFIER);
@@ -547,7 +550,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
-            waitingTaskSource?.TrySetException(Antecedent.Exception!.InnerExceptions);
+            if(waitingTaskSource?.TrySetException(Antecedent.Exception!.InnerExceptions)??false)
+                Logger?.LogDebugGetRequiredAsyncFailed(Antecedent.Exception!, Id, trace_identifier);
+            else Logger?.LogWarningTaskOutcomeAlreadySet(Id, trace_identifier);
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncFailResultSet(Id, trace_identifier);
             #endif
@@ -575,7 +580,9 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, trace_identifier);
             #endif
-            waitingTaskSource?.TrySetCanceled();
+            if(waitingTaskSource?.TrySetCanceled()??false)
+                Logger?.LogDebugGetRequiredAsyncCanceled(Id, trace_identifier);
+            else Logger?.LogWarningTaskOutcomeAlreadySet(Id, UNKNOWN_TRACE_IDENTIFIER);
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncCancelResultSet(Id, trace_identifier);
             #endif
@@ -595,7 +602,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
             #endif
-            waitingTaskSource?.TrySetResult(result);
+            if(!waitingTaskSource?.TrySetResult(result)??true) Logger?.LogWarningTaskOutcomeAlreadySet(Id, UNKNOWN_TRACE_IDENTIFIER);
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
             #endif
@@ -663,12 +670,12 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (StartPosition==CURRENT_POSITION)
                 StartPosition=Position;
             if (StartPosition!=Position) {
-                Logger?.LogWarningBadParam(MethodName, nameof(StartPosition), StartPosition, Id, TraceIdentifier);
+                Logger?.LogWarningEnumerableRunnerBaseBadParam(MethodName, nameof(StartPosition), StartPosition, Id, TraceIdentifier);
                 throw new ArgumentException(nameof(StartPosition),$"{classname}.{MethodName}: A start position requested ({StartPosition}) differs from the current one({Position})");
             }
             if (Advance==DEFAULT_ADVANCE) Advance=DefaultAdvance;
             if (Advance<=0) {
-                Logger?.LogWarningBadParam(MethodName, nameof(Advance), Advance, Id, TraceIdentifier);
+                Logger?.LogWarningEnumerableRunnerBaseBadParam(MethodName, nameof(Advance), Advance, Id, TraceIdentifier);
                 throw new ArgumentException(nameof(Advance), $"{classname}.{MethodName}: Invalid advance value: {Advance}");
             }
 

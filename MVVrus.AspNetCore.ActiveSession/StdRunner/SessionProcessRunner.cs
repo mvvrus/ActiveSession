@@ -610,7 +610,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 Logger?.LogTraceSessionProcessCheckAndNormalizeParamsDefaultAdjusted(Id,TraceIdentifier);
                 #endif
             }
-#if TRACE
+            #if TRACE
             Logger?.LogTraceSessionProcessCheckAndNormalizeParamsExit(Id,TraceIdentifier);
             #endif
         }
@@ -618,16 +618,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         void CancelATask(object? Item)
         {
             TaskListItem task_item = Item as TaskListItem ?? throw new ArgumentNullException(nameof(Item)); 
-            if(task_item.TaskSourceToComplete?.TrySetCanceled()??false) {
-                #if TRACE
-                Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id,task_item.TraceIdentifier);
-                #endif
-            }
-            else {
-                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
-            }
-            task_item.TaskSourceToComplete = null; //To skip completing the task defined by this task_item.TaskSourceToComplete
-                                              // in the AdvanceProgress method
+            #if TRACE
+            Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id,task_item.TraceIdentifier);
+            #endif
+            if(task_item.TaskSourceToComplete?.TrySetCanceled()??false) 
+                Logger?.LogDebugGetRequiredAsyncCanceled(Id, task_item.TraceIdentifier);
+            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+            task_item.TaskSourceToComplete = null; //To avoid an excessive attempt to complete the task
+                                                   //defined by this task_item.TaskSourceToComplete in the AdvanceProgress method
         }
 
         void SessionTaskCompletionHandler(Task Antecedent)
@@ -686,11 +684,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         while(_waitList.TryDequeue(out task_item, out task_position)) {
                             if(task_item.TaskSourceToComplete!=null) {
                                 Exception e = new InvalidOperationException(msg);
-                                if(task_item!.TaskSourceToComplete.TrySetException(e)) {
-                                    #if TRACE
-                                    Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
-                                    #endif
-                                };
+                                #if TRACE
+                                Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
+                                #endif
+                                if(task_item!.TaskSourceToComplete.TrySetException(e)) 
+                                    Logger?.LogDebugGetRequiredAsyncFailed(e,Id,task_item.TraceIdentifier);
                             }
                         }
                         return;
@@ -706,32 +704,28 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #endif
                         if(Disposed()) {
                             Exception e = new ObjectDisposedException(DisposedObjectName());
-                            if(task_item!.TaskSourceToComplete.TrySetException(e)) {
-                                #if TRACE
-                                Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
-                                #endif
-                            }
-                            else {
-                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
-                            }
+                            #if TRACE
+                            Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
+                            #endif
+                            if(task_item!.TaskSourceToComplete.TrySetException(e)) 
+                                Logger?.LogTraceSessionProcessPendingTaskSetException(e, Id, task_item.TraceIdentifier);
+                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                         }
                         else {
                             RunnerStatus status=_backgroundStatus;
                             if(Status.IsFinal()) status=Status;
                             RunnerResult<TResult> result = new RunnerResult<TResult>(
                                 _result, status, _progress, status == RunnerStatus.Failed ? _backgroundException : null);
+                            #if TRACE
+                            Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
+                            #endif
                             if(task_item!.TaskSourceToComplete.TrySetResult(result)) {
                                 Position=_progress;
                                 if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;
-                                #if TRACE
-                                Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
-                                #endif
                                 Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
                                     result.Status, result.Position, Id, task_item.TraceIdentifier);
                             }
-                            else {
-                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
-                            }
+                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                         }
                     }
                     else {
@@ -781,25 +775,23 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     _waitList.Dequeue();
                     if(task_item.TaskSourceToComplete!=null) {
                         if(task_item.Token.IsCancellationRequested) {
-                            if(task_item.TaskSourceToComplete.TrySetCanceled()) {
-                                #if TRACE
-                                Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id,task_item.TraceIdentifier);
-                                #endif
-                            }
-                            else {
-                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
-                            }
+                            #if TRACE
+                            Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id,task_item.TraceIdentifier);
+                            #endif
+                            if(task_item.TaskSourceToComplete.TrySetCanceled()) 
+                                Logger?.LogDebugGetRequiredAsyncCanceled(Id,task_item.TraceIdentifier);
+                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                         }
                         else {
                             RunnerStatus old_status = Status;
                             SetStatus(task_position<_progress ? RunnerStatus.Progressed : RunnerStatus.Stalled);
                             RunnerResult<TResult> result = 
                                 new RunnerResult<TResult>(_result, Status, task_position, Status == RunnerStatus.Failed ? Exception : null);
+                            #if TRACE
+                            Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
+                            #endif
                             if(task_item!.TaskSourceToComplete.TrySetResult(result)) { 
                                 Position=task_position;
-                                #if TRACE
-                                Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
-                                #endif
                                 Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
                                     result.Status, result.Position, Id, task_item.TraceIdentifier);
                             }

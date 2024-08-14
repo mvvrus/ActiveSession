@@ -26,14 +26,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(W_RUNNERBASEUNEXPECTEDSTATUS, LogLevel.Warning, "Unexpected runner status detected while rolling back a start of the runner background execution, RunnerId={RunnerId}, expected: {OldStatus}, detected: {RolledBackStatus}.")]
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
+        [LoggerMessage(W_RUNNERTASKRESULTALREADYSET, LogLevel.Warning, "Ignoring an attempt to set GetRequiredAsync outcome that has been defined already, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogWarningTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_ENUMERABLERUNNERBASEPARALLELGET, LogLevel.Warning, "Invalid attempt of getting data in parallel, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningEnumerableRunnerBaseParallelAttempt(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_ENUMERABLERUNNERBASEBADPARAM, LogLevel.Warning, "Invalid parameter value, MethodName={MethodName}, ParamName={ParamName}, Value={ParamValue}, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogWarningBadParam(this ILogger Logger, String MethodName, String ParamName, Int32 ParamValue, RunnerId RunnerId, String TraceIdentifier);
+        public static partial void LogWarningEnumerableRunnerBaseBadParam(this ILogger Logger, String MethodName, String ParamName, Int32 ParamValue, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_SESSIONPROCESSRUNNERBADPARAM, LogLevel.Warning, "SessionProcessRunner: bad parameter, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningSessionProcessBadParameters(this ILogger Logger, Exception? AnException, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(W_SESSIONPROCESSRUNNERTASKRESULTALREADYSET, LogLevel.Warning, "SessionProcessRunner: pending task result is already set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogWarningTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
         [LoggerMessage(I_RUNNERBASESTARTING, LogLevel.Information, "The runner to be started, RunnerId={RunnerId}.")]
         public static partial void LogInfoRunnerStarting(this ILogger Logger, RunnerId RunnerId);
@@ -46,6 +46,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(I_RUNNERBASEBKGFINISHED, LogLevel.Information, "The runner background processing ended, RunnerId={RunnerId}.")]
         public static partial void LogInfoFinishBackground(this ILogger Logger, RunnerId RunnerId);
 
+        [LoggerMessage(D_GETREQUIREDASYNCCANCELED, LogLevel.Debug, "SessionProcessRunner: cancel the GetRequiredAsync call, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogDebugGetRequiredAsyncCanceled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(D_GETREQUIREDASYNCFAILED, LogLevel.Debug, "SessionProcessRunner: the GetRequiredAsync call failed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogDebugGetRequiredAsyncFailed(this ILogger Logger, Exception Exception, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(D_ENUMERABLERUNNERBASERESULT, LogLevel.Debug, "Result to return: (Count:{ResultCount}, Status:{Status}, Position:{Position}) RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugEnumerableRunnerResult(this ILogger Logger, Exception? AnException, Int32 ResultCount, RunnerStatus Status, Int32 Position, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(D_ENUMADAPTERRUNNERPARAMS, LogLevel.Debug, 
@@ -389,11 +393,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceSessionProcessBkgEndedCompleteAPendingTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSBKGENDEXIT, LogLevel.Trace, "SessionProcessRunner background task continuation: the lock released, exiting, RunnerId={RunnerId}")]
         public static partial void LogTraceSessionProcessBkgEndedExit(this ILogger Logger, RunnerId RunnerId);
-        [LoggerMessage(T_SESSIONPROCESSPENDINGSETCANCELED, LogLevel.Trace, "SessionProcessRunner pending task processing: cancel the task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETCANCELED, LogLevel.Trace, "SessionProcessRunner pending task processing: cancellation token callback fired, try to cancel, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessPendingTaskSetCanceled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSPENDINGSETEXCEPTION, LogLevel.Trace, "SessionProcessRunner pending task processing: fail the task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETEXCEPTION, LogLevel.Trace, "SessionProcessRunner pending task processing: an exception occured, try to fail the task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessPendingTaskSetException(this ILogger Logger, Exception? AnException, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSPENDINGSETRESULT, LogLevel.Trace, "SessionProcessRunner pending task processing: set the task result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        [LoggerMessage(T_SESSIONPROCESSPENDINGSETRESULT, LogLevel.Trace, "SessionProcessRunner pending task processing: try to set the task result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessPendingTaskSetResult(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSPENDINGALREADYCANCELED, LogLevel.Trace, "SessionProcessRunner pending task processing: the task has been already canceled, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessPendingTaskAlreadyCanceled(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
