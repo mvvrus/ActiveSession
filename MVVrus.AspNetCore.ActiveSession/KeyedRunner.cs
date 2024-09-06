@@ -12,7 +12,7 @@
     /// </param>
     public record struct KeyedRunner<TResult>
     (
-        IRunner<TResult> Runner,
-        Int32 RunnerNumber
+            IRunner<TResult> Runner,
+            Int32 RunnerNumber
     );
 }
