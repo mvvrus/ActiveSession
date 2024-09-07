@@ -11,6 +11,6 @@
         /// <param name="Token"></param>
         /// <param name="Timeout"></param>
         /// <returns></returns>
-        Task<ILockedSessionService<TService>>? AcquireAsync(CancellationToken Token, TimeSpan Timeout);
+        Task<ILockedSessionService<TService>?> AcquireAsync(TimeSpan Timeout, CancellationToken Token);
     }
 }

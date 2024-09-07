@@ -1,10 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IDisposable
+    internal class ActiveSession : IActiveSession, IActiveSessionInternal, IDisposable
     {
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;
@@ -17,6 +18,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly IRunnerManager _runnerManager;
         readonly CancellationTokenSource _cts;
         readonly ConcurentSortedDictionary<String, Object> _properties;
+        readonly ConcurrentDictionary<Type, SemaphoreSlim> _serviceLocks = new ConcurrentDictionary<Type, SemaphoreSlim>();
+
 
         //Properties used in tests
         internal IRunnerManager RunnerManager { get { return _runnerManager; } }
@@ -176,6 +179,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _cts.Cancel();
             _cts.Dispose();
             _properties.Dispose();
+            foreach ( SemaphoreSlim semaphore in _serviceLocks.Values) semaphore.Dispose();
         }
 
         private void CheckDisposed()
@@ -198,6 +202,33 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public Task? TrackRunnerCleanup(Int32 RunnerNumber)
         {
             return _runnerManager.GetRunnerCleanupTrackingTask(this, RunnerNumber);
+        }
+
+        //TODO Implement tests
+        public async Task<Boolean> WaitAsync(Type ServiceType, TimeSpan Timeout, CancellationToken Token)
+        {
+            CheckDisposed();
+            SemaphoreSlim semaphore = _serviceLocks.GetOrAdd(ServiceType, (_) => new SemaphoreSlim(1,1));
+            #if TRACE
+            _logger?.LogTraceActiveSessionRequestServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId);
+            #endif
+            Boolean wait_result = await semaphore.WaitAsync(Timeout, Token);
+            #if TRACE
+            _logger?.LogTraceActiveSessionAcquireServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId, wait_result);
+            #endif
+            return wait_result;
+        }
+
+        public void Release(Type ServiceType)
+        {
+            if(_disposed!=0) return;
+            SemaphoreSlim? semaphore;
+            if(_serviceLocks.TryGetValue(ServiceType, out semaphore)) {
+                #if TRACE
+                _logger?.LogTraceActiveSessionReleaseServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId);
+                #endif
+                semaphore.Release();
+            }
         }
 
         internal Boolean Disposed { get { return _disposed!=0; }}

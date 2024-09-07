@@ -53,9 +53,9 @@ namespace ActiveSession.Tests
             Assert.False(r1.IsFromSession);
         }
 
-        //Test group: ActiveSessionServiceProviderRef
+        //Test group: SessionServiceProviderRef
         [Fact]
-        public void ActiveSessionServiceProviderRef()
+        public void SessionServiceProviderRef()
         {
             //Arrange
             Boolean avail = true;
@@ -77,6 +77,7 @@ namespace ActiveSession.Tests
             //Act
             ActiveSessionRef sp_ref = new ActiveSessionRef(stub_accessor.Object);
             //Assess
+            //TODO Add checks of ActiveSesssion and ActiveSessionInternal propertises
             Assert.True(sp_ref.IsFromSession);
             Assert.True(ReferenceEquals(dummy_session_sp.Object, sp_ref.Services));
 

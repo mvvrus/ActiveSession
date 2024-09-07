@@ -133,6 +133,9 @@
         public const Int32 T_SESSIONGETRUNNERNOTYPEASYNCEXIT = 4233;
         public const Int32 T_SESSIONDISPOSE = 4240;
         public const Int32 T_SESSIONTERMINATE = 4250;
+        public const Int32 T_SESSIONREQUESTSERVICELOCK = 4260;
+        public const Int32 T_SESSIONACQUIRESERVICELOCK = 4261;
+        public const Int32 T_SESSIONRELEASESERVICELOCK = 4262;
         public const Int32 T_FEATURECONS = 4300;
         public const Int32 T_FEATURECONSEXIT = 4301;
         public const Int32 T_FEATURECOMMIT = 4310;

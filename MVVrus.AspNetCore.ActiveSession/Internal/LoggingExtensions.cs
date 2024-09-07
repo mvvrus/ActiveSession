@@ -387,11 +387,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_SESSIONGETRUNNERNOTYPEASYNCEXIT, Trace, "Exit ActiveSession.GetNonTypedRunnerAsync, ActiveSessionId={SessionId}, RunnerNumber={RunnerNumber}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionGetNonTypedRunnerAsyncExit(this ILogger Logger, String SessionId, Int32 RunnerNumber, String TraceIdentifier);
 
-        [LoggerMessage(T_SESSIONTERMINATE, Trace, "ActiveSession.Terminate called, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogTraceActiveSessionTerminateCalled(this ILogger Logger, String SessionId, String TraceIdentifier);
-
         [LoggerMessage(T_SESSIONDISPOSE, Trace, "Disposing ActiveSession, ActiveSessionId={SessionId}.")]
         public static partial void LogTraceActiveSessionDispose(this ILogger Logger, String SessionId);
+
+        [LoggerMessage(T_SESSIONTERMINATE, Trace, "ActiveSession.Terminate called, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionTerminateCalled(this ILogger Logger, String SessionId, String TraceIdentifier);
+        
+        [LoggerMessage(T_SESSIONREQUESTSERVICELOCK, Trace, "ActiveSession: Acquiring service lock, ServiceName={ServiceName}, ActiveSessionId={SessionId}.")]
+        public static partial void LogTraceActiveSessionRequestServiceLock(this ILogger Logger, String ServiceName, String SessionId);
+
+        [LoggerMessage(T_SESSIONACQUIRESERVICELOCK, Trace, "ActiveSession: End of acquiring service lock, ServiceName={ServiceName}, ActiveSessionId={SessionId}, Acquired:{Acquired}.")]
+        public static partial void LogTraceActiveSessionAcquireServiceLock(this ILogger Logger, String ServiceName, String SessionId, Boolean Acquired);
+
+        [LoggerMessage(T_SESSIONRELEASESERVICELOCK, Trace, "ActiveSession: Releasing service lock, ServiceName={ServiceName}, ActiveSessionId={SessionId}.")]
+        public static partial void LogTraceActiveSessionReleaseServiceLock(this ILogger Logger, String ServiceName, String SessionId);
 
         [LoggerMessage(T_FEATURECONS, Trace, "Enter ActiveSessionFeature constructor, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionFeatureConstructor(this ILogger Logger, String TraceIdentifier);
