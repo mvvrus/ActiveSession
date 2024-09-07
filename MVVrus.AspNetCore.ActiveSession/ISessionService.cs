@@ -10,7 +10,7 @@
     /// the process of receiving a service implementation falls back to the DI container associated with the request scope.
     /// The real source of the service implementation may be determined via <see cref="IsFromSession"/> property.
     /// </remarks>
-    public interface IActiveSessionService<TService>
+    public interface ISessionService<TService>
     {
         /// <summary> 
         /// A reference to an instance implementing the service.

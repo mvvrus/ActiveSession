@@ -341,8 +341,8 @@ namespace MVVrus.AspNetCore.ActiveSession
             if (Configurator!=null)
                 Services.AddOptions<ActiveSessionOptions>().PostConfigure(Configurator);
             Services.AddHttpContextAccessor();
-            Services.TryAddScoped<ActiveSessionServiceProviderRef>();
-            Services.TryAdd(ServiceDescriptor.Scoped(typeof(IActiveSessionService<>),typeof(ActiveSessionService<>)));
+            Services.TryAddScoped<ActiveSessionRef>();
+            Services.TryAdd(ServiceDescriptor.Scoped(typeof(ISessionService<>),typeof(SessionService<>)));
             return Services;
         }
 

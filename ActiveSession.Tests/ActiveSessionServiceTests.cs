@@ -26,21 +26,21 @@ namespace ActiveSession.Tests
             Mock<IDummyService> dummy_service = new Mock<IDummyService>();
             Mock<IServiceProvider> stub_sp= new Mock<IServiceProvider>();
             stub_sp.Setup(s => s.GetService(typeof(IDummyService))).Returns(dummy_service.Object);
-            Mock<ActiveSessionServiceProviderRef> stub_sp_ref=new Mock<ActiveSessionServiceProviderRef>();
+            Mock<ActiveSessionRef> stub_sp_ref=new Mock<ActiveSessionRef>();
             stub_sp_ref.SetupGet(s=>s.IsFromSession).Returns(()=>from_session);
             stub_sp_ref.SetupGet(s => s.Services).Returns(stub_sp.Object);
-            IActiveSessionService<IDummyService> r1;
-            IActiveSessionService<ILoggerFactory> r2;
+            ISessionService<IDummyService> r1;
+            ISessionService<ILoggerFactory> r2;
             //Test case: existing service from session
             //Act
-            r1=new ActiveSessionService<IDummyService>(stub_sp_ref.Object);
+            r1=new SessionService<IDummyService>(stub_sp_ref.Object);
             //Assess
             Assert.True(ReferenceEquals(dummy_service.Object,r1.Service));
             Assert.True(r1.IsFromSession);
 
             //Test case: non-existing service
             //Act
-            r2=new ActiveSessionService<ILoggerFactory>(stub_sp_ref.Object);
+            r2=new SessionService<ILoggerFactory>(stub_sp_ref.Object);
             //Assess
             Assert.Null(r2.Service);
 
@@ -48,7 +48,7 @@ namespace ActiveSession.Tests
             //Arrange more
             from_session=false;
             //Act
-            r1=new ActiveSessionService<IDummyService>(stub_sp_ref.Object);
+            r1=new SessionService<IDummyService>(stub_sp_ref.Object);
             //Assess
             Assert.False(r1.IsFromSession);
         }
@@ -75,7 +75,7 @@ namespace ActiveSession.Tests
             stub_accessor.SetupGet(s=>s.HttpContext).Returns(stub_context.Object);
             //Test case: ActiveSession is available
             //Act
-            ActiveSessionServiceProviderRef sp_ref = new ActiveSessionServiceProviderRef(stub_accessor.Object);
+            ActiveSessionRef sp_ref = new ActiveSessionRef(stub_accessor.Object);
             //Assess
             Assert.True(sp_ref.IsFromSession);
             Assert.True(ReferenceEquals(dummy_session_sp.Object, sp_ref.Services));
@@ -84,7 +84,7 @@ namespace ActiveSession.Tests
             //Arrange more
             avail=false;
             //Act
-            sp_ref = new ActiveSessionServiceProviderRef(stub_accessor.Object);
+            sp_ref = new ActiveSessionRef(stub_accessor.Object);
             //Assess
             Assert.False(sp_ref.IsFromSession);
             Assert.True(ReferenceEquals(dummy_req_sp.Object, sp_ref.Services));

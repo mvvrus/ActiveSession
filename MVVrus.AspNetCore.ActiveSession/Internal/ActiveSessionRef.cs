@@ -1,11 +1,11 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSessionServiceProviderRef
+    internal class ActiveSessionRef
     {
         public virtual IServiceProvider Services { get; init;  }
         public virtual Boolean IsFromSession { get; init; }
-        internal ActiveSessionServiceProviderRef() { Services=null!; } //For tests only
-        public ActiveSessionServiceProviderRef(IHttpContextAccessor Accessor)
+        internal ActiveSessionRef() { Services=null!; } //For tests only
+        public ActiveSessionRef(IHttpContextAccessor Accessor)
         {
             HttpContext context = Accessor.HttpContext??throw new InvalidOperationException("HttpContext is unaccessible");
             IActiveSession? active_session = context.GetActiveSession();
