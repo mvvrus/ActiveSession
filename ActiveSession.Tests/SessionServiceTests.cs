@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ActiveSession.Tests
 {
-    public class ActiveSessionServiceTests
+    public class SessionServiceTests
     {
         public interface IDummyService 
         {
