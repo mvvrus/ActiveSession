@@ -17,7 +17,7 @@
         /// </summary>
         TService? Service { get; }
         /// <summary>
-        /// A flag showing that the service have been really obtained from the active session scope DI container.
+        /// A flag showing that the service has been really obtained from the active session scope DI container.
         /// </summary>
         Boolean IsFromSession { get; }
     }

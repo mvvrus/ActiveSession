@@ -124,7 +124,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// completing after the runner has been completed and its object has been disposed (if disposal is required).
         /// </summary>
         /// <param name="RunnerNumber">An <see cref="Int32"/>A key specifying the runner for which the task is obtained.</param>
-        /// <returns>The task tracking the runner cleanup.</returns>
+        /// <returns>The task tracking cleanup of the runner specified by  <paramref name="RunnerNumber"/> or null if no such runner exists.</returns>
         public Task? TrackRunnerCleanup(Int32 RunnerNumber);
 
     }
