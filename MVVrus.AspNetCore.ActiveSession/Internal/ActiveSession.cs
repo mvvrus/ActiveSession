@@ -179,7 +179,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _cts.Cancel();
             _cts.Dispose();
             _properties.Dispose();
-            foreach ( SemaphoreSlim semaphore in _serviceLocks.Values) semaphore.Dispose();
+            foreach(SemaphoreSlim semaphore in _serviceLocks.Values)
+                lock(semaphore) {
+                    semaphore.Release(); 
+                    semaphore.Dispose();
+                }
         }
 
         private void CheckDisposed()
@@ -204,26 +208,30 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return _runnerManager.GetRunnerCleanupTrackingTask(this, RunnerNumber);
         }
 
-        //TODO Implement tests
-        public async Task<Boolean> WaitAsync(Type ServiceType, TimeSpan Timeout, CancellationToken Token)
+        public async Task<Boolean> WaitForServiceAsync(Type ServiceType, TimeSpan Timeout, CancellationToken Token)
         {
             CheckDisposed();
-            SemaphoreSlim semaphore = _serviceLocks.GetOrAdd(ServiceType, (_) => new SemaphoreSlim(1,1));
+            //Set a semaphore MaxCount below to 2, not 1, to avoid SemaphoreFullException in Dispose()
+            SemaphoreSlim semaphore = _serviceLocks.GetOrAdd(ServiceType, (_) => new SemaphoreSlim(1,2));
             #if TRACE
             _logger?.LogTraceActiveSessionRequestServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId);
             #endif
             Boolean wait_result = await semaphore.WaitAsync(Timeout, Token);
+            if(wait_result)
+                lock(semaphore) if(semaphore.Wait(0)) semaphore.Release();  //This is a check if the semaphore has been disposed
             #if TRACE
             _logger?.LogTraceActiveSessionAcquireServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId, wait_result);
             #endif
             return wait_result;
         }
 
-        public void Release(Type ServiceType)
+        public void ReleaseService(Type ServiceType)
         {
             if(_disposed!=0) return;
             SemaphoreSlim? semaphore;
             if(_serviceLocks.TryGetValue(ServiceType, out semaphore)) {
+                if(semaphore.CurrentCount>0 && Volatile.Read(ref _disposed)==0)
+                    throw new InvalidOperationException();
                 #if TRACE
                 _logger?.LogTraceActiveSessionReleaseServiceLock(ServiceType.FullName??UNKNOWN_TYPE, _logSessionId);
                 #endif

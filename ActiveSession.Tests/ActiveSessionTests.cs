@@ -382,7 +382,74 @@ namespace ActiveSession.Tests
             }
         }
 
-        class ConstructorTestSetup: IDisposable
+        //Test group: Wait and Release service locks (single calls for each service)
+        [Fact]
+        public void WaitForAndReleaseService()
+        {
+            const int TIMEOUT = 5000;
+            const int SMALL_TIMEOUT = 200;
+            Task<Boolean> task;
+            AggregateException aggr_ex;
+
+            using(ConstructorTestSetup test_setup = new ConstructorTestSetup() ) {
+                Active_Session active_session = new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.MockStore.Object,
+                    test_setup.StubSession.Object.Id,
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                //Test case: lock a new service
+                task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, default);
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.True(task.Result);
+                //Test case: lock another service (ITestBis)
+                task=active_session.WaitForServiceAsync(typeof(ITestBis), Timeout.InfiniteTimeSpan, default);
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.True(task.Result);
+                //Test case: release that anover service (ITestBis)
+                active_session.ReleaseService(typeof(ITestBis));
+                //Test case: double release that anover service attempt (ITestBis)
+                Assert.Throws<InvalidOperationException>(()=>active_session.ReleaseService(typeof(ITestBis)));
+                //Test case: release and lock once more the service locked the 1st time
+                active_session.ReleaseService(typeof(ITest));
+                task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, default);
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.True(task.Result);
+                //Test case: attempt to lock already locked service (with zero timeout)
+                task=active_session.WaitForServiceAsync(typeof(ITest), TimeSpan.Zero, default);
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.False(task.Result);
+                //Test case: second lock timed out
+                task=active_session.WaitForServiceAsync(typeof(ITest), TimeSpan.FromMilliseconds(SMALL_TIMEOUT), default);
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.False(task.Result);
+                //Test case: second lock cancelled
+                using(CancellationTokenSource cts=new CancellationTokenSource(SMALL_TIMEOUT)) {
+                    task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, cts.Token);
+                    aggr_ex = Assert.Throws<AggregateException>(() => task.Wait(TIMEOUT));
+                    Assert.Single(aggr_ex.InnerExceptions);
+                    Assert.IsType<TaskCanceledException>(aggr_ex.InnerExceptions[0]);
+                }
+                //Test case: successful second call after release
+                task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, default);
+                Assert.False(task.Wait(SMALL_TIMEOUT));
+                active_session.ReleaseService(typeof(ITest));
+                Assert.True(task.Wait(TIMEOUT));
+                Assert.True(task.Result);
+                //Test case: disposng ActiveSession with outstanding lock 
+                task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, default);
+                Assert.False(task.Wait(SMALL_TIMEOUT));
+                active_session.Dispose();
+                aggr_ex = Assert.Throws<AggregateException>(() => task.Wait(TIMEOUT));
+                Assert.Single(aggr_ex.InnerExceptions);
+                Assert.IsType<ObjectDisposedException>(aggr_ex.InnerExceptions[0]);
+            }
+        }
+
+        interface ITest { };
+        interface ITestBis { };
+
+
+        class ConstructorTestSetup : IDisposable
         {
             public readonly Mock<IServiceProvider> StubServiceProvider;
             public readonly Mock<IServiceScope> MockServiceScope;

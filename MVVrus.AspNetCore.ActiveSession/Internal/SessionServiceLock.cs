@@ -3,7 +3,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class SessionServiceLock<TService> : ISessionServiceLock<TService>
     {
-        // TODO Implement tests
         ActiveSessionRef _activeSessionRef;
 
         public SessionServiceLock(ActiveSessionRef ActiveSessionRef) 
@@ -16,7 +15,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if(_activeSessionRef.IsFromSession) {
                 IActiveSessionInternal locker = _activeSessionRef.ActiveSessionInternal 
                     ?? throw new NotImplementedException("Service locking is not implemented.");
-                if(await locker!.WaitAsync(typeof(TService), Timeout, Token))
+                if(await locker!.WaitForServiceAsync(typeof(TService), Timeout, Token))
                     return new LockedSessionService<TService>(locker, _activeSessionRef.Services.GetService<TService>());
                 else return null;
             }

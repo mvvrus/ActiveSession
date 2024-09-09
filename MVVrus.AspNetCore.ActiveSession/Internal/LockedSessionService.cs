@@ -2,8 +2,8 @@
 {
     internal class LockedSessionService<TService> : ILockedSessionService<TService>
     {
-        //TODO Tests
-        IActiveSessionInternal? _activeSession;
+        readonly IActiveSessionInternal? _activeSession;
+        Int32 _disposed = 0;
 
         internal LockedSessionService(IActiveSessionInternal? ActiveSession, TService? Service)
         {
@@ -17,7 +17,9 @@
 
         public void Dispose()
         {
-            _activeSession?.Release(typeof(TService));
+            if(Interlocked.Exchange(ref _disposed,1)==0) {
+                _activeSession?.ReleaseService(typeof(TService));
+            }
         }
     }
 }
