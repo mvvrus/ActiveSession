@@ -1,14 +1,23 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// This generic interface is intended to obtain a service implementation 
-    /// from a DI container in the service scope bound to the current active session (if any).
+    /// This generic interface facilitates obtaining a service instance 
+    /// from the current active session's service scope DI container(if any).
     /// </summary>
-    /// <typeparam name="TService">Type of the service to be obtained </typeparam>
+    /// <typeparam name="TService">Type of the service to be obtained. </typeparam>
     /// <remarks>
-    /// If no active session is currently available, 
-    /// the process of receiving a service implementation falls back to the DI container associated with the request scope.
-    /// The real source of the service implementation may be determined via <see cref="IsFromSession"/> property.
+    /// <para>
+    /// This interface is registered as a scoped service in the application's DI container 
+    /// as a part of registering the ActivesSession infrastracture services.
+    /// It is designed to be obtained from a request's scope.
+    /// </para>
+    /// <para>
+    /// If no active session for the request is available, the service resolution process performed by this ISessionService 
+    /// service falls back to the request's scope DI container and obtains a service from it.  
+    /// This is done for compatibility reason: a service obtained this way may be used by a request handler 
+    /// irrespective of existence of an active session for the request.
+    /// See also <see cref="IsFromSession"/> property description.
+    /// </para>
     /// </remarks>
     public interface ISessionService<TService>
     {
@@ -17,7 +26,8 @@
         /// </summary>
         TService? Service { get; }
         /// <summary>
-        /// A flag showing that the service has been really obtained from the active session scope DI container.
+        /// Contains <see langword="true" /> if the service has been obtained from active session's DI container,
+        /// <see langword="false"/> otherwise.
         /// </summary>
         Boolean IsFromSession { get; }
     }

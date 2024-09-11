@@ -10,12 +10,12 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// A method used to create a new runner
         /// </summary>
-        /// <typeparam name="TRequest">Type of the initialization data used to create a new runner</typeparam>
-        /// <typeparam name="TResult">Type of the result, returned by the runner</typeparam>
-        /// <param name="Request">Initialization data (of type <typeparamref name="TRequest"/>)</param>
-        /// <param name="Context"><see cref="HttpContext">Context</see> of the request from which the method is called</param>
+        /// <typeparam name="TRequest">Type of the data used to create a new runner.</typeparam>
+        /// <typeparam name="TResult">Type of the result, returned by the runner.</typeparam>
+        /// <param name="Request">Data to be passed as a parameter to the runner's constructor to create the runner. </param>
+        /// <param name="Context">Context of the HTTP request from a handler of which the method is called.</param>
         /// <remarks><paramref name="Context"/> parameter is used here just for tracing purposes</remarks>
-        /// <returns>A structure that contains the reference to the new runner and its number within the Active Session.</returns>
+        /// <returns>A structure that contains the reference to the new runner and its number within the active session.</returns>
         KeyedRunner<TResult> CreateRunner<TRequest, TResult>(TRequest Request, HttpContext Context);
 
         /// <summary>
