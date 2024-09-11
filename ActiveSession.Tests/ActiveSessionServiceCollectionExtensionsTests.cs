@@ -44,6 +44,7 @@ namespace ActiveSession.Tests
             Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionRef)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionService<>)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionServiceLock<>)));
             Assert.Equal(0, CountServiceImplementations(services, typeof(IPostConfigureOptions<ActiveSessionOptions>)));
             //Check that value from the IConfiguration is accepted
             sp=services.BuildServiceProvider();
@@ -72,6 +73,7 @@ namespace ActiveSession.Tests
             Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionRef)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionService<>)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionServiceLock<>)));
 
             //Test case: repeated AddActiveSessionInfrastructure with configuration delegate (already arranged)
             //Act
@@ -83,6 +85,7 @@ namespace ActiveSession.Tests
             Assert.Equal(1, CountServiceImplementations(services, typeof(IHttpContextAccessor)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ActiveSessionRef)));
             Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionService<>)));
+            Assert.Equal(1, CountServiceImplementations(services, typeof(ISessionServiceLock<>)));
             //Check that value from configuration delegates are accepted and a value from the IConfiguration is overriden
             sp=services.BuildServiceProvider();
             Assert.Equal(PREFIX1, sp.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.Prefix);

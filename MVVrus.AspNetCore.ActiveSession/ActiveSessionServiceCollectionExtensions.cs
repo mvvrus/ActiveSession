@@ -337,12 +337,13 @@ namespace MVVrus.AspNetCore.ActiveSession
                 Services.TryAddSingleton<IRunnerManagerFactory, RunnerManagerFactory>();
                 Services.TryAddSingleton<IActiveSessionIdSupplier, ActiveSessionIdSupplier>();
                 Services.AddOptions<ActiveSessionOptions>().Configure<IConfiguration>(ReadActiveSessionsConfig);
+                Services.AddHttpContextAccessor();
+                Services.TryAddScoped<ActiveSessionRef>();
+                Services.TryAdd(ServiceDescriptor.Scoped(typeof(ISessionService<>), typeof(SessionService<>)));
+                Services.TryAdd(ServiceDescriptor.Scoped(typeof(ISessionServiceLock<>), typeof(SessionServiceLock<>)));
             }
             if (Configurator!=null)
                 Services.AddOptions<ActiveSessionOptions>().PostConfigure(Configurator);
-            Services.AddHttpContextAccessor();
-            Services.TryAddScoped<ActiveSessionRef>();
-            Services.TryAdd(ServiceDescriptor.Scoped(typeof(ISessionService<>),typeof(SessionService<>)));
             return Services;
         }
 
