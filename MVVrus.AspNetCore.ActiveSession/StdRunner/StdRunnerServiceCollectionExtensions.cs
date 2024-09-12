@@ -16,8 +16,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <common>
         /// The factory created will be used for creation of a runner via following extension methods: 
         /// </common>
-        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IEnumerable{TItem}, HttpContext)"/>
-        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext)"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IEnumerable{TItem}, HttpContext, IDisposable)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, EnumAdapterParams{TItem}, HttpContext, IDisposable)"/>
         /// </remarks>
         public static IServiceCollection AddEnumAdapter<TItem>(this IServiceCollection Services)
         {
@@ -40,8 +40,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// </summary>
         /// <remarks>
         /// <inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection)" path="/remarks/common/node()"/>
-        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IAsyncEnumerable{TItem}, HttpContext)"/>
-        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, AsyncEnumAdapterParams{TItem}, HttpContext)"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, IAsyncEnumerable{TItem}, HttpContext, IDisposable?)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateSequenceRunner{TItem}(IActiveSession, AsyncEnumAdapterParams{TItem}, HttpContext, IDisposable?)"/>
         /// </remarks>
         /// <inheritdoc cref="AddEnumAdapter{TItem}(IServiceCollection)" path="/*[not(self::summary)]"/>
         public static IServiceCollection AddAsyncEnumAdapter<TItem>(this IServiceCollection Services)
@@ -63,9 +63,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         /// <typeparam name="TResult">A type of the value part of the tuples making up the returned time series</typeparam>
         /// <remarks>
         /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/remarks/common/node()"/>
-        /// <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, HttpContext)"/>
-        /// , <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, int, HttpContext)"/>
-        /// or <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext)"/>
+        /// <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, HttpContext, IDisposable?)"/>
+        /// , <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, Func{TResult}, TimeSpan, int, HttpContext, IDisposable?)"/>
+        /// or <see cref="StdRunnerActiveSessionExtensions.CreateTimeSeriesRunner{TResult}(IActiveSession, TimeSeriesParams{TResult}, HttpContext, IDisposable?)"/>
         /// </remarks>
         /// <inheritdoc cref="AddEnumAdapter{TResult}(IServiceCollection)" path="/*[not(self::summary)]"/>
         public static IServiceCollection AddTimeSeriesRunner<TResult>(this IServiceCollection Services)
