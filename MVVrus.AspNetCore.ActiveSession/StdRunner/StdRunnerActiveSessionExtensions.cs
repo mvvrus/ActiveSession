@@ -6,7 +6,6 @@
     /// </summary>
     public static class StdRunnerActiveSessionExtensions
     {
-        //TODO Add tests for standard runner creation with non-null exclusive serice accessor parameter
         /// <summary>
         /// Creates an <see cref="EnumAdapterRunner{TItem}"/> instance in the specified Active Session
         /// </summary>
@@ -213,8 +212,8 @@
             Func<TResult> Gauge, TimeSpan Interval, Int32 Count,
             HttpContext Context, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return Session.CreateRunner<ValueTuple<Func<TResult>, TimeSpan, Int32>, IEnumerable<(DateTime, TResult)>>
-                ((Gauge, Interval, Count), Context);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<ValueTuple<Func<TResult>, TimeSpan, Int32>, IEnumerable<(DateTime, TResult)>>
+                (Session, (Gauge, Interval, Count), Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>
@@ -336,7 +335,7 @@
             Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator,
             HttpContext Context, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return ActiveSessionExtensions.InternalCreateRunnerExcl<Func<Action<TResult, Int32?>, CancellationToken, Task>, TResult>(Session,ProcessTaskCreator, Context, ExclusiveServiceAccessor);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<Func<Action<TResult, Int32?>, CancellationToken, Task>, TResult>(Session, ProcessTaskCreator, Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>
@@ -373,8 +372,8 @@
             Func<Action<TResult, Int32?>, CancellationToken, TResult> ProcessTaskBody,
             HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership=true, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, TResult>, CancellationTokenSource,Boolean), 
-                TResult>((ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<(Func<Action<TResult, Int32?>, CancellationToken, TResult>, CancellationTokenSource,Boolean), 
+                TResult>(Session, (ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>
@@ -409,8 +408,8 @@
             Action<Action<TResult, Int32?>, CancellationToken> ProcessTaskBody,
             HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return Session.CreateRunner<(Action<Action<TResult, Int32?>, CancellationToken>, CancellationTokenSource, Boolean),
-                TResult>((ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<(Action<Action<TResult, Int32?>, CancellationToken>, CancellationTokenSource, Boolean),
+                TResult>(Session, (ProcessTaskBody, CompletionTokenSource, PassCtsOwnership), Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>
@@ -447,8 +446,8 @@
             Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>> ProcessTaskCreator,
             HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>,CancellationTokenSource,Boolean), 
-                TResult>((ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<(Func<Action<TResult, Int32?>, CancellationToken, Task<TResult>>,CancellationTokenSource,Boolean), 
+                TResult>(Session, (ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>
@@ -485,8 +484,8 @@
             Func<Action<TResult, Int32?>, CancellationToken, Task> ProcessTaskCreator,
             HttpContext Context, CancellationTokenSource CompletionTokenSource, Boolean PassCtsOwnership = true, IDisposable? ExclusiveServiceAccessor = null)
         {
-            return Session.CreateRunner<(Func<Action<TResult, Int32?>, CancellationToken, Task>,CancellationTokenSource,Boolean), 
-                TResult>((ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context);
+            return ActiveSessionExtensions.InternalCreateRunnerExcl<(Func<Action<TResult, Int32?>, CancellationToken, Task>,CancellationTokenSource,Boolean), 
+                TResult>(Session, (ProcessTaskCreator,CompletionTokenSource,PassCtsOwnership), Context, ExclusiveServiceAccessor);
         }
 
         /// <summary>

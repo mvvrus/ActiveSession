@@ -1,7 +1,7 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession
 {
     /// <summary>
-    /// TODO
+    /// Contains commonly used extinsion methods for the <see cref="IActiveSession"/> interface.
     /// </summary>
     public static class ActiveSessionExtensions
     {
@@ -27,7 +27,6 @@
             HttpContext Context,
             IDisposable ExclusiveServiceAccessor)
         {
-            //TODO Add tests
             return InternalCreateRunnerExcl<TRequest,TResult>(Session, Request, Context, ExclusiveServiceAccessor);
         }
 
@@ -39,7 +38,8 @@
         {
             KeyedRunner<TResult> result = Session.CreateRunner<TRequest, TResult>(Request, Context);
             if(ExclusiveServiceAccessor!=null) {
-                (Session.TrackRunnerCleanup(result.RunnerNumber)??Task.CompletedTask).ContinueWith((_) => ExclusiveServiceAccessor.Dispose());
+                (Session.TrackRunnerCleanup(result.RunnerNumber)??Task.CompletedTask)
+                    .ContinueWith((_) => ExclusiveServiceAccessor.Dispose(),TaskContinuationOptions.ExecuteSynchronously);
             }
             return result;
         }
