@@ -13,8 +13,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Int32 Generation => throw new InvalidOperationException(MESSAGE);
 
-        public Boolean IsIdle =>  true;
-
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -41,11 +39,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public Task Terminate(HttpContext Context)
-        {
-            throw new InvalidOperationException(MESSAGE);
-        }
-
-        public ValueTask<Boolean> WaitUntilIdle(Boolean AbortAll, TimeSpan Timeout, CancellationToken Token=default)
         {
             throw new InvalidOperationException(MESSAGE);
         }
