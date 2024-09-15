@@ -49,7 +49,7 @@ namespace ActiveSession.Tests
                 Assert.False(_trackCleanup.IsCompleted);
                 _pauser.Release();
                 Assert.True(_trackCleanup.Wait(5000));
-                Task.Yield().GetAwaiter().GetResult();
+                Task.Delay(100).GetAwaiter().GetResult();
                 Assert.False(_locked);
             }
 
