@@ -747,11 +747,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceSessionProcessCallback(Id);
             #endif
-            if(CompletionToken.IsCancellationRequested) {
+            try {
+                CompletionToken.ThrowIfCancellationRequested();
+            }
+            catch(OperationCanceledException) {
                 #if TRACE
                 Logger?.LogTraceSessionProcessCallbackCanceled(Id);
                 #endif
-                CompletionToken.ThrowIfCancellationRequested();
+                throw;
             }
             lock(_lock) {
                 #if TRACE
