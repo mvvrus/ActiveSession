@@ -363,4 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # docfx-generated documentation
-docfx_project/
+#docfx_project/
