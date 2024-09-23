@@ -864,3 +864,6 @@ To create an instance of the SessionProcessRunner class, one can use one of the 
 First, these can be either delegates that directly create a background process task (in particular, delegates of methods marked as async) or delegates of ordinary (synchronous) methods used as a body for creating a background process task to be executed by one of the threads from the thread pool - that is, acting as a parameter of the constructor of the task of the corresponding type.
 
 Second, tasks created using delegates can either return a result of type TResult (a task created using them will have type `Task<TResult>`) or not return a result at all (the task created will have type `Task`). To achieve this, delegates that directly create the background process task return a task of the desired type, and task body delegates can either return a TResult or not return any result at all.
+
+## References
+1. [The AciveSession library documentation site](https://mvvrus.github.io/) \(under construction, currently library API documentation only\).
