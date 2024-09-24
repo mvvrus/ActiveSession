@@ -8,6 +8,11 @@ Typically, but not necessarily, this initiating query is the first one in the se
 
 Unlike the other background execution mechanism in the ASP.NET Core application, Background Services, which is global to the entire application, each active session is associated with a single client, meaning it is different for each client. The binding of the active session to the client is based on the Sessions feature of ASP.NET Core: each active session is associated with a specific session supported by this mechanism. An active session becomes available when processing a request, if the request is made within the framework of the corresponding ASP.NET Core session.
 
+## References
+1. [The repository with the ActiveSession library source.](https://github.com/mvvrus/ActiveSession)
+2. [The AciveSession library documentation site.](https://mvvrus.github.io/) \(under construction, currently library API documentation only\).
+3. [The repository with examples of the ActiveSession library usage.](https://github.com/mvvrus/ActiveSessionExamples) Most оf exmamples in this document (namely those, for which file names are specified) are taken from SampleApplication project in this repository. These file names are shown relative to this project's directory.
+
 ## Components of the library and its extensions
 
 ### Runners
@@ -22,7 +27,7 @@ Each runner is entirely responsible for the execution of its operation:
 - passing information about the state of the operation and the result obtained in the background to handlers of subsequent requests from the same session;
 - completing the operation - naturally, upon its execution, or forcibly, either due to a call from a handler of a request belonging to the operation's session, or upon expiration of the waiting time for the next request.
 
-### Active Session Objects 
+### Active session objects 
 *Active session objects* represent currently existing active sessions. An HTTP request handler receives a reference to the active session object of which it is a part. The active session object implements the IActiveSession interface, which allows the request handler to interact with the ActiveSession library. In particular, the handler can:
 - create new runners in this session;
 - get references to runners running in this session;
@@ -35,7 +40,7 @@ Each runner is entirely responsible for the execution of its operation:
 The *ActiveSession library infrastructure* executes all internal operations required for the library to perform its work; applications do not interact directly with the infrastructure.
 In particular, the ActiveSession library infrastructure performs the following functions:
 - creates or finds an existing active session object to which the processed request belongs and provides a reference to this object to request handlers;
-- stores, tracks an expiration of a timeout and terminates (after the expiration or upon call from the application) active session objects;
+- stores, tracks an expiration of a timeout and terminates (after the expiration or upon call from the application) active sessions, disposing their objects;
 - terminates all runners that were working in the terminated active session and disposes its active session object;
 - using runner factories (see below) registered in the application service container, creates new runners according to calls from active session objects to work in those sessions; 
 - stores runners, finds runners requested by active session objects and returns references to them;
@@ -90,15 +95,17 @@ It is well known that when processing a request, the middleware pipeline receive
 Before using ActiveSession library one should ensure that the active session is available. To do this one need to check that the IsAvailable property of the received IActiveSession interface contains true. The example in the next section demonstrate, among other things, how to obtain a reference to the active session object for a request and verify that the active session is available. 
 
 #### Creating a new runner
-Use the generic CreateRunner&lt;TRequest,TResult>(TResult, HttpContext) method of the IActiveSession interface to create a new runner to run in this active session. This method returns a generic record struct with two fields: Runner, with a reference to the newly created runner, and RunnerNumber, with the number assigned to this runner in the active session. Being generic, this method also has two type parameters: TRequest, which is the type of the first parameter to pass to this method, and TResult, which is the type of the result that will be returned by the new runner. None of the parameters passed to this method depend on the second type parameter, so the type parameters of this method cannot be inferred by a compiler and must be specified explicitly.
+Use the generic CreateRunner&lt;TRequest,TResult>(TResult, HttpContext) method of the IActiveSession interface to create a new runner to run in this active session. This method returns a generic record struct with two fields: Runner, with a reference to the newly created runner, and RunnerNumber, with the number assigned to this runner in the active session. Being generic, this method also has two type parameters: TRequest, which is the type of the first parameter to pass to this method, and TResult, which is the type of the result that will be returned by the new runner. None of the parameters passed to this method depend on the second type parameter, so the type parameters of this method cannot be inferred by a compiler and must be specified explicitly. Additionally, the result type of a standard runner may be rather complex.
 
-Because of this inconvenience, the ActiveSession library defines a number of extension methods for the IActiveSession interface, namely CreateSequenceRunner, CreateTimeSeriesRunner, and CreateSessionProcessRunner, which create the ActiveSession library's standard runners. Although these methods are also generic, they are more convenient to use: they have only one type parameter (the same as the type parameter of the standard runner class to be created), which can be inferred from their parameters. These methods also return a generic record struct described earlier with type parameter set appropriately.
+Because of these inconveniences,the ActiveSession library defines a number of extension methods for the IActiveSession interface, namely CreateSequenceRunner, CreateTimeSeriesRunner, and CreateSessionProcessRunner, which create the ActiveSession library's standard runners. Although these methods are also generic, they are more convenient to use: they have only one type parameter (the same as the type parameter of the standard runner class to be created), which can often be inferred from their parameters, and they make it easy to specify the result type by using this type parameter to specify actual runner result type.
+These methods also return a generic record struct described earlier with type parameter set appropriately.
 
 The following example demonstrates creation of a runner as well as accessing the active session object for the request and checking that the active session is available (the Razor Pages framework is used in the example):
 
 **Pages\SequenceAdapterParams.cshtml.cs**
 ````
-        //Come here after the data are entered to the form on the page (the page template is beyond the scope of the example)
+        //Come here after the data are entered to the form on the page 
+        //(the page template is beyond the scope of the example)
         public ActionResult OnPost() 
         {
             if(ModelState.IsValid) { 
@@ -115,9 +122,11 @@ The following example demonstrates creation of a runner as well as accessing the
                     //Create a new runner
                     (var runner, int runner_number)= session.CreateSequenceRunner(sync_source, HttpContext);
                     
-                    //This part will be explained later in a section dedicated to an external runner identifier usage
+                    //This part will be explained later in a section 
+                    //dedicated to an external runner identifier usage
                     ExtRunnerKey key = (session, runner_number); //Make an external identifier
-                    return RedirectToPage("SequenceShowResults", new { key }); //Pass the external identifier by a part of the redirection URL path
+                    //Pass the external identifier by a part of the redirection URL path
+                    return RedirectToPage("SequenceShowResults", new { key }); 
                 }
                 else //An active session is unavailable 
                     return StatusCode(StatusCodes.Status500InternalServerError);
@@ -162,7 +171,7 @@ An example of using the IActiveSession.Terminate method in an action method of a
 
 The Properties property of the active session interface IActiveSession allows to associate arbitrary objects with the active session. This property is a dictionary with a string as a key and an arbitrary object as a value. Objects can be added with their corresponding keys and retrieved by those keys.
 
-If the objects added to Properties are cleanup aware (i.e. implement the IDisposable and/or IAsyncDisposable interfaces), you should monitor the completion and cleanup of the active session to perform proper cleanup of these associated objects. There are two events in the lifecycle of an active session that you can monitor. First, the IActiveSession interface contains a CompletedToken property of type CancellationToken that will be canceled when the active session is completed and ready to be cleaned up. Second, CleanupCompletionTask contains a task that completes when the active session is finished cleaning up.
+If the objects added to Properties are disposable (i.e. implement the IDisposable and/or IAsyncDisposable interfaces), one should monitor the completion and cleanup of the active session to perform proper cleanup of these associated objects. There are two events in the lifecycle of an active session that you can monitor. First, the IActiveSession interface contains a CompletedToken property of type CancellationToken that will be canceled when the active session is completed and ready to be cleaned up. Second, CleanupCompletionTask contains a task that completes when the active session is finished cleaning up.
 
 The following example shows how one can associate objects with an active session and track the session completion and cleanup. The example associates a RunnerRegistry object (whose functionality is beyond the scope of the example) with an active session, retrieves the associated object and cleans it up after the active session is finished cleaning up:
 
@@ -212,7 +221,7 @@ The following example shows how one can associate objects with an active session
 
 #### Using an external runner identifier to pass runner identification to a front-end part
 
-One does not simply pass the runner number into the front-end part of a web application to make a reference suitable for obtaining the same runner while handling the next request to the back-end. This is because, although the runner number fully identifies a runner within single active session, there is no guarantee that the next request will belong to the same active session. So one should pass to the front-end not only the runner number, but the information that uniquely identifies current active session among all ever existing and would created active sessions. To perform this task the ActiveSession library defines the ExtRunnerKey class. In addition to the runner number, it contains data that uniquely identifies the active session. The instance method IsForSession(IActiveSession) checks whether the active session passed as an argument is the same one for which this instance was created. 
+One does not simply pass the runner number into the front-end part of a web application to make a reference suitable for obtaining the same runner while handling the next request to the back-end. This is because, although the runner number fully identifies a runner within single active session, there is no guarantee that the next request will belong to the same active session. So one should pass to the front-end not only the runner number, but the information that uniquely identifies current active session among all ever existing  or will ever be created active sessions. To perform this task the ActiveSession library defines the ExtRunnerKey class. In addition to the runner number, it contains data that uniquely identifies the active session. The instance method IsForSession(IActiveSession) checks whether the active session passed as an argument is the same one for which this instance was created. 
 
 There are two ways to use the ExtRunnerKey object. The first way is to pass its value back as an object. An object may be passed as a whole being serialized into JSON or XML in an API call parameters. Or it may be passed as a set of form values with appropriate names and bound to a handler parameter of type ExtRunnerKey via the MVC or Minimal API binding process. This method of passing an external runner identifier is well suited for processing API calls from scripts and handling input from forms.
 
@@ -295,7 +304,7 @@ The example contains the following steps:
     }
 ````
 
-#### Passing in URL an external runner identifier serialized into a string
+#### Passing an external runner identifier serialized to a string in the URL 
 
 The example contains the following steps:
 
@@ -361,9 +370,9 @@ The example contains the following steps:
     }
 ````
 
-### ActiveSession and dependency injection
+### ActiveSession and dependency injection.
 
-#### Obtaining Scoped services
+#### Obtaining Scoped services for use by runners.
 
 Dependency injection is often used by ASP.NET Core-based frameworks (MVC, etc.) to pass a reference to a service to be used by a request handler.
 Such services should be used with caution with ActiveSession library: if the service is registered with Scoped lifetime, one should not pass this service to a runner. 
@@ -483,7 +492,7 @@ For sequence runners, this means that the GetAvailable method returns only the r
 ##### Parameters of result-obtaining methods.
 
 Let's look at the signatures of the result-obtaining methods.
-```
+````
 public ValueTask<RunnerResult<TResult>> GetRequiredAsync(
     Int32 Advance = DEFAULT_ADVANCE,
     CancellationToken Token = default,
@@ -497,7 +506,7 @@ public RunnerResult<TResult> GetAvailable(
     Int32 StartPosition = CURRENT_POSITION, 
     String? TraceIdentifier = null
 );
-```
+````
 
 One can see that both methods have a similar set of parameters, none of which is required. 
 
@@ -620,19 +629,19 @@ Example of using GetAvailable and GetProgress methods and IsBackgroundExecutionC
         public ActionResult<SampleSequenceResponse> GetAvailable(GetAvailableRequest Request)
         {
             //...skip irrelevant code and adjust indentation
-			// IEnumerable<SimSeqData> runner; Initialized elsewhere
-			SampleSequenceResponse response = new SampleSequenceResponse();
-			response.backgroundProgress=runner.GetProgress().Progress;
-			response.isBackgroundExecutionCompleted=runner.IsBackgroundExecutionCompleted;
-			RunnerStatus runner_status;
-			(response.result, runner_status, response.position, response.exception) =
-				runner.GetAvailable(Request.Advance??Int32.MaxValue, TraceIdentifier: HttpContext.TraceIdentifier);
-			response.runnerStatus=runner_status.ToString();
-			return response;
+            // IEnumerable<SimSeqData> runner; Initialized elsewhere
+            SampleSequenceResponse response = new SampleSequenceResponse();
+            response.backgroundProgress=runner.GetProgress().Progress;
+            response.isBackgroundExecutionCompleted=runner.IsBackgroundExecutionCompleted;
+            RunnerStatus runner_status;
+            (response.result, runner_status, response.position, response.exception) =
+                runner.GetAvailable(Request.Advance??Int32.MaxValue, TraceIdentifier: HttpContext.TraceIdentifier);
+            response.runnerStatus=runner_status.ToString();
+            return response;
             //...skip irrelevant code and adjust indentation
-		}
+        }
         //...skip irrelevant code and adjust indentation
-	}
+    }
 ````
 
 #### Getting information about the background process of the runner
@@ -651,31 +660,31 @@ Example of interrupting a runner by a request from the front-end part of a web a
 
 **APIControllers\SampleController.cs**
 ````
-	//    public class AbortRequest
+    //    public class AbortRequest
     //{
     //        public ExtRunnerKey RunnerKey { get; set; }
     //}
-	//
-	//    public class AbortResponse
+    //
+    //    public class AbortResponse
     //{
     //    public Int32 status { get; init; } = StatusCodes.Status200OK;
     //    public String? runnerStatus { get; set; }
     //}
 
 
-	public ActionResult<AbortResponse> Abort(AbortRequest Request)
-	{
-		IActiveSession session = HttpContext.GetActiveSession();
-		if(session.IsAvailable && Request.RunnerKey.IsForSession(session)) {
-			IRunner runner = session.GetNonTypedRunner(Request.RunnerKey.RunnerNumber, HttpContext);
-			if(runner!=null) {
-				AbortResponse response = new AbortResponse();
-				response.runnerStatus=runner.Abort(HttpContext.TraceIdentifier).ToString();
-				return response;
-			}
-		}
-		return StatusCode(StatusCodes.Status410Gone);
-	}
+    public ActionResult<AbortResponse> Abort(AbortRequest Request)
+    {
+        IActiveSession session = HttpContext.GetActiveSession();
+        if(session.IsAvailable && Request.RunnerKey.IsForSession(session)) {
+            IRunner runner = session.GetNonTypedRunner(Request.RunnerKey.RunnerNumber, HttpContext);
+            if(runner!=null) {
+                AbortResponse response = new AbortResponse();
+                response.runnerStatus=runner.Abort(HttpContext.TraceIdentifier).ToString();
+                return response;
+            }
+        }
+        return StatusCode(StatusCodes.Status410Gone);
+    }
 ````
 
 
@@ -779,7 +788,7 @@ One can see the former approach in the class, associated with the SessionProcess
                 }
             }
             //One never come here to run this task to completion, as a loop above can be be terminated by a OperationCanceledException
-			//This exception will be intercepted by calling code as an expected one.
+            //This exception will be intercepted by calling code as an expected one.
         }
 
     }
@@ -833,7 +842,7 @@ To simplify the creation of enumeration adapter runners, the ActiveSession libra
 
 To simplify the search for existing enumeration adapter runners, the ActiveSession library defines an extension method `GetSequenceRunner<TItem>` whose type parameter TItem determines the type of records in the sequence (i.e. the result type of the runner found will be `IEnumerable<TItem>`).
 
-###Class of the runner that creates time series (time-series runner):
+#### Class of the runner that creates time series (time-series runner):
 The `TimeSeriesRunner<TResult>` class is another sequence runner class. It performs the background process that creates a time series: a sequence of pairs (measurement_time, measured_value), the measured_value field (the second item) of the pair being of type TResult. I.e. the records of the sequence returning by the background process have type ValueTuple{DateTime,TResult}. The measurement_value from the pair above is obtained by calling at the time of measurement a parameterless function (delegate) that returns a value of type TResult (performs measurement). Measurements begin immediately from the moment of the first call to the GetRequiredAsync method and are performed with the specified time interval. Waiting for the expiration of the next interval occurs asynchronously. Measurements are performed either the number of times specified, if this number is not specified, indefinitely, until the runner is terminated by calling its Abort method  or due to another reason.
 
 To create an instance of the TimeSeriesRunner class, one can use one of the overloaded CreateTimeSeriesRunner extension methods of the IActiveSession interface. These methods accepts either two or three arguments, or a single parameter - structure of the `TimeSeriesParams<TResult>` type. The first argument of overloads with two or three parameters is a function (delegate) that performs measurements, the second is an interval between measurements. The third argument, if it exists, specifies count of measurements performed after an initial one. The `TimeSeriesParams<TResult>` argument for appropriate form of CreateTimeSeriesRunner contains values, corresponding arguments of other forms of this method in the fields Gauge, Interval and Count, respectively. To not specify the third argument, the Count field is set to null. This structure as well contains a number of additional fields, of which the following will be considered here (they are similar to the same fields of the previously considered structures (Async)EnumAdapterParams):
@@ -843,7 +852,7 @@ To create an instance of the TimeSeriesRunner class, one can use one of the over
 
 To simplify a search for existing time-series runners the ActiveSession library defines an extension method GetTimeSeriesRunner{TResult}, the TResult type parameter of which determines the type of values ​​in time-value pairs that are records of the returned sequence (i.e. the result type of the found runner will be IEnumerable{(DateTime, TResult)}).
 
-### Session process runner class.
+#### Session process runner class.
 
 Session process runner (its type is the generic class `SessionProcessRunner<TResult>`) does not belong to sequence runners, and therefore works according to slightly different rules. Its result-obtaining methods return single values ​​of type TResult as a result. It has different restrictions on parameters: restrictions on the value of the Advance parameter are the same - it must be greater than or equal to 0, but the value of StartPosition can be either any positive value not less than the current value of the Position property, or CURRENT_POSITION, i.e. -1, in which case this parameter is replaced with the current value of the Position property). This runner has one special interpretation for parameters: if the parameters have a default value for the GetRequiredAsync method - `StartPosition==CURRENT_POSITITION` and `Advance==0` - then Advance is replaced with 1, that is, it is assumed that a call with default parameters requests getting a result for the next execution point. The sum of Advance and StartPosition (taking into account the above parameter interpretations) is the execution point number for which the result is requested. The final difference between a session process runner and sequence runners is that its result-obtaining methods can be called independently of each other: at any time, several GetRequiredAsync methods can be called for this runner, asynchronously waiting for the desired execution point to be reached, and the synchronous GetAvailable method can always be called simultaneously.
 
@@ -865,5 +874,3 @@ First, these can be either delegates that directly create a background process t
 
 Second, tasks created using delegates can either return a result of type TResult (a task created using them will have type `Task<TResult>`) or not return a result at all (the task created will have type `Task`). To achieve this, delegates that directly create the background process task return a task of the desired type, and task body delegates can either return a TResult or not return any result at all.
 
-## References
-1. [The AciveSession library documentation site](https://mvvrus.github.io/) \(under construction, currently library API documentation only\).
