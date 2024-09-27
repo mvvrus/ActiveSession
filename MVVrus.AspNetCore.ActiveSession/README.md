@@ -344,6 +344,20 @@ The example contains the following steps:
         public async Task OnGetAsync([ModelBinder<ExtRunnerKeyMvcModelBinder>]ExtRunnerKey Key)
         {
             //...
+            IActiveSession active_session = HttpContext.GetActiveSession();
+            if(!active_session.IsAvailable) {
+                //... Write a message about the situation
+            }
+            else {
+                if(!Key.IsForSession(active_session)) {
+                    //... Write a message about the situation
+                }
+                else {
+                    //Obtain the runner
+                    var runner = active_session.GetSequenceRunner<SimSeqData>(Key.RunnerNumber, HttpContext);
+                    //...
+                }
+            }
         }
         //...
     }
