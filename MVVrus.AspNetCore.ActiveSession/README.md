@@ -16,7 +16,8 @@ Unlike the other background execution mechanism in the ASP.NET Core application,
 ## Components of the library and its extensions
 
 ### Runners
-*Runners* are instances of classes containing code of an operation that may execute itself in the background. To interact with an application and with another parts of the library runners must implement `IRunner<TResult>` generic interface. There is a number of *standard runners* that are implemented by the ActiveSession library. One can also implement its own custom runner class by implementing IRunner&lt;TResult> generic interface. 
+
+*Runners* are instances of classes containing code of an operation that may execute itself in the background. To interact with an application and with another parts of the library runners must implement `IRunner<TResult>` generic interface. There is a number of *standard runners* that are implemented by the ActiveSession library. One can also implement its own custom runner class by implementing `IRunner<TResult>` generic interface. 
 
 The runner interface contains a number of properties and methods that do not depend on a runner result type. Those members and properties are collected in a  type-agnostic (non-generic) runner interface IRunner. Technically, the full runner interface `IRunner<TResult>` is inherited from this type-agnostic interface, adding result-dependent methods to it.
 
@@ -48,7 +49,7 @@ In particular, the ActiveSession library infrastructure performs the following f
 
 ### Runner factories
 
-*Runner factories* are objects that are designed to create runners. The ActiveSession library infrastructure receives runner factories from the service container. Therefore, runner factory classes must be registered during application initialization in the application services container (AKA DI container) as implementations of the interface that the infrastructure will request from the container - the specialization of the generic interface IRunnerFactory&lt;TRequest,TResult>. This interface has two type parameters: TRequest is a type of an argument that is passed by the application to create the runner, TResult is a result type of the created runner. 
+*Runner factories* are objects that are designed to create runners. The ActiveSession library infrastructure receives runner factories from the service container. Therefore, runner factory classes must be registered during application initialization in the application services container (AKA DI container) as implementations of the interface that the infrastructure will request from the container - the specialization of the generic interface `IRunnerFactory<TRequest,TResult>`. This interface has two type parameters: TRequest is a type of an argument that is passed by the application to create the runner, TResult is a result type of the created runner. 
 
 To register standard runner factories, the ActiveSession library has extension methods for the IServiceCollection interface intended for this purpose. How to use these methods is shown below in the in the example of initialization code. To facilitate an implementation of custom runners, the library also defines auxiliary classes and extension methods intended for this purpose.
 
@@ -92,12 +93,12 @@ The initialization of an application that uses the ActiveSession library must fi
 It is well known that when processing a request, the middleware pipeline receives a request context - an instance of a class derived from HttpContext as input to the pipeline. Generally this context is available to request handler in most frameworks - as a property named HttpContext of the class containing handlers in MVC and Razor Pages frameworks, as a binding to a parameter of type HttpContext in Minimal API framework etc. And to access the active session object associated with the request from a request handler one can use the extension method GetActiveSession() of the HttpContext class. The example of accessing an active session associated with a request is a part of the example in the "Creating a new runner" section below.
 
 ### Using the IActiveSession - active session object interface.
-Before using ActiveSession library one should ensure that the active session is available. To do this one need to check that the IsAvailable property of the received IActiveSession interface contains true. The example in the next section demonstrate, among other things, how to obtain a reference to the active session object for a request and verify that the active session is available. 
+Before using IActiveSession interface methods one should ensure that the active session is available. To do this one need to check that the IsAvailable property of the received IActiveSession interface contains true. The example in the next section demonstrate, among other things, how to obtain a reference to the active session object for a request and verify that the active session is available. 
 
 #### Creating a new runner
-Use the generic CreateRunner&lt;TRequest,TResult>(TResult, HttpContext) method of the IActiveSession interface to create a new runner to run in this active session. This method returns a generic record struct with two fields: Runner, with a reference to the newly created runner, and RunnerNumber, with the number assigned to this runner in the active session. Being generic, this method also has two type parameters: TRequest, which is the type of the first parameter to pass to this method, and TResult, which is the type of the result that will be returned by the new runner. None of the parameters passed to this method depend on the second type parameter, so the type parameters of this method cannot be inferred by a compiler and must be specified explicitly. Additionally, the result type of a standard runner may be rather complex.
+Use the generic `CreateRunner<TRequest,TResult>(TResult, HttpContext)` method of the IActiveSession interface to create a new runner to run in this active session. Being generic, this method has two type parameters: TRequest, which is the type of the first parameter to pass to this method, and TResult, which is the type of the result that will be returned by the new runner. The value of the first parameter of the CreateRunner method is passed to the Create method of the appropriate runner factory and is used when creating a new runner. The second parameter is the context of the request in whose handler the runner is created. This method returns a generic record struct `KeyedRunner<TResult>` with two fields: `IRunner<TResult> Runner`, that references the newly created runner, and `int RunnerNumber`, that contains the number assigned to this runner in the active session. 
 
-Because of these inconveniences,the ActiveSession library defines a number of extension methods for the IActiveSession interface, namely CreateSequenceRunner, CreateTimeSeriesRunner, and CreateSessionProcessRunner, which create the ActiveSession library's standard runners. Although these methods are also generic, they are more convenient to use: they have only one type parameter (the same as the type parameter of the standard runner class to be created), which can often be inferred from their parameters, and they make it easy to specify the result type by using this type parameter to specify actual runner result type.
+None of the parameters passed to this method depend on the second type parameter, so the type parameters of this method cannot be inferred by a compiler and must be specified explicitly. Additionally, the result type of a standard runner may be rather complex. Because of these inconveniences,the ActiveSession library defines a number of extension methods for the IActiveSession interface, namely CreateSequenceRunner, CreateTimeSeriesRunner, and CreateSessionProcessRunner, which create the ActiveSession library's standard runners. Although these methods are also generic, they are more convenient to use: they have only one type parameter (the same as the type parameter of the standard runner class to be created), which can often be inferred from their parameters, and they make it easy to specify the result type by using this type parameter to specify actual runner result type.
 These methods also return a generic record struct described earlier with type parameter set appropriately.
 
 The following example demonstrates creation of a runner as well as accessing the active session object for the request and checking that the active session is available (the Razor Pages framework is used in the example):
@@ -136,7 +137,7 @@ The following example demonstrates creation of a runner as well as accessing the
         }
 ````
 #### Obtaining the existing runner
-Use the generic GetRunner&lt;TResult>(int, HttpContext) method of the IActiveSession interface to obtain a reference to an existing runner with a result type TResult which executes within current active session and is registered under a runner number passed as the first parameter. If no runner registered under the specified number exists, or if the runner registered has incompatible result type the method returns null. 
+Use the generic `GetRunner<TResult>(int, HttpContext)` method of the IActiveSession interface to obtain a reference to an existing runner with a result type TResult which executes within current active session and is registered under a runner number passed as the first parameter. If no runner registered under the specified number exists, or if the runner registered has incompatible result type the method returns null. 
 
 Parameters of GetRunner generic method do not depend on its type parameter, therefore the type parameter cannot be inferred and must be specified.
 
@@ -326,7 +327,7 @@ The example contains the following steps:
         }
 ````
 
-2.Bind the value of the path segment to the parameter of the GET request handler for the target Razor Page, the binder class being specified via `[ModelBinder]` attribute:
+2.Bind the value of the path segment to the parameter of the GET request handler for the target Razor Page, the binder class being specified via `[ModelBinder]` attribute, the C# code snippet also provides a previously mentioned example of obtaining an existing runner via the IActiveSession interface:
 
 **Pages\SequenceShowResults.cshtml**
 ````
