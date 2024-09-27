@@ -103,6 +103,7 @@ namespace ActiveSession.Tests
             Assert.True(runner.SetStatePub(RunnerStatus.Progressed));
             Assert.Equal(RunnerStatus.Progressed, runner.Status);
             Assert.False(runner.CompletionToken.IsCancellationRequested);
+            Assert.False(runner.CheckCompletionPub());
 
             //Test case: change running state to final: SetState to Complete when Progressed
             Assert.True(runner.SetStatePub(RunnerStatus.Completed));
@@ -115,7 +116,21 @@ namespace ActiveSession.Tests
 
             //Test case: change one final state to another: SetState to Aborted when Complete
             Assert.False(runner.SetStatePub(RunnerStatus.Aborted));
+            Assert.False(runner.CheckCompletionPub());
             Assert.Equal(RunnerStatus.Completed, runner.Status);
+
+            runner.Dispose();
+            runner=new RunnerBaseImpl();
+
+            //Test case: change running state to final, do not signal completion: SetState to Complete when Stalled
+            Assert.True(runner.StartRunningPub(RunnerStatus.Stalled));
+            Assert.Equal(RunnerStatus.Stalled, runner.Status);
+            Assert.False(runner.CompletionToken.IsCancellationRequested);
+            Assert.True(runner.SetStatePub(RunnerStatus.Completed, true));
+            Assert.Equal(RunnerStatus.Completed, runner.Status);
+            Assert.False(runner.CompletionToken.IsCancellationRequested);
+            Assert.True(runner.CheckCompletionPub());
+            Assert.True(runner.CompletionToken.IsCancellationRequested);
 
             runner.Dispose();
 
@@ -124,6 +139,7 @@ namespace ActiveSession.Tests
             Assert.True(runner.StartRunningPub(RunnerStatus.Completed));
             Assert.Equal(RunnerStatus.Completed, runner.Status);
             Assert.True(runner.CompletionToken.IsCancellationRequested);
+            Assert.False(runner.CheckCompletionPub());
 
             //Test case: call StartRunning on a disposed runner (must throw)
             runner=new RunnerBaseImpl();
@@ -242,9 +258,14 @@ namespace ActiveSession.Tests
                 Position=NewPosition;
             }
 
-            public Boolean SetStatePub(RunnerStatus State)
+            public Boolean SetStatePub(RunnerStatus State, Boolean DoNotComplete = false)
             {
-                return base.SetStatus(State);
+                return base.SetStatus(State, DoNotComplete);
+            }
+
+            public Boolean CheckCompletionPub()
+            {
+                return base.CheckCompletion();
             }
 
             public Boolean StartRunningPub(RunnerStatus NewState)

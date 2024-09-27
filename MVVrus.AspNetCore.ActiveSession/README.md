@@ -889,3 +889,7 @@ First, these can be either delegates that directly create a background process t
 
 Second, tasks created using delegates can either return a result of type TResult (a task created using them will have type `Task<TResult>`) or not return a result at all (the task created will have type `Task`). To achieve this, delegates that directly create the background process task return a task of the desired type, and task body delegates can either return a TResult or not return any result at all.
 
+## Release notes
+
+1.0.1 - Fix race conditions possibility in the EnumerbleRunnerBase.GetRequiredAsync method.
+1.0.0 - Initial release

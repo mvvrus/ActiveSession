@@ -595,7 +595,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(Id, context.TraceIdentifier);
             #endif
-            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(context.Accumulator, context.TraceIdentifier);
+            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(context.Accumulator, context.TraceIdentifier, true);
             TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
             _waitingTaskSource = null;
             ReleasePseudoLock();
@@ -606,6 +606,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
             #endif
+            CheckCompletion();
         }
 
         void StashOrphannedData(List<TItem> Data, String TraceIdentifier)
@@ -622,7 +623,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseMakeSyncResult(Id, TraceIdentifier);
             #endif
-            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(ResultList, TraceIdentifier);
+            RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(ResultList, TraceIdentifier,false);
             ReleasePseudoLock();
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, TraceIdentifier);
@@ -630,7 +631,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             return result;
         }
 
-        RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier)
+        RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier, Boolean DoNotComplete)
         {
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(Id, TraceIdentifier);
@@ -638,7 +639,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Position = Position+ResultList.Count;
             if (_queue.Count==0 && _queue.IsAddingCompleted) {
                 RunnerStatus new_status = Exception==null ? Completed : Failed;
-                SetStatus(new_status);
+                SetStatus(new_status, DoNotComplete);
                 #if TRACE
                 Logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
                 #endif

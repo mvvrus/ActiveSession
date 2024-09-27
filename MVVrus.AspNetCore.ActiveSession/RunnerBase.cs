@@ -13,6 +13,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     public abstract class RunnerBase : IRunner, IDisposable
     {
         Int32 _status;
+        Int32 _completionCheckPending = 0; 
         readonly CancellationTokenSource _completionTokenSource;
         readonly Boolean _passCtsOwnership;
         Int32 _disposed = 0; //1 - the instance is disposed or to be disposed
@@ -76,9 +77,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc/>
         public RunnerStatus Abort(String? TraceIdentifier = null) 
         {
-            if(SetStatus(RunnerStatus.Aborted)) {
+            if(SetStatus(RunnerStatus.Aborted, true)) {
                 Logger?.LogTraceRunnerBaseAbortCalled(Id, TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
                 DoAbort(TraceIdentifier ?? UNKNOWN_TRACE_IDENTIFIER);
+                CheckCompletion();
             }
             return Status;
         }
@@ -131,6 +133,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Protected. Sets the <see cref="Status"/> property enforcing rules for changing this property.
         /// </summary>
         /// <param name="Status">The new value for the <see cref="Status"/> property.</param>
+        /// <param name="DoNotComplete">
+        /// Do not singnal the runner completion (cancel <see cref="IRunner.CompletionToken"/>) in this call if it comes to a final status.
+        /// If this parameter is set, one should call <see cref="CheckCompletion"/> method later to signal completion.
+        /// </param>
         /// <returns> 
         /// <see langword="true"/> if the <see cref="Status"/> property value has really been changed, <see langword="false"/>  otherwise.
         /// </returns>
@@ -150,7 +156,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// The value of the property is set in a thread-safe manner. 
         /// If the value of the property become a final one the <see cref="CompletionToken"/> will go to Canceled state.
         /// </remarks>
-        protected internal Boolean SetStatus(RunnerStatus Status)
+        protected internal Boolean SetStatus(RunnerStatus Status, Boolean DoNotComplete = false)
         {
             //TODO(future) Add a Boolean parameter for implementing cancellation delay
             if(Status==RunnerStatus.NotStarted) {
@@ -172,16 +178,12 @@ namespace MVVrus.AspNetCore.ActiveSession
             #if TRACE
             Logger?.LogTraceRunnerBaseStateChanged(Id, Status);
             #endif
-            if (((RunnerStatus)new_status).IsFinal())
-                //TODO(future) Implement cancellation delay
+            Volatile.Write(ref _completionCheckPending, 1);
+            if(!DoNotComplete) 
                 try {
-                    #if TRACE
-                    Logger?.LogTraceRunnerBaseComeToFinalState(Id);
-                    #endif
-                    _completionTokenSource?.Cancel();
-                    Logger?.LogInfoRunnerCompleted(Id, Status);
+                    CheckCompletion();
                 }
-                catch (ObjectDisposedException) { }
+                catch(ObjectDisposedException) { }
             return true;
         }
 
@@ -240,27 +242,26 @@ namespace MVVrus.AspNetCore.ActiveSession
                 (RunnerStatus)Interlocked.CompareExchange(ref _status, (int)NewStatus, (int)RunnerStatus.NotStarted);
             Boolean result = prev_status==RunnerStatus.NotStarted;
             #if TRACE
-            Logger?.LogTraceRunnerBaseStartedInState(Id, Status); 
-            #endif
-            if (result) try 
-                {
+            Logger?.LogTraceRunnerBaseStartedInState(Id, Status);
+#endif
+            if(result) {
+                try {
                     Logger?.LogInfoRunnerStarting(Id);
                     StartBackgroundExecution();
                     Logger?.LogInfoStartBackground(Id);
                 }
-                catch (Exception exception) {
+                catch(Exception exception) {
                     Logger?.LogErrorStartBkgProcessingFailed(exception, Id);
                     FailStartRunning(NewStatus, exception);
                     throw;
                 }
-            if (result&&NewStatus.IsFinal()) {
                 #if TRACE
-                Logger?.LogTraceRunnerBaseComeToFinalState(Id);
+                Logger?.LogTraceRunnerBaseStartedInState(Id, Status);
                 #endif
-                _completionTokenSource?.Cancel();
-                Logger?.LogInfoRunnerCompleted(Id, NewStatus);
+                Volatile.Write(ref _completionCheckPending, 1);
+                CheckCompletion();
             }
-            return result; 
+            return result;
         }
 
         /// <summary>
@@ -293,13 +294,8 @@ namespace MVVrus.AspNetCore.ActiveSession
                 #if TRACE
                 Logger?.LogTraceRunnerBaseStartedInState(Id, Status);
                 #endif
-            }
-            if(result && NewStatus.IsFinal()) {
-                #if TRACE
-                Logger?.LogTraceRunnerBaseComeToFinalState(Id);
-                #endif
-                _completionTokenSource?.Cancel();
-                Logger?.LogInfoRunnerCompleted(Id, NewStatus);
+                Volatile.Write(ref _completionCheckPending, 1);
+                CheckCompletion();
             }
             return result;
 
@@ -318,6 +314,27 @@ namespace MVVrus.AspNetCore.ActiveSession
             RunnerStatus rolled_back = (RunnerStatus)Interlocked.Exchange(ref _status, (int)RunnerStatus.NotStarted);
             if(rolled_back!=FromNewStatus) Logger?.LogWarningUnexpectedStatusChange(Id, FromNewStatus, rolled_back);
             Logger?.LogInfoRunnerStartFailed(Exception, Id);
+        }
+
+        /// <summary>
+        /// Signal the runner completion due to a transition to a final state if it was dellayed in the previous <see cref="SetStatus(RunnerStatus, bool)"/>  call.
+        /// </summary>
+        /// <returns>A value indicating that completion was really signaled.</returns>
+        protected internal Boolean CheckCompletion()
+        {
+            Int32 completion_check_pending = Interlocked.Exchange(ref _completionCheckPending, 0);
+            if(completion_check_pending!=0 && Status.IsFinal()) {
+                #if TRACE
+                Logger?.LogTraceRunnerBaseComeToFinalState(Id);
+                #endif
+                try {
+                    _completionTokenSource?.Cancel();
+                }
+                catch(ObjectDisposedException) { }
+                Logger?.LogInfoRunnerCompleted(Id, Status);
+                return true;
+            }
+            return false;
         }
 
         /// <summary>

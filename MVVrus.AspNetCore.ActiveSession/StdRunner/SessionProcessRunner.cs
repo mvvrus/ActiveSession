@@ -662,7 +662,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                             #if TRACE
                             Logger?.LogTraceSessionProcessBkgEndedCanceled(Id);
                             #endif
-                            SetStatus(RunnerStatus.Aborted);
+                            Abort();
                         }
                         else {
                             #if TRACE
@@ -676,7 +676,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #if TRACE
                         Logger?.LogTraceSessionProcessBkgEndedCanceled(Id);
                         #endif
-                        SetStatus(RunnerStatus.Aborted);
+                        Abort();
                         break;
                     default:
                         Logger?.LogErrorSessionProgressBkgEndedInternal(Antecedent.Status, Id);
