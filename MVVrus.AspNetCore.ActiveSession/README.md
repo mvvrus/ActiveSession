@@ -201,14 +201,14 @@ The following example shows how one can associate objects with an active session
             RunnerRegistry? result = null;
             //First just try to get the existing registry (fast path)
             if(!ActiveSession.Properties.TryGetValue(REGISTRY_NAME, out cached_result)) { //Fast path isn't available
-                lock(ActiveSession.Properties) { //Lock shareble resource - Properties dictionary
+                lock(ActiveSession.Properties) { //Lock shareable resource - Properties dictionary
                     result = new RunnerRegistry(); //Create new registry to add it to Properties
                     if(ActiveSession.Properties.TryAdd(REGISTRY_NAME, result)) //Use "double check pattern" with second check within lock block
                         //Addition was successful
-                        ActiveSession.CleanupCompletionTask.ContinueWith((_) => result.Dispose()); //Plan disposing the registry added after ebd of ActiveSession
+                        ActiveSession.CleanupCompletionTask.ContinueWith((_) => result.Dispose()); //Plan disposing the registry added after end of ActiveSession
                     else {
-                        //Somebody added registry already between checks
-                        cached_result = ActiveSession.Properties[REGISTRY_NAME]; //Get previosly added registry
+                        //Somebody added a registry instance already between checks
+                        cached_result = ActiveSession.Properties[REGISTRY_NAME]; //Get previously added registry
                         result.Dispose();
                         result=null; //Dispose and clear result
                     }
@@ -231,7 +231,7 @@ Another way to pass a value of ExtRunnerKey is to serialize it into a string via
 Here are two examples of passing runner identification between server (back end) and browser(front end) parts of a web application. Each example comprises a number of files. Obtaining references to runners is also covered by these examples. Code snippets for this example are taken from an example project for ActiveSession library.
 
 
-#### Passing an external runner identifier as an object for API call
+##### Passing an external runner identifier as an object for API call
 
 The example contains the following steps:
 
@@ -305,7 +305,7 @@ The example contains the following steps:
     }
 ````
 
-#### Passing an external runner identifier serialized to a string in the URL 
+##### Passing an external runner identifier serialized to a string in the URL 
 
 The example contains the following steps:
 
