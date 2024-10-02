@@ -458,34 +458,26 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 Logger?.LogTraceSessionProcessGetAvailableLockAckuired(Id, trace_identifier);
                 #endif
                 CheckAndNormalizeParams(ref Advance, ref StartPosition, nameof(GetAvailable), trace_identifier);
+                RunnerStatus new_status=Status;
+                Int32 position = Position;
                 if(!Status.IsFinal()) {
                     Int32 max_advance = _progress-StartPosition;
-                    RunnerStatus new_status;
                     if(max_advance<=Advance) {
                         new_status=_backgroundStatus; //Stalled or a final 
-                        Position =_progress;
+                        position =_progress;
                         #if TRACE
                         Logger?.LogTraceSessionProcessGetAvailableAll(Id,trace_identifier);
                         #endif
                     }
                     else {
                         new_status=RunnerStatus.Progressed;
-                        Position =StartPosition+Advance;
+                        position =StartPosition+Advance;
                         #if TRACE
                         Logger?.LogTraceSessionProcessGetAvailableNotAll(Id,trace_identifier);
                         #endif
                     }
-                    #if TRACE
-                    Logger?.LogTraceSessionProcessGetAvailableTrySetNewStatus(Id,trace_identifier);
-                    #endif
-                    if(SetStatus(new_status)) {
-                        if(new_status==RunnerStatus.Failed)  Exception=_backgroundException;
-                        #if TRACE
-                        Logger?.LogTraceSessionProcessGetAvailableNewStatusSet(Id,trace_identifier);
-                        #endif
-                    }
                 }
-                result = new RunnerResult<TResult>(_result, Status, Position , Status == RunnerStatus.Failed ? Exception : null);
+                result = MakeResultAndAdjustState(_result, new_status, position, trace_identifier, false);
             }
             #if TRACE
             Logger?.LogTraceSessionProcessGetAvailableLockReleased(Id,trace_identifier);
@@ -520,8 +512,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     #if TRACE
                     Logger?.LogTraceSessionProcessGetRequiredAsyncSynchronous(Id, trace_identifier);
                     #endif
-                    Position  = Math.Min(_progress, StartPosition + max_advance);
-                    RunnerStatus new_status; if(Position  < _progress) {
+                    Int32 position  = Math.Min(_progress, StartPosition + max_advance);
+                    RunnerStatus new_status;
+                    if(position  < _progress) {
                         new_status = RunnerStatus.Progressed;
                         #if TRACE
                         Logger?.LogTraceSessionProcessGetRequiredAsyncNotAll(Id, trace_identifier);
@@ -533,16 +526,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         Logger?.LogTraceSessionProcessGetRequiredAsyncAll(Id,trace_identifier);
                         #endif
                     }
-                    #if TRACE
-                    Logger?.LogTraceSessionProcessGetRequiredAsyncTrySetNewStatus(Id, trace_identifier);
-                    #endif
-                    if(SetStatus(new_status)) {
-                        if(new_status==RunnerStatus.Failed) Exception=_backgroundException;
-                        #if TRACE
-                        Logger?.LogTraceSessionProcessGetRequiredAsyncNewStatusSet(Id, trace_identifier);
-                        #endif
-                    }
-                    RunnerResult<TResult> result = new RunnerResult<TResult>(_result, Status, Position, Status == RunnerStatus.Failed ? Exception : null);
+                    RunnerResult<TResult> result = MakeResultAndAdjustState(_result, new_status, position, trace_identifier, false);
                     Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
                         result.Status, result.Position, Id, trace_identifier);
                     result_task=new ValueTask<RunnerResult<TResult>>(result);
@@ -687,7 +671,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                                 #if TRACE
                                 Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
                                 #endif
-                                if(task_item!.TaskSourceToComplete.TrySetException(e)) 
+                                if(task_item.TaskSourceToComplete.TrySetException(e)) 
                                     Logger?.LogDebugGetRequiredAsyncFailed(e,Id,task_item.TraceIdentifier);
                             }
                         }
@@ -697,43 +681,48 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceSessionProcessBkgEndedCompletePendingTasks(Id);
                 #endif
-                while(_waitList.TryDequeue(out task_item, out task_position)) {
-                    if(task_item.TaskSourceToComplete!=null) {
-                        #if TRACE
-                        Logger?.LogTraceSessionProcessBkgEndedCompleteAPendingTask(Id,task_item.TraceIdentifier);
-                        #endif
-                        if(Disposed()) {
-                            Exception e = new ObjectDisposedException(DisposedObjectName());
+                try {
+                    while(_waitList.TryDequeue(out task_item, out task_position)) {
+                        if(task_item.TaskSourceToComplete!=null) {
                             #if TRACE
-                            Logger?.LogTraceSessionProcessPendingTaskSetException(e,Id,task_item.TraceIdentifier);
+                            Logger?.LogTraceSessionProcessBkgEndedCompleteAPendingTask(Id, task_item.TraceIdentifier);
                             #endif
-                            if(task_item!.TaskSourceToComplete.TrySetException(e)) 
+                            if(Disposed()) {
+                                Exception e = new ObjectDisposedException(DisposedObjectName());
+                                #if TRACE
                                 Logger?.LogTraceSessionProcessPendingTaskSetException(e, Id, task_item.TraceIdentifier);
-                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                #endif
+                                if(task_item.TaskSourceToComplete.TrySetException(e))
+                                    Logger?.LogTraceSessionProcessPendingTaskSetException(e, Id, task_item.TraceIdentifier);
+                                else Logger?.LogWarningTaskOutcomeAlreadySet(Id, task_item.TraceIdentifier);
+                            }
+                            else {
+                                RunnerStatus status = _backgroundStatus;
+                                if(Status.IsFinal()) status=Status;
+                                RunnerResult<TResult> result = MakeResultAndAdjustState(_result, status, _progress, task_item.TraceIdentifier, true);
+                                #if TRACE
+                                Logger?.LogTraceSessionProcessPendingTaskSetResult(Id, task_item.TraceIdentifier);
+                                #endif
+                                if(task_item.TaskSourceToComplete.TrySetResult(result)) {
+                                    Position=_progress;
+                                    if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;
+                                    Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
+                                        result.Status, result.Position, Id, task_item.TraceIdentifier);
+                                }
+                                else Logger?.LogWarningTaskOutcomeAlreadySet(Id, task_item.TraceIdentifier);
+                            }
                         }
                         else {
-                            RunnerStatus status=_backgroundStatus;
-                            if(Status.IsFinal()) status=Status;
-                            RunnerResult<TResult> result = new RunnerResult<TResult>(
-                                _result, status, _progress, status == RunnerStatus.Failed ? _backgroundException : null);
                             #if TRACE
-                            Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
+                            Logger?.LogTraceSessionProcessPendingTaskAlreadyCanceled(Id, task_item.TraceIdentifier);
                             #endif
-                            if(task_item!.TaskSourceToComplete.TrySetResult(result)) {
-                                Position=_progress;
-                                if(SetStatus(_backgroundStatus) && _backgroundStatus==RunnerStatus.Failed) Exception=_backgroundException;
-                                Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
-                                    result.Status, result.Position, Id, task_item.TraceIdentifier);
-                            }
-                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
                         }
                     }
-                    else {
-                        #if TRACE
-                        Logger?.LogTraceSessionProcessPendingTaskAlreadyCanceled(Id,task_item.TraceIdentifier);
-                        #endif
-                    }
+
                 }
+                finally {
+                    CheckCompletion();
+                }   
             }
             LogFinishBackgroundProcess();
             #if TRACE
@@ -770,50 +759,78 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceSessionProcessCallbackCompletePendingTasks(Id);
                 #endif
-                while(_waitList.TryPeek(out task_item, out task_position) && (Status.IsFinal() || task_position <= _progress)) {
-                    #if TRACE
-                    Logger?.LogTraceSessionProcessCallbackCompleteAPendingTask(Id,task_item.TraceIdentifier);
-                    #endif
-                    task_item.Registration?.Dispose();
-                    _waitList.Dequeue();
-                    if(task_item.TaskSourceToComplete!=null) {
-                        if(task_item.Token.IsCancellationRequested) {
-                            #if TRACE
-                            Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id,task_item.TraceIdentifier);
-                            #endif
-                            if(task_item.TaskSourceToComplete.TrySetCanceled()) 
-                                Logger?.LogDebugGetRequiredAsyncCanceled(Id,task_item.TraceIdentifier);
-                            else Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
-                        }
-                        else {
-                            RunnerStatus old_status = Status;
-                            SetStatus(task_position<_progress ? RunnerStatus.Progressed : RunnerStatus.Stalled);
-                            RunnerResult<TResult> result = 
-                                new RunnerResult<TResult>(_result, Status, task_position, Status == RunnerStatus.Failed ? Exception : null);
-                            #if TRACE
-                            Logger?.LogTraceSessionProcessPendingTaskSetResult(Id,task_item.TraceIdentifier);
-                            #endif
-                            if(task_item!.TaskSourceToComplete.TrySetResult(result)) { 
-                                Position=task_position;
-                                Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
-                                    result.Status, result.Position, Id, task_item.TraceIdentifier);
+                try {
+                    while(_waitList.TryPeek(out task_item, out task_position) && (Status.IsFinal() || task_position <= _progress)) {
+                        #if TRACE
+                        Logger?.LogTraceSessionProcessCallbackCompleteAPendingTask(Id, task_item.TraceIdentifier);
+                        #endif
+                        task_item.Registration?.Dispose();
+                        _waitList.Dequeue();
+                        if(task_item.TaskSourceToComplete!=null) {
+                            if(task_item.Token.IsCancellationRequested) {
+                                #if TRACE
+                                Logger?.LogTraceSessionProcessPendingTaskSetCanceled(Id, task_item.TraceIdentifier);
+                                #endif
+                                if(task_item.TaskSourceToComplete.TrySetCanceled())
+                                    Logger?.LogDebugGetRequiredAsyncCanceled(Id, task_item.TraceIdentifier);
+                                else Logger?.LogWarningTaskOutcomeAlreadySet(Id, task_item.TraceIdentifier);
                             }
                             else {
-                                SetStatus(old_status);
-                                Logger?.LogWarningTaskOutcomeAlreadySet(Id,task_item.TraceIdentifier);
+                                RunnerStatus old_status = Status;
+                                Int32 old_position = Position;
+                                RunnerResult<TResult> result = MakeResultAndAdjustState(_result, 
+                                    task_position<_progress ? RunnerStatus.Progressed : RunnerStatus.Stalled, 
+                                    task_position, 
+                                    task_item.TraceIdentifier, 
+                                    true);
+                                #if TRACE
+                                Logger?.LogTraceSessionProcessPendingTaskSetResult(Id, task_item.TraceIdentifier);
+                                #endif
+                                if(task_item.TaskSourceToComplete.TrySetResult(result)) {
+                                    Position=task_position;
+                                    Logger?.LogDebugSessionProcessRunnerResult(result.FailureException, result.Result?.ToString()??"<null>",
+                                        result.Status, result.Position, Id, task_item.TraceIdentifier);
+                                }
+                                else {
+                                    if(SetStatus(old_status)) //Will pass only if Status.IsRunning() is true
+                                        Position = old_position;
+                                    Logger?.LogWarningTaskOutcomeAlreadySet(Id, task_item.TraceIdentifier);
+                                }
                             }
                         }
+                        else {
+                            #if TRACE
+                            Logger?.LogTraceSessionProcessPendingTaskAlreadyCanceled(Id, task_item.TraceIdentifier);
+                            #endif
+                        }
                     }
-                    else {
-                        #if TRACE
-                        Logger?.LogTraceSessionProcessPendingTaskAlreadyCanceled(Id,task_item.TraceIdentifier);
-                        #endif
-                    }
+
+                }
+                finally {
+                    CheckCompletion();
                 }
             }
             #if TRACE
             Logger?.LogTraceSessionProcessCallbackExit(Id);
             #endif
+        }
+
+        RunnerResult<TResult> MakeResultAndAdjustState(TResult Result, RunnerStatus Status, Int32 Position, String TraceIdentifier, Boolean DelayCompletion)
+        {
+            #if TRACE
+            Logger?.LogTraceSessionProcessResultTrySetNewStatus(Id, TraceIdentifier);  //TODO Rename logging method
+            #endif
+            Boolean status_changed =SetStatus(Status,true);
+            if(status_changed) {
+                if(Status==RunnerStatus.Failed) Exception=_backgroundException;
+                #if TRACE
+                Logger?.LogTraceSessionProcessResultNewStatusSet(Id, TraceIdentifier);  //TODO Rename logging method
+                #endif
+            }
+            RunnerResult<TResult> result = new RunnerResult<TResult>(Result, this.Status, Position, Exception);
+            this.Position=Math.Max(this.Position, Position);
+            if(status_changed && !DelayCompletion) CheckCompletion();
+            return result;
         }
 
         record TaskListItem

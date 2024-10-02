@@ -158,7 +158,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         protected internal Boolean SetStatus(RunnerStatus Status, Boolean DoNotComplete = false)
         {
-            //TODO(future) Add a Boolean parameter for implementing cancellation delay
             if(Status==RunnerStatus.NotStarted) {
                 #if TRACE
                 Logger?.LogTraceRunnerBaseReturnToNotStartedStateAttempt(Id);
@@ -179,11 +178,7 @@ namespace MVVrus.AspNetCore.ActiveSession
             Logger?.LogTraceRunnerBaseStateChanged(Id, Status);
             #endif
             Volatile.Write(ref _completionCheckPending, 1);
-            if(!DoNotComplete) 
-                try {
-                    CheckCompletion();
-                }
-                catch(ObjectDisposedException) { }
+            if(!DoNotComplete) CheckCompletion();
             return true;
         }
 
@@ -330,7 +325,9 @@ namespace MVVrus.AspNetCore.ActiveSession
                 try {
                     _completionTokenSource?.Cancel();
                 }
-                catch(ObjectDisposedException) { }
+                catch(ObjectDisposedException) {
+                    Logger?.LogWarningCompletionCheckDisposed(Id);
+                }
                 Logger?.LogInfoRunnerCompleted(Id, Status);
                 return true;
             }

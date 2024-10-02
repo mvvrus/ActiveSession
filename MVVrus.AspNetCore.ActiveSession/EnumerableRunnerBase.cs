@@ -596,17 +596,22 @@ namespace MVVrus.AspNetCore.ActiveSession
             Logger?.LogTraceEnumerableRunnerBaseAsyncFetchCompletedSuccess(Id, context.TraceIdentifier);
             #endif
             RunnerResult<IEnumerable<TItem>> result = MakeResultAndAdjustState(context.Accumulator, context.TraceIdentifier, true);
-            TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
-            _waitingTaskSource = null;
-            ReleasePseudoLock();
-            #if TRACE
-            Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
-            #endif
-            if(!waitingTaskSource?.TrySetResult(result)??true) Logger?.LogWarningTaskOutcomeAlreadySet(Id, UNKNOWN_TRACE_IDENTIFIER);
-            #if TRACE
-            Logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
-            #endif
-            CheckCompletion();
+            try {
+                TaskCompletionSource<RunnerResult<IEnumerable<TItem>>>? waitingTaskSource = _waitingTaskSource;
+                _waitingTaskSource = null;
+                ReleasePseudoLock();
+                #if TRACE
+                Logger?.LogTraceEnumerableRunnerBasePseudoLockReleased(Id, context.TraceIdentifier);
+                #endif
+                if(!waitingTaskSource?.TrySetResult(result)??true) Logger?.LogWarningTaskOutcomeAlreadySet(Id, UNKNOWN_TRACE_IDENTIFIER);
+                #if TRACE
+                Logger?.LogTraceEnumerableRunnerBaseAsyncSuccessResultSet(Id, context.TraceIdentifier);
+                #endif
+
+            }
+            finally {
+                CheckCompletion();
+            }
         }
 
         void StashOrphannedData(List<TItem> Data, String TraceIdentifier)
@@ -631,20 +636,29 @@ namespace MVVrus.AspNetCore.ActiveSession
             return result;
         }
 
-        RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier, Boolean DoNotComplete)
+        RunnerResult<IEnumerable<TItem>> MakeResultAndAdjustState(List<TItem> ResultList, String TraceIdentifier, Boolean DelayCompletion)
         {
             #if TRACE
             Logger?.LogTraceEnumerableRunnerBaseAsyncMakeResult(Id, TraceIdentifier);
             #endif
             Position = Position+ResultList.Count;
-            if (_queue.Count==0 && _queue.IsAddingCompleted) {
-                RunnerStatus new_status = Exception==null ? Completed : Failed;
-                SetStatus(new_status, DoNotComplete);
-                #if TRACE
-                Logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
-                #endif
+            Boolean check_completion = false;
+            RunnerResult<IEnumerable<TItem>> result;
+            try {
+                if(_queue.Count==0 && _queue.IsAddingCompleted) {
+                    RunnerStatus new_status = Exception==null ? Completed : Failed;
+                    check_completion=!DelayCompletion;
+                    SetStatus(new_status, true);
+                    #if TRACE
+                    Logger?.LogTraceEnumerableRunnerBaseAsyncSetFinalStatus(Id, TraceIdentifier);
+                    #endif
+                }
+                result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
+
             }
-            RunnerResult<IEnumerable<TItem>> result = new RunnerResult<IEnumerable<TItem>>(ResultList, Status, Position, Status==Failed ? Exception : null);
+            finally {
+                if(check_completion) CheckCompletion();
+            }
             Logger?.LogDebugEnumerableRunnerResult(Status == Failed ? Exception : null, ResultList.Count, Status, Position, Id, TraceIdentifier);
             return result;
         }

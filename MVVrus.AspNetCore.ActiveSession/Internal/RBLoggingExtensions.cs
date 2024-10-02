@@ -28,6 +28,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogWarningUnexpectedStatusChange(this ILogger Logger, RunnerId RunnerId, RunnerStatus OldStatus, RunnerStatus RolledBackStatus);
         [LoggerMessage(W_RUNNERTASKRESULTALREADYSET, LogLevel.Warning, "Ignoring an attempt to set GetRequiredAsync outcome that has been defined already, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningTaskOutcomeAlreadySet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(W_RUNNERBASETRYCOMPLETEDISPOSED, LogLevel.Warning, "Attempt to complete already disposed runner, RunnerId={RunnerId}.")]
+        public static partial void LogWarningCompletionCheckDisposed(this ILogger Logger, RunnerId RunnerId);
         [LoggerMessage(W_ENUMERABLERUNNERBASEPARALLELGET, LogLevel.Warning, "Invalid attempt of getting data in parallel, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningEnumerableRunnerBaseParallelAttempt(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(W_ENUMERABLERUNNERBASEBADPARAM, LogLevel.Warning, "Invalid parameter value, MethodName={MethodName}, ParamName={ParamName}, Value={ParamValue}, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
@@ -343,10 +345,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceSessionProcessGetAvailableAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETAVAILNOTALL, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the current point of a background execution is not reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessGetAvailableNotAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSGETAVAILTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner.GetAvailable: trying to change the runner Status, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceSessionProcessGetAvailableTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSGETAVAILSTATUSSET, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the runner status have been just changed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceSessionProcessGetAvailableNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETAVAILLOCKRELEASED, LogLevel.Trace, "SessionProcessRunner.GetAvailable: the lock released, exiting, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessGetAvailableLockReleased(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETREQASYNCENTER, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync entered, acquiring the lock, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -359,10 +357,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceSessionProcessGetRequiredAsyncNotAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETREQASYNCALL, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the current point of a background execution is reached, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessGetRequiredAsyncAll(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: trying to change the runner Status, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceSessionProcessGetRequiredAsyncTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
-        [LoggerMessage(T_SESSIONPROCESSGETREQASYNCSTATUSSET, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the runner status have been just changed, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceSessionProcessGetRequiredAsyncNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETREQASYNCASYNCPATH, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: synchronous execution is not possible, schedule a continuation task, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessGetRequiredAsyncAsynchronous(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSGETREQASYNCTASENQUEUED, LogLevel.Trace, "SessionProcessRunner.GetRequiredAsync: the continuation task is enqued to the completion queue, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
@@ -413,6 +407,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceSessionProcessCallbackCompleteAPendingTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSCALLBACKEXIT, LogLevel.Trace, "SessionProcessRunner callback: the lock released, exiting, RunnerId={RunnerId}")]
         public static partial void LogTraceSessionProcessCallbackExit(this ILogger Logger, RunnerId RunnerId);
+        [LoggerMessage(T_SESSIONPROCESSRESULTTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner: trying to change the runner Status while setting a result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessResultTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSRESULTSTATUSSET, LogLevel.Trace, "SessionProcessRunner: the runner status have been just changed while setting a result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessResultNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
     }
 }
