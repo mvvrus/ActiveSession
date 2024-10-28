@@ -407,10 +407,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogTraceSessionProcessCallbackCompleteAPendingTask(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSCALLBACKEXIT, LogLevel.Trace, "SessionProcessRunner callback: the lock released, exiting, RunnerId={RunnerId}")]
         public static partial void LogTraceSessionProcessCallbackExit(this ILogger Logger, RunnerId RunnerId);
-        [LoggerMessage(T_SESSIONPROCESSRESULTTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner: trying to change the runner Status while setting a result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
-        public static partial void LogTraceSessionProcessResultTrySetNewStatus(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSRESULTTRYSETSTATUS, LogLevel.Trace, "SessionProcessRunner: setting a result, trying to change the runner Status while setting a result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessResult(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
         [LoggerMessage(T_SESSIONPROCESSRESULTSTATUSSET, LogLevel.Trace, "SessionProcessRunner: the runner status have been just changed while setting a result, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
         public static partial void LogTraceSessionProcessResultNewStatusSet(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
+        [LoggerMessage(T_SESSIONPROCESSRESULTEXIT, LogLevel.Trace, "SessionProcessRunner: the result is set, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}")]
+        public static partial void LogTraceSessionProcessResultExit(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
     }
 }

@@ -818,18 +818,21 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         RunnerResult<TResult> MakeResultAndAdjustState(TResult Result, RunnerStatus Status, Int32 Position, String TraceIdentifier, Boolean DelayCompletion)
         {
             #if TRACE
-            Logger?.LogTraceSessionProcessResultTrySetNewStatus(Id, TraceIdentifier);  //TODO Rename logging method
+            Logger?.LogTraceSessionProcessResult(Id, TraceIdentifier);  
             #endif
             Boolean status_changed =SetStatus(Status,true);
             if(status_changed) {
                 if(Status==RunnerStatus.Failed) Exception=_backgroundException;
                 #if TRACE
-                Logger?.LogTraceSessionProcessResultNewStatusSet(Id, TraceIdentifier);  //TODO Rename logging method
+                Logger?.LogTraceSessionProcessResultNewStatusSet(Id, TraceIdentifier);  
                 #endif
             }
             RunnerResult<TResult> result = new RunnerResult<TResult>(Result, this.Status, Position, Exception);
             this.Position=Math.Max(this.Position, Position);
             if(status_changed && !DelayCompletion) CheckCompletion();
+            #if TRACE
+            Logger?.LogTraceSessionProcessResultExit(Id, TraceIdentifier);
+            #endif
             return result;
         }
 
