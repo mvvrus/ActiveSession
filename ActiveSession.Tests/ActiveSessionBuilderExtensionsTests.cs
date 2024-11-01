@@ -102,7 +102,7 @@ namespace ActiveSession.Tests
             ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
             Assert.False(middleware_param.AcceptAll);
             Assert.Single(middleware_param.Filters);
-            Assert.True(ReferenceEquals(filter, middleware_param.Filters[0]));
+            Assert.True(ReferenceEquals(filter, (middleware_param.Filters[0] as SimplePredicateFilterSource)?.Predicate));
         }
 
         //Test case: Regex-based filter delegate installation
@@ -126,11 +126,11 @@ namespace ActiveSession.Tests
             ts.mock_builder.Object.UseActiveSessions(filter);
             //Assess
             ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
-            Func<HttpContext, Boolean> middleware_filter = middleware_param.Filters[0];
+            IMiddlewareFilter middleware_filter = middleware_param.Filters[0].Create(0);
             Assert.False(middleware_param.AcceptAll);
             Assert.Single(middleware_param.Filters);
-            Assert.True(middleware_filter(fake_context.Object)); //REQ_PATH1
-            Assert.False(middleware_filter(fake_context.Object)); //REQ_PATH2
+            Assert.True(middleware_filter.Apply(fake_context.Object).WasMapped); //REQ_PATH1
+            Assert.False(middleware_filter.Apply(fake_context.Object).WasMapped); //REQ_PATH2
         }
 
         //Test case: two UseActiveSession calls with and without delegate
@@ -148,7 +148,7 @@ namespace ActiveSession.Tests
             ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
             Assert.True(middleware_param.AcceptAll);
             Assert.Single(middleware_param.Filters);
-            Assert.True(ReferenceEquals(filter, middleware_param.Filters[0]));
+            Assert.True(ReferenceEquals(filter, (middleware_param.Filters[0] as SimplePredicateFilterSource)?.Predicate));
         }
 
         //Test case: two UseActiveSession calls with two different delegates
@@ -167,8 +167,8 @@ namespace ActiveSession.Tests
             ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
             Assert.False(middleware_param.AcceptAll);
             Assert.Equal(2,middleware_param.Filters.Count);
-            Assert.True(ReferenceEquals(filter1, middleware_param.Filters[0]));
-            Assert.True(ReferenceEquals(filter2, middleware_param.Filters[1]));
+            Assert.True(ReferenceEquals(filter1, (middleware_param.Filters[0] as SimplePredicateFilterSource)?.Predicate));
+            Assert.True(ReferenceEquals(filter2, (middleware_param.Filters[1] as SimplePredicateFilterSource)?.Predicate));
         }
 
     }

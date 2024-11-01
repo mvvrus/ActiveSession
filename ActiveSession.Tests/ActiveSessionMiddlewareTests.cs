@@ -168,7 +168,7 @@ namespace ActiveSession.Tests
             HttpContext? filtered_context = null;
             Func<HttpContext, Boolean> neg_filter =  context => { filtered_context=context; return false; };
             ActiveSessionMiddleware.MiddlewareParam mwparam=new ActiveSessionMiddleware.MiddlewareParam();
-            mwparam.Filters.Add(neg_filter);
+            mwparam.Filters.Add((SimplePredicateFilterSource)neg_filter);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
                 mwparam,
@@ -202,7 +202,7 @@ namespace ActiveSession.Tests
             HttpContext? filtered_context = null;
             Func<HttpContext, Boolean> neg_filter = context => { filtered_context=context; return false; };
             ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
-            mwparam.Filters.Add(neg_filter);
+            mwparam.Filters.Add((SimplePredicateFilterSource)neg_filter);
             mwparam.AcceptAll=true;
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -240,10 +240,10 @@ namespace ActiveSession.Tests
             HttpContext? filtered_context1 = null;
             Func<HttpContext, Boolean> filter1 = context => { filtered_context1=context; return context.Request.Path.StartsWithSegments(PATH1); };
             ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
-            mwparam.Filters.Add(filter1);
+            mwparam.Filters.Add((SimplePredicateFilterSource)filter1);
             HttpContext? filtered_context2 = null;
             Func<HttpContext, Boolean> filter2 = context => { filtered_context2=context; return context.Request.Path.StartsWithSegments(PATH2); };
-            mwparam.Filters.Add(filter2);
+            mwparam.Filters.Add((SimplePredicateFilterSource)filter2);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
                 mwparam,

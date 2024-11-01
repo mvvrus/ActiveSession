@@ -11,8 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         readonly Boolean _useSessionServicesAsRequestServices;
         readonly Boolean _preloadActiveSession;
-        readonly List<Func<HttpContext,Boolean>> _filters;
-        readonly Boolean _acceptAll;
+        readonly MiddlewareMapper _mapper;
 
         //Properties for testing
         internal RequestDelegate Next { get { return _next; } }
@@ -43,8 +42,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 throw;
             }
-            _acceptAll=FilterParam.AcceptAll;
-            _filters=FilterParam.Filters;
+            _mapper=new MiddlewareMapper(FilterParam);
             #if TRACE
             _logger?.LogTraceConstructActiveSessionMiddlewareExit();
             #endif
@@ -58,9 +56,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IServiceProvider request_services = Context.RequestServices;
             IActiveSessionFeature? feature = null;
             try {
-                Boolean pass = _acceptAll;
-                for (int i = 0; !pass&&i<_filters.Count; i++)
-                    pass=pass||_filters[i].Invoke(Context);
+                (Boolean pass, String? suffix)=_mapper.MapContext(Context);
                 if (pass) {
                     feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier);
                     Context.Features.Set(feature);
@@ -111,8 +107,59 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal class MiddlewareParam
         {
             public Boolean AcceptAll;
-            public List<Func<HttpContext, Boolean>> Filters = new List<Func<HttpContext, Boolean>>();
+            public List<IMiddlewareFilterSource> Filters = new List<IMiddlewareFilterSource>();
+        }
+
+        internal record struct MapContextResult(Boolean WasMapped, String? SessionSuffix);
+
+        internal class MiddlewareMapper
+        {
+            Boolean _canSetSuffix = false;
+            Boolean _acceptAll;
+            List<IMiddlewareFilter> _filters = new List<IMiddlewareFilter>();
+
+            public MiddlewareMapper(MiddlewareParam Source)
+            {
+                _acceptAll=Source.AcceptAll;
+                for(int order=0; order<Source.Filters.Count;order++) AddFilterSource(Source.Filters[order], order);
+            }
+
+            public MapContextResult MapContext(HttpContext Context)
+            {
+                Boolean dont_scan_all = _acceptAll && !_canSetSuffix;
+
+                Boolean was_mapped = false;
+                String? session_suffix = null;
+                int order = Int32.MaxValue;
+
+                for(int i = 0; i<_filters.Count && (
+                        (session_suffix == null && _canSetSuffix) || 
+                        (!_acceptAll && (!was_mapped || order>_filters[i].MinOrder)) //TODO(future) Middleware filter grouping: test this
+                    ); i++) 
+                {
+                    (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Apply(Context);
+                    was_mapped = was_mapped || mapped_here;
+                    if(mapped_order<order) {
+                        //TODO(future) Middleware filter grouping: test this
+                        order=mapped_order;
+                        session_suffix=mapped_suffix??session_suffix;
+                    }
+                }
+                was_mapped = was_mapped || _acceptAll;
+                return new MapContextResult(was_mapped, session_suffix);
+            }
+
+            void AddFilterSource(IMiddlewareFilterSource FilterSource, Int32 Order)
+            {
+                _canSetSuffix = _canSetSuffix || FilterSource.HasSuffix;
+                Boolean added = false;
+                if(FilterSource.IsGroupable) {
+                    throw new NotImplementedException(); //TODO(future) Middleware filter grouping
+                }
+                if(!added) _filters.Add(FilterSource.Create(Order));
+            }
 
         }
+
     }
 }

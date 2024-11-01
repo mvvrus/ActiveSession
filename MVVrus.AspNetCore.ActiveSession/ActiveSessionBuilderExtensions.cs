@@ -79,7 +79,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 #if TRACE
                 logger?.LogTraceUseActiveSessionParamsAddFilter();
                 #endif
-                middleware_param.Filters.Add(Filter);
+                middleware_param.Filters.Add((SimplePredicateFilterSource)Filter);
             }
             #if TRACE
             logger?.LogTraceUseActiveSessionsExit();
