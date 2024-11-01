@@ -18,11 +18,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         String _traceIdentifier;
         IActiveSession _activeSession;
         bool _isLoaded;
+        String? _suffix;
 
 
-        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, ILogger? Logger, String? TraceIdentifier)
+        public ActiveSessionFeature(IActiveSessionStore Store, ISession? Session, ILogger? Logger, String? TraceIdentifier, String? Suffix)
         {
-            //TODO(future) Implement setting suffix for ActiveSession.Id
             _logger=Logger;
             _traceIdentifier=TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
@@ -31,6 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _store= Store;
             _session = Session;
             _activeSession = DummySession;
+            _suffix=Suffix;
             #if TRACE
             _logger?.LogTraceActiveSessionFeatureConstructorExit(_traceIdentifier);
             #endif
@@ -102,7 +103,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             #if TRACE
                             _logger?.LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(_traceIdentifier);
                             #endif
-                            _activeSession=_store.FetchOrCreateSession(_session, _traceIdentifier)??DummySession;
+                            _activeSession=_store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
                         }
                     }
                 }
@@ -138,7 +139,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceActiveSessionFeatureLoadGetActiveSession(_traceIdentifier);
                     #endif
-                    _activeSession= _store.FetchOrCreateSession(_session, _traceIdentifier)??DummySession;
+                    _activeSession= _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
                 }
             }
             catch(Exception exception)

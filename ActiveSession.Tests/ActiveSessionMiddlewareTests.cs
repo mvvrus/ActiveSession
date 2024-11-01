@@ -337,8 +337,8 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
                 StubSession.SetupGet(x => x.IsAvailable).Returns(true);
 
-                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String>()));
-                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String>())).Returns(MockFeature.Object);
+                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String>(), It.IsAny<String ?>()));
+                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String>(), null)).Returns(MockFeature.Object);
 
                 MockNextDelegate.Setup(NextCallExpression).Returns((HttpContext s) => _spyDelegate?.Invoke(s)??Task.CompletedTask);
             }

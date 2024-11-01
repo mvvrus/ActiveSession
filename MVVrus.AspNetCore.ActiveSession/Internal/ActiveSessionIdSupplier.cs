@@ -12,11 +12,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _prefix=Options.Value.Prefix;
         }
 
-        public String GetActiveSessionId(ISession Session)
+        public String GetBaseActiveSessionId(ISession Session)
         {
             String? result;
-            //result=Session.Id; //TODO(future) Change implementation
-            //TODO(future) The new implementation
             result = Session.GetString(_prefix);
             if(result == null) {
                 result = Guid.NewGuid().ToString();

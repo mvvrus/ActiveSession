@@ -22,7 +22,7 @@ namespace ActiveSession.Tests
             ConstructorTestSetup test_setup = new ConstructorTestSetup();
             //Act
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Assess
             Assert.Equal(test_setup.MockStore.Object, feature.Store);
             Assert.Equal(test_setup.SessionObject, feature.Session);
@@ -44,7 +44,7 @@ namespace ActiveSession.Tests
             //Arrange
             test_setup= new ActiveSessionTestSetup();
             feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             active_session=feature.ActiveSession;
             //Assess
@@ -54,7 +54,7 @@ namespace ActiveSession.Tests
             //Test case: fill ActiveSession property, whlie ActiveSession class instance cannot be created
             //Arrange
             test_setup=new ActiveSessionTestSetup(SessionState.unavailable);
-            feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER);
+            feature=new ActiveSessionFeature(test_setup.MockStore.Object, test_setup.SessionObject, null, TEST_TRACE_IDENTIFIER, null);
             //Act
             active_session=feature.ActiveSession;
             //Assess
@@ -69,7 +69,7 @@ namespace ActiveSession.Tests
             //Arrange
             CommitAsyncTestSetup test_setup = new CommitAsyncTestSetup(SessionState.normal);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.CommitAsync().GetAwaiter().GetResult();
             //Assess
@@ -82,7 +82,7 @@ namespace ActiveSession.Tests
             //Arrange
             test_setup=new CommitAsyncTestSetup(SessionState.unavailable);
             feature=new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             feature.Load();
             //Act
             feature.CommitAsync().GetAwaiter().GetResult();
@@ -93,7 +93,7 @@ namespace ActiveSession.Tests
             //Arrange
             test_setup=new CommitAsyncTestSetup(SessionState.absent);
             feature=new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             feature.Load();
             //Act and assess (just no exeption condition is required)
             feature.CommitAsync().GetAwaiter().GetResult();
@@ -107,7 +107,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup();
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.Load();
             //Assess
@@ -129,7 +129,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup(SessionState.unavailable);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.Load();
             //Assess
@@ -147,7 +147,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup(SessionState.absent);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.Load();
             //Assess
@@ -164,7 +164,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup(ActiveSessionState.isnull);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.Load();
             //Assess
@@ -181,7 +181,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup(ActiveSessionState.throws);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.Load();
             //Assess
@@ -199,7 +199,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup();
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
@@ -221,7 +221,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(SessionState.unavailable);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
@@ -238,7 +238,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(SessionState.absent);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
@@ -255,7 +255,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup(ActiveSessionState.isnull);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
@@ -272,7 +272,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadAsyncTestSetup test_setup = new LoadAsyncTestSetup(ActiveSessionState.throws);
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
@@ -289,7 +289,7 @@ namespace ActiveSession.Tests
             //Arrange
             LoadTestSetup test_setup = new LoadTestSetup();
             ActiveSessionFeature feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             Assert.False(feature.IsLoaded);
             //Act
             feature.Clear();
@@ -322,7 +322,7 @@ namespace ActiveSession.Tests
             //Arrange
             test_setup=new CurrentStoreStatisticsSetup(false);
             feature = new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             statistics = feature.GetCurrentStoreStatistics();
             //Assess
@@ -332,7 +332,7 @@ namespace ActiveSession.Tests
             //Arrange
             test_setup=new CurrentStoreStatisticsSetup(true);
             feature=new ActiveSessionFeature(
-                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER);
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             //Act
             statistics = feature.GetCurrentStoreStatistics();
             //Assess
@@ -384,7 +384,7 @@ namespace ActiveSession.Tests
             {
                 StubActiveSession=new Mock<IActiveSession>();
                 StubActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
-                ActiveSessionLoadExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>());
+                ActiveSessionLoadExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>(),It.IsAny<String?>());
                 switch(ASState) {
                     case ActiveSessionState.normal:
                         MockStore.Setup(ActiveSessionLoadExpression).Returns(StubActiveSession.Object);

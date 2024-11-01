@@ -103,7 +103,7 @@ namespace ActiveSession.Tests
                 using (store=ts.CreateStore()) {
                     //Test case: create new ActiveSession
                     //Act
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Assess
                     Assert.NotNull(session);
                     //Assess IActiveSession
@@ -132,7 +132,7 @@ namespace ActiveSession.Tests
                     Assert.Equal(1, ts.Cache.PostEvictionCallbacks.Count);
 
                     //Test case: fetch ActiveSession from cache
-                    IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(3));
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                     Assert.True(Object.ReferenceEquals(session, session2));
@@ -167,7 +167,7 @@ namespace ActiveSession.Tests
                 ts.ActSessOptions.TrackStatistics=true;
                 ts.ActSessOptions.ActiveSessionSize=AS_SIZE;
                 using(store=ts.CreateStore()) {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Assess
                     Assert.NotNull(session);
                     Assert.True(ts.Cache.IsEntryStored);
@@ -207,7 +207,7 @@ namespace ActiveSession.Tests
                 mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT/2); });
                 using (store=ts.CreateStore()) {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
@@ -222,7 +222,7 @@ namespace ActiveSession.Tests
                 mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
                 using (store=ts.CreateStore()) {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
@@ -239,7 +239,7 @@ namespace ActiveSession.Tests
                 mock_logger.MonitorLogEntry(LogLevel.Debug, D_STORERUNNERCLEANUPRESULT, log_callback);
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
                 using(store=ts.CreateStore()) {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
@@ -275,10 +275,10 @@ namespace ActiveSession.Tests
                     ts.Cache.CreateEntryTrap=pause;
                     using (store=ts.CreateStore()) {
                         //Act
-                        task1=Task.Run(() => { event1.Set(); return store.FetchOrCreateSession(ts.MockSession.Object, null)!; });
+                        task1=Task.Run(() => { event1.Set(); return store.FetchOrCreateSession(ts.MockSession.Object, null, null)!; });
                         if (!event1.WaitOne(2000))
                             throw new Exception("Deadlock detected");
-                        task2=Task.Run(() => { event2.Set(); return store.FetchOrCreateSession(ts.MockSession.Object, null)!; });
+                        task2=Task.Run(() => { event2.Set(); return store.FetchOrCreateSession(ts.MockSession.Object, null, null)!; });
                         if (!event2.WaitOne(2000))
                             throw new Exception("Deadlock detected");
                         Assert.Equal(TaskStatus.Running, task1.Status);
@@ -733,7 +733,7 @@ namespace ActiveSession.Tests
             //Arrange
             using (CreateFetchTestSetup ts = new CreateFetchTestSetup()) {
                 using (ActiveSessionStore store = ts.CreateStore()) {
-                    IActiveSession session = store.FetchOrCreateSession(ts.MockSession.Object, null)!;
+                    IActiveSession session = store.FetchOrCreateSession(ts.MockSession.Object, null, null)!;
                     Task cleanup_task = session.CleanupCompletionTask;
                     //Act
                     Task terminate_task=store.TerminateSession(ts.MockSession.Object,session, ts.MockRunnerManager.Object, null);
@@ -761,14 +761,14 @@ namespace ActiveSession.Tests
             //Arrange
             using (ts=new CreateFetchTestSetup()) {
                 using (store=ts.CreateStore()) {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     Assert.NotNull(session);
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Never);
                     IActiveSession old_session = session;
                     Task cleanup_task = session.CleanupCompletionTask;
                     ts.MockSession.Object.SetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID, -1);
                     //Act
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Assess
                     Assert.NotNull(session);
                     Assert.Equal(2, session.Generation);
@@ -786,7 +786,7 @@ namespace ActiveSession.Tests
                 using (store=ts.CreateStore()) {
                     ts.MockSession.Object.SetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID, -1);
                     //Act
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     //Assess
                     Assert.NotNull(session);
                     Assert.Equal(2, session.Generation);
@@ -804,7 +804,7 @@ namespace ActiveSession.Tests
             ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
             using (ActiveSessionStore store=ts.CreateStore()) {
                 //Act
-                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object,null);
+                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object,null,null);
                 //Assess
                 Assert.IsType<ActiveSessionFeature>(feature);
             }
@@ -823,7 +823,7 @@ namespace ActiveSession.Tests
             //Test case: lonely ActiveSession expired
             //Arrange
             using (ActiveSessionStore store = ts.CreateStore()) {
-                session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session=store.FetchOrCreateSession(ts.MockSession.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 session_cleanup_task=session.CleanupCompletionTask;
                 Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
                 //Act 
@@ -839,7 +839,7 @@ namespace ActiveSession.Tests
             //Test case: a runner expired before its active session
             //Arrange
             using (ActiveSessionStore store = ts.CreateStore()) {
-                session = store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session = store.FetchOrCreateSession(ts.MockSession.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 session_cleanup_task=session.CleanupCompletionTask;
                 Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
                 KeyedRunner<Result1> keyed_runner = store.CreateRunner<String, Result1>(
@@ -873,7 +873,7 @@ namespace ActiveSession.Tests
             //Arrange
             ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
             using (ActiveSessionStore store = ts.CreateStore()) {
-                session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session=store.FetchOrCreateSession(ts.MockSession.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 session_cleanup_task=session.CleanupCompletionTask;
                 ts.Clock.Advance(OwnCacheTestSetup.SESSION_ALMOST_GONE);
                 Assert.Equal(1, store.GetCurrentStatistics()!.SessionCount);
@@ -952,7 +952,7 @@ namespace ActiveSession.Tests
             ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
             using (ActiveSessionStore store = ts.CreateStore()) {
                 try {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                     session_cleanup_task=session.CleanupCompletionTask;
                     evt1.Reset();
                     evt2.Reset();
@@ -988,7 +988,7 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.True(cr1);
                     Assert.False(cr2);
-                    global_lock_used=Task.WaitAny(Task.Run(()=>store.FetchOrCreateSession(stub_another_isession.Object,null)),Task.Delay(5000))!=0;
+                    global_lock_used=Task.WaitAny(Task.Run(()=>store.FetchOrCreateSession(stub_another_isession.Object,null, null)),Task.Delay(5000))!=0;
                     evt1.Set();
                     Assert.True(proceed_event.WaitOne(10000));
                     Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));
@@ -1017,7 +1017,7 @@ namespace ActiveSession.Tests
             ts.ActSessOptions.RunnerIdleTimeout=TimeSpan.FromMinutes(3);
             using (ActiveSessionStore store = ts.CreateStore()) {
                 try {
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null)??throw new Exception("Cannot create ActiveSession");
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                     session_cleanup_task=session.CleanupCompletionTask;
                     evt1.Reset();
                     evt2.Reset();
@@ -1054,7 +1054,7 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.True(cr1);
                     Assert.False(cr2);
-                    global_lock_used=Task.WaitAny(Task.Run(() => store.FetchOrCreateSession(stub_another_isession.Object, null)), Task.Delay(2000))!=0;
+                    global_lock_used=Task.WaitAny(Task.Run(() => store.FetchOrCreateSession(stub_another_isession.Object, null, null)), Task.Delay(2000))!=0;
                     evt1.Set();
                     Assert.True(proceed_event.WaitOne(120000));
                     Assert.Equal(0, Task.WaitAny(create_task1, Task.Delay(2000)));
@@ -1090,7 +1090,7 @@ namespace ActiveSession.Tests
                     //Arrange
                     int dispose_count = 0;
                     ts.DisposeSpyAction = () => dispose_count++;
-                    session=store.FetchOrCreateSession(ts.MockSession.Object, null);
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     Assert.NotNull(session);
                     Task cleanup_task = session.CleanupCompletionTask;
                     store.CreateRunner<String, Result1>(
@@ -1117,7 +1117,7 @@ namespace ActiveSession.Tests
                     Mock<ISession> extra_session_mock = new Mock<ISession>();
                     extra_session_mock.SetupGet(s => s.Id).Returns(NEW_ID);
                     //Act
-                    session=store.FetchOrCreateSession(extra_session_mock.Object, null);
+                    session=store.FetchOrCreateSession(extra_session_mock.Object, null, null);
                     //Assess
                     Assert.Null(session);
                 }
@@ -1163,23 +1163,23 @@ namespace ActiveSession.Tests
             //Assess
             Assess(false);
             //Test case: try to create a session in the disposed store
-            Assert.Throws<ObjectDisposedException>(()=>store.FetchOrCreateSession(session1_mock.Object, null));
+            Assert.Throws<ObjectDisposedException>(()=>store.FetchOrCreateSession(session1_mock.Object, null, null));
 
             void Arrange(Boolean Infinite)
             {
-                ts.MockIdSupplier.Setup(s => s.GetActiveSessionId(session1_mock.Object)).Returns(ID1A);
-                ts.MockIdSupplier.Setup(s => s.GetActiveSessionId(session2_mock.Object)).Returns(ID2A);
+                ts.MockIdSupplier.Setup(s => s.GetBaseActiveSessionId(session1_mock.Object)).Returns(ID1A);
+                ts.MockIdSupplier.Setup(s => s.GetBaseActiveSessionId(session2_mock.Object)).Returns(ID2A);
                 dispose_count = 0;
                 pause_event.Reset();
                 store = ts.CreateStore();
-                as1=store.FetchOrCreateSession(session1_mock.Object, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
+                as1=store.FetchOrCreateSession(session1_mock.Object, null, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
                 Assert.NotNull(as1);
                 cleanup_task1=as1.CleanupCompletionTask;
                 ts.DisposeSpyAction = delay_disposal;
                 store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager,"Runner1a", null);
                 ts.DisposeSpyAction = instant_disposal;
                 store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager, "Runner1b", null);
-                as2=store.FetchOrCreateSession(session2_mock.Object, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
+                as2=store.FetchOrCreateSession(session2_mock.Object, null, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
                 Assert.NotNull(as2);
                 cleanup_task2=as2.CleanupCompletionTask;
                 ts.DisposeSpyAction = delay_disposal;
@@ -1228,7 +1228,7 @@ namespace ActiveSession.Tests
             using(ActiveSessionStore store = ts.CreateStore()) {
                 gen=9;
                 sess_mock.Object.SetInt32(SessionKey(),-(gen-1));
-                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 Assert.Equal(gen, session.Generation);
                 (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, session.RunnerManager, "", null );
                 Assert.Equal(0, number);
@@ -1253,7 +1253,7 @@ namespace ActiveSession.Tests
                 key11=RunnerKey(0, gen);
                 sess_mock.Object.SetString(key11, DEFAULT_HOST_NAME);
                 sess_mock.Object.SetString(key11+"_Type", typeof(Result1).FullName!);
-                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null)??throw new Exception("Cannot create ActiveSession");
+                session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 Assert.Equal(gen, session.Generation);
                 Assert.Null(sess_mock.Object.GetString(key90));
                 Assert.Null(sess_mock.Object.GetString(key90+"_Type"));
@@ -1287,13 +1287,13 @@ namespace ActiveSession.Tests
             ActiveSessionIdSupplier supplier = new ActiveSessionIdSupplier(i_options);
             String id1,id2;
             //Test case: obtain a new Id
-            id1=supplier.GetActiveSessionId(session_mock.Object);
+            id1=supplier.GetBaseActiveSessionId(session_mock.Object);
             Assert.NotEqual(session_mock.Object.Id,id1);
             Assert.NotNull(active_session_id_bytes);
             Assert.Equal(active_session_id, id1);
             Assert.Matches("[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}", id1);
             //Test case: obtain the existing Id
-            id2=supplier.GetActiveSessionId(session_mock.Object);
+            id2=supplier.GetBaseActiveSessionId(session_mock.Object);
             Assert.Equal(id1, id2);
         }
 
@@ -1647,7 +1647,7 @@ namespace ActiveSession.Tests
                         }
                     });
                 MockSession.SetupGet(s => s.Keys).Returns(_session_values.Keys);
-                MockIdSupplier.Setup(s => s.GetActiveSessionId(MockSession.Object)).Returns(TEST_ACTIVESESSION_ID);
+                MockIdSupplier.Setup(s => s.GetBaseActiveSessionId(MockSession.Object)).Returns(TEST_ACTIVESESSION_ID);
             }
 
             static IRunnerFactory<TRequest, TResult> MockRunnerFactory<TRequest, TResult>(

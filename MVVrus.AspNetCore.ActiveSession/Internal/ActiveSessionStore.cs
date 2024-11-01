@@ -183,11 +183,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             GC.SuppressFinalize(this);
         }
 
-        public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier)
+        public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier, String? Suffix)
         {
+            //TODO Test passsing suffix
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            String nogen_session_id = _idSupplier.GetActiveSessionId(Session);
+            String nogen_session_id = _idSupplier.GetBaseActiveSessionId(Session);
+            if(!String.IsNullOrEmpty(Suffix)) nogen_session_id+="-"+Suffix;
             String session_id = nogen_session_id+":?";
             #if TRACE
             _logger?.LogTraceFetchOrCreate(nogen_session_id, trace_identifier);
@@ -544,9 +546,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             } :null;
         }
 
-        public IActiveSessionFeature AcquireFeatureObject(ISession? Session, String? TraceIdentier)
+        public IActiveSessionFeature AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix)
         {
-            return new ActiveSessionFeature(this, Session, _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), TraceIdentier);
+            //TODO Test passing Suffix
+            return new ActiveSessionFeature(this, Session, _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), TraceIdentier, Suffix);
         }
 
         public void ReleaseFeatureObject(IActiveSessionFeature AnObject)

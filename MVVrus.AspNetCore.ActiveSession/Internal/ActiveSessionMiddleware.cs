@@ -58,7 +58,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             try {
                 (Boolean pass, String? suffix)=_mapper.MapContext(Context);
                 if (pass) {
-                    feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier);
+                    feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier, suffix);
+                    //TODO test passing suffix to AcquireFeatureObject
                     Context.Features.Set(feature);
                     _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
                     if (_preloadActiveSession||_useSessionServicesAsRequestServices) {

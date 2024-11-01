@@ -2,6 +2,6 @@
 {
     internal interface IActiveSessionIdSupplier
     {
-        String GetActiveSessionId(ISession Session); 
+        String GetBaseActiveSessionId(ISession Session); 
     }
 }
