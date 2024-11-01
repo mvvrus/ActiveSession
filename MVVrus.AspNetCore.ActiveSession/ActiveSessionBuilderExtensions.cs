@@ -18,7 +18,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="Builder">The application middleware pipeline builder</param>
         /// <param name="Filter">
-        /// A predicate that is used to filter requests for which an active session feature will be available.
+        /// A reference to an object instance implementing the <see cref="IMiddlewareFilterSource"/> interface
+        /// that is used to filter requests for which an active session feature will be available.
         /// Defaults to null that means the feature will be available for all requests
         /// </param>
         /// <returns>The <paramref name="Builder"/> parameter value to allow call chaining.</returns>
@@ -36,7 +37,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <see cref="ActiveSessionServiceCollectionExtensions"/> class.
         /// </para>
         /// </remarks>
-        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, Boolean>? Filter=null ) 
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, IMiddlewareFilterSource? Filter = null)
         {
             ILogger? logger = Builder.
                                 ApplicationServices.
@@ -79,12 +80,41 @@ namespace MVVrus.AspNetCore.ActiveSession
                 #if TRACE
                 logger?.LogTraceUseActiveSessionParamsAddFilter();
                 #endif
-                middleware_param.Filters.Add((SimplePredicateFilterSource)Filter);
+                middleware_param.Filters.Add(Filter);
             }
             #if TRACE
             logger?.LogTraceUseActiveSessionsExit();
             #endif
             return Builder;
+        }
+
+        //TODO Use <inheritdoc>
+        /// <summary>
+        /// Adds the ActiveSession midleware to an application middleware pipeline to be built
+        /// </summary>
+        /// <param name="Builder">The application middleware pipeline builder</param>
+        /// <param name="Filter">
+        /// A predicate that is used to filter requests for which an active session feature will be available.
+        /// Defaults to null that means the feature will be available for all requests
+        /// </param>
+        /// <returns>The <paramref name="Builder"/> parameter value to allow call chaining.</returns>
+        /// <remarks>
+        /// <para>
+        /// The ActiveSession midleware adds an implementation of the active session feature (of type <see cref="IActiveSessionFeature"/>)
+        /// to the <see cref="HttpContext.Features"/> collection of the request processing context. 
+        /// If the <paramref name="Filter"/> predicate exists and is not null, 
+        /// the feature will be added by the middleware only if an HTTP  request under processing passes the predicate.
+        /// Otherwise the feature will be added to any request context.
+        /// </para>
+        /// <para>
+        /// The middleware will be added to the pipeline only if at least one runner factory service (<see cref="IRunnerFactory{TRequest, TResult}"/>) 
+        /// is registered in the application's service container via one of AddActiveSession extension methods defined in the 
+        /// <see cref="ActiveSessionServiceCollectionExtensions"/> class.
+        /// </para>
+        /// </remarks>
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, Boolean> Filter)
+        {
+            return Builder.UseActiveSessions((SimplePredicateFilterSource)Filter);
         }
 
         /// <summary>
