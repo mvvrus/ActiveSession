@@ -247,9 +247,42 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.Equal(true, in_time);
                 }
+            }
+        }
 
+        //Test group: creating or fetching from cache an active session with suffix
+        [Fact]
+        public void CreateOrFetchSessionWithSuffix()
+        {
+            CreateFetchTestSetup ts;
+            ActiveSessionStore store;
+            IActiveSession? session;
 
+            const String SUFFIX = "Test";
 
+            //Arrange
+            using(ts=new CreateFetchTestSetup()) {
+                using(store=ts.CreateStore()) {
+
+                    //Test case: create a new ActiveSession
+                    //Act
+                    session=store.FetchOrCreateSession(ts.MockSession.Object, null, SUFFIX);
+                    //Assess
+                    Assert.NotNull(session);
+                    //Assess IActiveSession
+                    String id_to_be= CreateFetchTestSetup.TEST_ACTIVESESSION_ID+"-"+SUFFIX;
+                    Assert.Equal(id_to_be, session.Id);
+                    //Assess a cache entry
+                    Assert.True(ts.Cache.IsEntryStored);
+                    Assert.Equal(DEFAULT_SESSION_KEY_PREFIX+"_"+id_to_be, ts.Cache.Key);
+                    Assert.True(ReferenceEquals(session, ts.Cache.Value));
+
+                    //Test case: fetch ActiveSession from cache
+                    //Act
+                    IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, SUFFIX);
+                    //Assess
+                    Assert.Same(session, session2);
+                }
             }
         }
 
@@ -794,19 +827,31 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test case: call CreateFeatureObject method
+        //Test group: call CreateFeatureObject method
         [Fact]
         public void CreateFeatureObject()
         {
+            const string TEST_SUFFIX="TestSuffix";
             //Arrange
             Mock<ISession> dummy_session = new Mock<ISession>();
             MockedCache cache_mock = new MockedCache();
             ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
+            ActiveSessionFeature feature_impl;
+            //Test case: no suffix
             using (ActiveSessionStore store=ts.CreateStore()) {
                 //Act
                 IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object,null,null);
                 //Assess
-                Assert.IsType<ActiveSessionFeature>(feature);
+                feature_impl=Assert.IsType<ActiveSessionFeature>(feature);
+                Assert.Null(feature_impl.Suffix);
+            }
+            //Test case: specify suffix
+            using(ActiveSessionStore store = ts.CreateStore()) {
+                //Act
+                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX);
+                //Assess
+                feature_impl=Assert.IsType<ActiveSessionFeature>(feature);
+                Assert.Equal(TEST_SUFFIX,feature_impl.Suffix);
             }
         }
 

@@ -24,7 +24,7 @@ namespace ActiveSession.Tests
             //Act
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
-                new ActiveSessionMiddleware.MiddlewareParam{AcceptAll=true},
+                new ActiveSessionMiddleware.MiddlewareParam { AcceptAll=true },
                 test_setup.StubStore.Object,
                 test_setup.LoggerFactory,
                 test_setup.StubOptions.Object
@@ -70,7 +70,7 @@ namespace ActiveSession.Tests
             //Arrange
             NextDelegateHost spy_host = new NextDelegateHost();
             MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
-                new ActiveSessionOptions { UseSessionServicesAsRequestServices=true, PreloadActiveSession=false}, spy_host.SpyDelegate);
+                new ActiveSessionOptions { UseSessionServicesAsRequestServices=true, PreloadActiveSession=false }, spy_host.SpyDelegate);
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
             ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
                 test_setup.MockNextDelegate.Object,
@@ -145,7 +145,7 @@ namespace ActiveSession.Tests
                 test_throws=true;
             }
             //Assess
-            Assert.True(test_throws,"Test exception was not thrown");
+            Assert.True(test_throws, "Test exception was not thrown");
             test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Once);
             test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
             Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
@@ -161,33 +161,18 @@ namespace ActiveSession.Tests
         public void InvokeActiveSessionMiddleware_FilteredOut()
         {
             //Arrange
-            NextDelegateHost spy_host = new NextDelegateHost();
-            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
-                new ActiveSessionOptions(), spy_host.SpyDelegate);
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
-            HttpContext? filtered_context = null;
-            Func<HttpContext, Boolean> neg_filter =  context => { filtered_context=context; return false; };
-            ActiveSessionMiddleware.MiddlewareParam mwparam=new ActiveSessionMiddleware.MiddlewareParam();
+            Func<HttpContext, Boolean> neg_filter = context => { return false; };
+            ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
             mwparam.Filters.Add((SimplePredicateFilterSource)neg_filter);
-            ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
-                test_setup.MockNextDelegate.Object,
-                mwparam,
-                test_setup.StubStore.Object,
-                test_setup.LoggerFactory,
-                test_setup.StubOptions.Object
-            );
+            test_setup.MakeMiddleware(mwparam);
             //Act
-            middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
+            test_setup.Invoke(test_context.MockContext.Object);
             //Assess
-            Assert.True(ReferenceEquals(test_context.MockContext.Object, filtered_context));
-            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Never);
-            test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
-            Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
-            Assert.Null(spy_host.Feature);
-            test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Never);
-            Assert.Null(test_context.ShadowActiveSessionFeature);
-            test_setup.StubStore.Verify(test_setup.ClearCallExpression, Times.Never);
-            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.Suffix);
+            Assert.False(test_setup.ActiveSessionWasAvailable);
         }
 
         //Test case: Invoke ActiveSessionMiddleware with a filtered out request be made and AcceptAll is set to true
@@ -195,34 +180,19 @@ namespace ActiveSession.Tests
         public void InvokeActiveSessionMiddleware_FilteredOutAcceptAll()
         {
             //Arrange
-            NextDelegateHost spy_host = new NextDelegateHost();
-            MiddlewareInvokeTestSetup test_setup = new MiddlewareInvokeTestSetup(
-                new ActiveSessionOptions(), spy_host.SpyDelegate);
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
-            HttpContext? filtered_context = null;
-            Func<HttpContext, Boolean> neg_filter = context => { filtered_context=context; return false; };
+            Func<HttpContext, Boolean> neg_filter = context => { return false; };
             ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
             mwparam.Filters.Add((SimplePredicateFilterSource)neg_filter);
             mwparam.AcceptAll=true;
-            ActiveSessionMiddleware middleware = new ActiveSessionMiddleware(
-                test_setup.MockNextDelegate.Object,
-                mwparam,
-                test_setup.StubStore.Object,
-                test_setup.LoggerFactory,
-                test_setup.StubOptions.Object
-            );
+            test_setup.MakeMiddleware(mwparam);
             //Act
-            middleware.Invoke(test_context.MockContext.Object).GetAwaiter().GetResult();
+            test_setup.Invoke(test_context.MockContext.Object);
             //Assess
-            Assert.Null(filtered_context);
-            test_setup.MockFeature.Verify(test_setup.LoadAsyncCallExpression, Times.Once);
-            test_setup.MockNextDelegate.Verify(test_setup.NextCallExpression, Times.Once);
-            Assert.Equal(REQUEST_SERVICES_IDENT, spy_host.RequestServicesId);
-            Assert.Equal(test_setup.MockFeature.Object, spy_host.Feature);
-            test_setup.MockFeature.Verify(test_setup.CommitAsyncCallExpression, Times.Once);
-            Assert.Null(test_context.ShadowActiveSessionFeature);
-            test_setup.StubStore.Verify(test_setup.ClearCallExpression, Times.Once);
-            Assert.Equal(test_context.StubRequestServices.Object, test_context.MockContext.Object.RequestServices);
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.Suffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
         }
 
         //Test case: Invoke ActiveSessionMiddleware built with two filters with a request filtered out the second of them
@@ -311,7 +281,11 @@ namespace ActiveSession.Tests
                 s => s.ReleaseFeatureObject(It.IsAny<IActiveSessionFeature>());
 
             Mock<IServiceProvider> _stubSessionServices { get; init; }
-            RequestDelegate? _spyDelegate;
+            protected RequestDelegate? _spyDelegate;
+
+            String? _suffix = null;
+            public String? Suffix { get => _suffix; }
+            void FetchCallback(ISession ignore1, String? ignore2, String? s) { _suffix=s; }
 
 
             public MiddlewareInvokeTestSetup(ActiveSessionOptions Options, RequestDelegate? SpyDelegate=null)
@@ -338,9 +312,53 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(x => x.IsAvailable).Returns(true);
 
                 StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String>(), It.IsAny<String ?>()));
-                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String>(), null)).Returns(MockFeature.Object);
+                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String>(), null))
+                    .Callback(FetchCallback)
+                    .Returns(MockFeature.Object);
 
                 MockNextDelegate.Setup(NextCallExpression).Returns((HttpContext s) => _spyDelegate?.Invoke(s)??Task.CompletedTask);
+            }
+        }
+
+        class MiddlewareFilterTestSetup : MiddlewareInvokeTestSetup
+        {
+
+            ActiveSessionMiddleware _middleware = null!;
+            public Boolean ActiveSessionWasAvailable { get; private set; }
+            public String? ActiveSessionSuffix { get; private set; }
+            public Boolean NextRequestDelegateInvoked { get; private set; }
+
+            public MiddlewareFilterTestSetup() :
+                base(new ActiveSessionOptions())
+            {
+                _spyDelegate=SpyDelegate;
+            }
+
+            public void MakeMiddleware(ActiveSessionMiddleware.MiddlewareParam Param)
+            {
+                _middleware = new ActiveSessionMiddleware(
+                    MockNextDelegate.Object,
+                    Param,
+                    StubStore.Object,
+                    LoggerFactory,
+                    StubOptions.Object
+                );
+            }
+
+            public void Invoke(HttpContext Context)
+            {
+                ActiveSessionWasAvailable = false;
+                ActiveSessionSuffix = null;
+                NextRequestDelegateInvoked = false;
+                _middleware!. Invoke(Context).GetAwaiter().GetResult();
+            }
+
+            private Task SpyDelegate(HttpContext Context)
+            {
+                ActiveSessionWasAvailable = Context.GetActiveSession().IsAvailable;
+                ActiveSessionSuffix = ActiveSessionWasAvailable?Suffix:null;
+                NextRequestDelegateInvoked =true;
+                return Task.CompletedTask;
             }
         }
 

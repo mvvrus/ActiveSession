@@ -113,13 +113,13 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.True(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
 
             //Test case: successfull non-first executions of Load method (already Arranged)
             //Act
             feature.Load();
             //Assess
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
         //Test case: call Load method with an unavailable ISession
@@ -137,7 +137,7 @@ namespace ActiveSession.Tests
             Assert.True(feature.IsLoaded);
             Assert.NotNull(feature.ActiveSession);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
         }
 
         //Test case: call Load method with a null ISession
@@ -154,7 +154,7 @@ namespace ActiveSession.Tests
             Assert.Null(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
         }
 
         //Test case: call Load method leading to a null IActiveSession
@@ -171,7 +171,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
         //Test case: exception while calling the Load Method
@@ -187,7 +187,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
 
@@ -205,13 +205,13 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.True(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
 
             //Test case: successfull non-first executions of LoadAsync method (already Arranged)
             //Act
             feature.LoadAsync().GetAwaiter().GetResult();
             //Assess
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
         //Test case: call LoadAsync method with an unavailable ISession
@@ -228,7 +228,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
         }
 
         //Test case: call LoadAsync method for a null ISession
@@ -245,7 +245,7 @@ namespace ActiveSession.Tests
             Assert.Null(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Never);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
         }
 
         //Test case: call Load method leading to a null IActiveSession
@@ -262,7 +262,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
         //Test case: exception while calling the LoadAsync method
@@ -278,7 +278,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
-            test_setup.MockStore.Verify(test_setup.ActiveSessionLoadExpression, Times.Once);
+            test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
         }
 
         //Test group: call Clear method
@@ -342,9 +342,35 @@ namespace ActiveSession.Tests
             Assert.Equal(0, statistics.StoreSize);
         }
 
+        //Test case: ActiveSession id with suffix 
+        [Fact]
+        public void ActiveSessionWithSuffix()
+        {
+            const string TEST_SUFFIX = "TestSuffix";
+            ActiveSessionTestSetup test_setup;
+            ActiveSessionFeature feature;
+            IActiveSession active_session;
+
+            //Test case: fill ActiveSession property, success
+            //Arrange
+            test_setup= new ActiveSessionTestSetup();
+            feature = new ActiveSessionFeature(
+                test_setup.MockStore.Object, test_setup.SessionObject, test_setup.StubLogger.Logger, TEST_TRACE_IDENTIFIER, TEST_SUFFIX);
+            //Act
+            active_session=feature.ActiveSession;
+            //Assess
+            Assert.True(active_session.IsAvailable);
+            Assert.Equal(MakeId(TEST_SUFFIX), active_session.Id);
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Auxilary classes
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        static String MakeId(String? Suffix)
+        {
+            return TEST_SESSION_ID+(String.IsNullOrEmpty(Suffix) ? "" : "-"+Suffix);
+        }
+
         enum SessionState { normal, absent, unavailable }
 
         class ConstructorTestSetup
@@ -374,26 +400,32 @@ namespace ActiveSession.Tests
         class LoadTestSetup : ConstructorTestSetup
         {
             public readonly Mock<IActiveSession> StubActiveSession;
-            public readonly Expression<Func<IActiveSessionStore, IActiveSession?>> ActiveSessionLoadExpression;
+            public readonly Expression<Func<IActiveSessionStore, IActiveSession?>> ActiveSessionStoreFetchExpression;
 
             public LoadTestSetup(ActiveSessionState ASState) : this(SessionState.normal, ASState) { }
             public LoadTestSetup() : this(SessionState.normal, ActiveSessionState.normal) { }
             public LoadTestSetup(SessionState State) : this(State, ActiveSessionState.normal) { }
+            public String? _suffix = null;
+            public String? Suffix { get=>_suffix;}
+
+            void FetchCallback(ISession ignore1, String? ignore2, String? s)  { _suffix=s; }
 
             protected LoadTestSetup(SessionState State, ActiveSessionState ASState) : base(State)
             {
                 StubActiveSession=new Mock<IActiveSession>();
                 StubActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
-                ActiveSessionLoadExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>(),It.IsAny<String?>());
+                ActiveSessionStoreFetchExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>(),It.IsAny<String?>());
                 switch(ASState) {
                     case ActiveSessionState.normal:
-                        MockStore.Setup(ActiveSessionLoadExpression).Returns(StubActiveSession.Object);
+                        MockStore.Setup(ActiveSessionStoreFetchExpression)
+                            .Callback(FetchCallback)
+                            .Returns(StubActiveSession.Object);
                         break;
                     case ActiveSessionState.isnull:
-                        MockStore.Setup(ActiveSessionLoadExpression).Returns((IActiveSession?)null);
+                        MockStore.Setup(ActiveSessionStoreFetchExpression).Returns((IActiveSession?)null);
                         break;
                     case ActiveSessionState.throws:
-                        MockStore.Setup(ActiveSessionLoadExpression).Throws(new TestException());
+                        MockStore.Setup(ActiveSessionStoreFetchExpression).Throws(new TestException());
                         break;
                 }
             }
@@ -401,9 +433,12 @@ namespace ActiveSession.Tests
 
         class ActiveSessionTestSetup : LoadTestSetup
         {
+
+            String GetId() => MakeId(Suffix);
+
             public ActiveSessionTestSetup(SessionState State = SessionState.normal) : base(State)
             {
-                StubActiveSession.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
+                StubActiveSession.SetupGet(s => s.Id).Returns(GetId);
             }
         }
 

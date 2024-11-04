@@ -11,6 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal ILogger? Logger { get { return _logger; } }
         internal String TraceIdentifier { get { return _traceIdentifier; } }
         internal IActiveSession RawActiveSession { get { return _activeSession; } }
+        internal String? Suffix { get { return _suffix; } }
 
         readonly IActiveSessionStore _store;
         ISession? _session;

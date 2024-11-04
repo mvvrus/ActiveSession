@@ -185,7 +185,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier, String? Suffix)
         {
-            //TODO Test passsing suffix
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             String nogen_session_id = _idSupplier.GetBaseActiveSessionId(Session);
@@ -548,7 +547,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IActiveSessionFeature AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix)
         {
-            //TODO Test passing Suffix
             return new ActiveSessionFeature(this, Session, _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), TraceIdentier, Suffix);
         }
 
