@@ -127,8 +127,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
             public MapContextResult MapContext(HttpContext Context)
             {
-                Boolean dont_scan_all = _acceptAll && !_canSetSuffix;
-
                 Boolean was_mapped = false;
                 String? session_suffix = null;
                 int order = Int32.MaxValue;
@@ -140,7 +138,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 {
                     (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Apply(Context);
                     was_mapped = was_mapped || mapped_here;
-                    if(mapped_order<order) {
+                    if(mapped_here && mapped_order<order) {
                         //TODO(future) Middleware filter grouping: test this
                         order=mapped_order;
                         session_suffix=mapped_suffix??session_suffix;
