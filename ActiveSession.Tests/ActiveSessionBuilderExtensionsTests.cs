@@ -133,6 +133,58 @@ namespace ActiveSession.Tests
             Assert.False(middleware_filter.Apply(fake_context.Object).WasMapped); //REQ_PATH2
         }
 
+        const String TEST_SUFFIX1 = "1";
+        const String TEST_SUFFIX2 = "2";
+
+        //Test case: custom filter delegate installation with suffix
+        [Fact]
+        public void UseActiveSessions_DelegateFilterWithSuffix()
+        {
+            //Arrange
+            TestSetup ts = new TestSetup();
+            Func<HttpContext, Boolean> filter = context => context.Request.Path.Equals("/");
+            //Act
+            ts.mock_builder.Object.UseActiveSessions(filter,TEST_SUFFIX1);
+            //Assess
+            ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
+            Assert.False(middleware_param.AcceptAll);
+            Assert.Single(middleware_param.Filters);
+            Assert.Same(filter, (middleware_param.Filters[0] as PredicateWithSuffixFilterSource)?.Predicate);
+            Assert.Equal(TEST_SUFFIX1, (middleware_param.Filters[0] as PredicateWithSuffixFilterSource)?.Suffix);
+        }
+
+        //Test case: Regex-based filter delegate installation
+        [Fact]
+        public void UseActiveSessions_RegexFilterWithSuffix()
+        {
+            //Arrange
+            const string PATH1 = "path1";
+            const string PATH2 = "path2";
+            const string REST = "(/subpath?p1=1";
+            const string REQ_PATH1 = "/"+PATH1+REST;
+            const string REQ_PATH2 = "/"+PATH2+REST;
+            ActiveSessionOptions options = new ActiveSessionOptions();
+
+            TestSetup ts = new TestSetup();
+            ts.stub_sp.Setup(s => s.GetService(typeof(IOptions<ActiveSessionOptions>))).Returns(Options.Create(options));
+            Mock<HttpContext> fake_context = new Mock<HttpContext>();
+            fake_context.SetupSequence(s => s.Request.Path).Returns(REQ_PATH1).Returns(REQ_PATH2);
+            String filter = "^/"+PATH1+"(/.*)?";
+            //Act
+            ts.mock_builder.Object.UseActiveSessions(filter, TEST_SUFFIX1);
+            //Assess
+            ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
+            IMiddlewareFilter middleware_filter = middleware_param.Filters[0].Create(0);
+            Assert.False(middleware_param.AcceptAll);
+            Assert.Single(middleware_param.Filters);
+            var result1 = middleware_filter.Apply(fake_context.Object); //REQ_PATH1
+            Assert.True(result1.WasMapped);
+            Assert.Equal(TEST_SUFFIX1, result1.SessionSuffix);
+            var result2 = middleware_filter.Apply(fake_context.Object);//REQ_PATH2
+            Assert.False(result2.WasMapped);
+            Assert.Null(result2.SessionSuffix);
+        }
+
         //Test case: two UseActiveSession calls with and without delegate
         [Fact]
         public void UseActiveSessions_TwiceWithAndWithoutDelegate()

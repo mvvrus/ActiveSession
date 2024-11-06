@@ -146,6 +146,36 @@ namespace MVVrus.AspNetCore.ActiveSession
             return UseActiveSessions(Builder, filter);
         }
 
+        /// <summary>
+        /// TODO Document this!
+        /// </summary>
+        /// <param name="Builder"></param>
+        /// <param name="Filter"></param>
+        /// <param name="Suffix"></param>
+        /// <returns></returns>
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, Boolean> Filter, String Suffix)
+        {
+            return Builder.UseActiveSessions(new PredicateWithSuffixFilterSource( Filter,Suffix));
+        }
+
+
+        /// <summary>
+        /// TODO Document this!
+        /// </summary>
+        /// <param name="Builder"></param>
+        /// <param name="Filter"></param>
+        /// <param name="Suffix"></param>
+        /// <param name="TimeOut"></param>
+        /// <returns></returns>
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, String Filter, String Suffix, TimeSpan TimeOut = default)
+        {
+            if(TimeOut==default)
+                TimeOut=Builder.ApplicationServices.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.PathRegexTimeout;
+            Regex path_matcher = new Regex(Filter, IgnoreCase | Compiled | CultureInvariant, TimeOut);
+            Func<HttpContext, Boolean> filter = context => path_matcher.IsMatch(context.Request.Path);
+            return UseActiveSessions(Builder, filter, Suffix);
+        }
+
         internal const String ACTIVESESSION_PROPERTYNAME = "__ActiveSession__";
 
     }

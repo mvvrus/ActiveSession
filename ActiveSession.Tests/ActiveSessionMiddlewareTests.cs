@@ -171,7 +171,7 @@ namespace ActiveSession.Tests
             test_setup.Invoke(test_context.MockContext.Object);
             //Assess
             Assert.True(test_setup.NextRequestDelegateInvoked);
-            Assert.Null(test_setup.Suffix);
+            Assert.Null(test_setup.ActiveSessionSuffix);
             Assert.False(test_setup.ActiveSessionWasAvailable);
         }
 
@@ -191,16 +191,16 @@ namespace ActiveSession.Tests
             test_setup.Invoke(test_context.MockContext.Object);
             //Assess
             Assert.True(test_setup.NextRequestDelegateInvoked);
-            Assert.Null(test_setup.Suffix);
+            Assert.Null(test_setup.ActiveSessionSuffix);
             Assert.True(test_setup.ActiveSessionWasAvailable);
         }
 
+        const string PATH1 = "/path1";
+        const string PATH2 = "/path2";
         //Test case: Invoke ActiveSessionMiddleware built with two filters with a request filtered out the second of them
         [Fact]
         public void InvokeActiveSessionMiddleware_TwoFilters()
         {
-            const string PATH1 = "/path1";
-            const string PATH2 = "/path2";
             //Arrange
             MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
             FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
@@ -215,21 +215,153 @@ namespace ActiveSession.Tests
             test_setup.Invoke(test_context.MockContext.Object);
             //Assess
             Assert.True(test_setup.NextRequestDelegateInvoked);
-            Assert.Null(test_setup.Suffix);
+            Assert.Null(test_setup.ActiveSessionSuffix);
             Assert.True(test_setup.ActiveSessionWasAvailable);
             //Act
             test_context.SetPath(PATH2+"/rest");
             test_setup.Invoke(test_context.MockContext.Object);
             //Assess
             Assert.True(test_setup.NextRequestDelegateInvoked);
-            Assert.Null(test_setup.Suffix);
+            Assert.Null(test_setup.ActiveSessionSuffix);
             Assert.True(test_setup.ActiveSessionWasAvailable);
             //Act
             test_context.SetPath("/rest");
             test_setup.Invoke(test_context.MockContext.Object);
             //Assess
             Assert.True(test_setup.NextRequestDelegateInvoked);
-            Assert.Null(test_setup.Suffix);
+            Assert.Null(test_setup.ActiveSessionSuffix);
+            Assert.False(test_setup.ActiveSessionWasAvailable);
+        }
+
+        const String SUFFIX1 = "1";
+        const String SUFFIX2 = "2";
+
+        //Test group: set IActiveSession.Id suffix - single filter w/o AcceptAll
+        [Fact]
+        public void Invoke_SuffixSinglleFilterNotAcceptAll()
+        {
+            //Arrange
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
+            Func<HttpContext, Boolean> filter1 = context => { return context.Request.Path.StartsWithSegments(PATH1); };
+            ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
+            mwparam.Filters.Add(new PredicateWithSuffixFilterSource(filter1, SUFFIX1));
+            test_setup.MakeMiddleware(mwparam);
+            //Act
+            test_context.SetPath(PATH1+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Equal(SUFFIX1, test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath(PATH2+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.ActiveSessionSuffix);
+            Assert.False(test_setup.ActiveSessionWasAvailable);
+        }
+
+        //Test group: set IActiveSession.Id suffix - single filter with AcceptAll
+        [Fact]
+        public void Invoke_SuffixSinglleFilterAcceptAll()
+        {
+            //Arrange
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
+            Func<HttpContext, Boolean> filter1 = context => { return context.Request.Path.StartsWithSegments(PATH1); };
+            ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
+            mwparam.Filters.Add(new PredicateWithSuffixFilterSource(filter1, SUFFIX1));
+            mwparam.AcceptAll=true;
+            test_setup.MakeMiddleware(mwparam);
+            //Act
+            test_context.SetPath(PATH1+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Equal(SUFFIX1, test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath(PATH2+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+        }
+
+        //Test group: set IActiveSession.Id suffix - two filters w/o AcceptAll
+        [Fact]
+        public void Invoke_SuffixTwoFilters()
+        {
+            //Arrange
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
+            Func<HttpContext, Boolean> filter1 = context => { return context.Request.Path.StartsWithSegments(PATH1); };
+            Func<HttpContext, Boolean> filter2 = context => { return context.Request.Path.StartsWithSegments(PATH2); };
+            ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
+            mwparam.Filters.Add(new PredicateWithSuffixFilterSource(filter1, SUFFIX1));
+            mwparam.Filters.Add(new PredicateWithSuffixFilterSource(filter2, SUFFIX2));
+            test_setup.MakeMiddleware(mwparam);
+            //Act
+            test_context.SetPath(PATH1+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Equal(SUFFIX1, test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath(PATH2+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Equal(SUFFIX2, test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath("/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.ActiveSessionSuffix);
+            Assert.False(test_setup.ActiveSessionWasAvailable);
+        }
+
+        //Test group: set IActiveSession.Id suffix - two filters w/o AcceptAll,
+        //  1st - does not set suffix, 2nd - accepts only a subset of paths for the first.
+        [Fact]
+        public void Invoke_TwoFiltersOneSuffix()
+        {
+            const String SUBPATH1 = "/sub1";
+            //Arrange
+            MiddlewareFilterTestSetup test_setup = new MiddlewareFilterTestSetup();
+            FakeHttpContext test_context = new FakeHttpContext(test_setup.StubSession.Object);
+            Func<HttpContext, Boolean> filter1 = context => { return context.Request.Path.StartsWithSegments(PATH1); };
+            Func<HttpContext, Boolean> filter2 = context => { return context.Request.Path.StartsWithSegments(PATH1+SUBPATH1); };
+            ActiveSessionMiddleware.MiddlewareParam mwparam = new ActiveSessionMiddleware.MiddlewareParam();
+            mwparam.Filters.Add(new SimplePredicateFilterSource(filter1));
+            mwparam.Filters.Add(new PredicateWithSuffixFilterSource(filter2, SUFFIX2));
+            test_setup.MakeMiddleware(mwparam);
+            //Act
+            test_context.SetPath(PATH1+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath(PATH1+SUBPATH1+"/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Equal(SUFFIX2, test_setup.ActiveSessionSuffix);
+            Assert.True(test_setup.ActiveSessionWasAvailable);
+            //Act
+            test_context.SetPath("/rest");
+            test_setup.Invoke(test_context.MockContext.Object);
+            //Assess
+            Assert.True(test_setup.NextRequestDelegateInvoked);
+            Assert.Null(test_setup.ActiveSessionSuffix);
             Assert.False(test_setup.ActiveSessionWasAvailable);
         }
 
@@ -281,7 +413,8 @@ namespace ActiveSession.Tests
             protected RequestDelegate? _spyDelegate;
 
             String? _suffix = null;
-            public String? Suffix { get => _suffix; }
+            protected String? Suffix { get => _suffix; }
+            public void ResetSuffix() { _suffix=null; }
             void FetchCallback(ISession ignore1, String? ignore2, String? s) { _suffix=s; }
 
 
@@ -308,8 +441,8 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
                 StubSession.SetupGet(x => x.IsAvailable).Returns(true);
 
-                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String>(), It.IsAny<String ?>()));
-                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String>(), null))
+                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String?>(), It.IsAny<String ?>()));
+                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String?>(), It.IsAny<String?>()))
                     .Callback(FetchCallback)
                     .Returns(MockFeature.Object);
 
@@ -346,6 +479,7 @@ namespace ActiveSession.Tests
             {
                 ActiveSessionWasAvailable = false;
                 ActiveSessionSuffix = null;
+                ResetSuffix();
                 NextRequestDelegateInvoked = false;
                 _middleware!. Invoke(Context).GetAwaiter().GetResult();
             }

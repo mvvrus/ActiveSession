@@ -138,10 +138,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 {
                     (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Apply(Context);
                     was_mapped = was_mapped || mapped_here;
-                    if(mapped_here && mapped_order<order) {
-                        //TODO(future) Middleware filter grouping: test this
-                        order=mapped_order;
-                        session_suffix=mapped_suffix??session_suffix;
+                    if(mapped_here) {
+                        if(mapped_order<order) {
+                            //In this version this case is impossible.
+                            //TODO(future) Middleware filter grouping: test this
+                            order=mapped_order;
+                            session_suffix=mapped_suffix??session_suffix;
+                        }
+                        else session_suffix=session_suffix??mapped_suffix;
                     }
                 }
                 was_mapped = was_mapped || _acceptAll;

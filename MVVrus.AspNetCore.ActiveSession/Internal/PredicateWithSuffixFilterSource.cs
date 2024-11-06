@@ -14,6 +14,7 @@
     public Boolean Group(IMiddlewareFilter GroupFilter) { throw new InvalidOperationException(); }
 
     internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
+    internal String Suffix { get => _suffix; }
 
     public IMiddlewareFilter Create(Int32 Order)
     {
