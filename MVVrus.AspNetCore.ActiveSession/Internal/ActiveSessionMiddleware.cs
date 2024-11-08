@@ -127,7 +127,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             internal record struct FilterContext(IMiddlewareFilter Filter, String FilterName);
 
-            Boolean _canSetSuffix = false;
+            Boolean _canSetSuffix = false; //TODO(future) Optimes suffix determination if no more filters left can set it
             Boolean _acceptAll;
             List<FilterContext> _filters = new List<FilterContext>();
             Dictionary<(Type, Object?), IMiddlewareFilter> groups=new Dictionary<(Type, Object?), IMiddlewareFilter>();

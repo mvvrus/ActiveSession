@@ -55,6 +55,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// If the <paramref name="Filter"/> is omitted or is <see langword="null"/>, the feature will be added 
         /// to request contexts for all request handlers. 
         /// </para>
+        /// Introduced in v.1.1
         /// </remarks>
         public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, IMiddlewareFilterSource? Filter = null)
         {
@@ -183,6 +184,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// and passes the value of the <paramref name="Suffix"/> parameter as a suffix to be added to an active session identifier.
         /// </suffix>
         /// </para>
+        /// Introduced in v.1.1
         /// </remarks>
         public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, Boolean> Filter, String Suffix)
         {
@@ -212,6 +214,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, Func{HttpContext,Boolean})" path='/remarks/para/filter'/>
         /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, Func{HttpContext, bool}, string)" path='/remarks/para/suffix'/>
         /// </para>
+        /// Introduced in v.1.1
         /// </remarks>
         public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, String Filter, String Suffix, TimeSpan TimeOut = default)
         {

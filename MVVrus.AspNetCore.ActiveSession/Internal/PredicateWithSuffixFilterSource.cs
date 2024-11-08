@@ -1,52 +1,55 @@
-﻿internal class PredicateWithSuffixFilterSource : IMiddlewareFilterSource
+﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    Func<HttpContext, Boolean> _predicate;
-    String _suffix;
-    String _prettyName="PredicateFilter";
-
-    public PredicateWithSuffixFilterSource(Func<HttpContext, Boolean> Predicate, String Suffix, String? PredicateName=null)
+    internal class PredicateWithSuffixFilterSource : IMiddlewareFilterSource
     {
-        _predicate=Predicate;
-        _suffix=Suffix;
-        _prettyName=(PredicateName??_prettyName)+"->"+Suffix;
-    }
-
-    public Boolean HasSuffix => true;
-
-    internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
-    internal String Suffix { get => _suffix; }
-
-    public String GetPrettyName() { return _prettyName; }
-
-    public IMiddlewareFilter Create(Int32 Order)
-    {
-        return new MiddlewareFilter(_predicate, _suffix, _prettyName, Order);
-    }
-
-    class MiddlewareFilter : IMiddlewareFilter
-    {
-        Func<HttpContext, Boolean> _filter;
+        Func<HttpContext, Boolean> _predicate;
         String _suffix;
-        Int32 _order;
-        String _prettyName;
+        String _prettyName = "PredicateFilter";
 
-        public MiddlewareFilter(Func<HttpContext, Boolean> Filter, String Suffix, String PrettyName, Int32 Order)
+        public PredicateWithSuffixFilterSource(Func<HttpContext, Boolean> Predicate, String Suffix, String? PredicateName = null)
         {
-            _filter=Filter;
-            _suffix = Suffix;
-            _order=Order;
-            _prettyName=PrettyName;
+            _predicate=Predicate;
+            _suffix=Suffix;
+            _prettyName=(PredicateName??_prettyName)+"->"+Suffix;
         }
-        public Int32 MinOrder => _order;
+
+        public Boolean HasSuffix => true;
+
+        internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
+        internal String Suffix { get => _suffix; }
 
         public String GetPrettyName() { return _prettyName; }
 
-
-        public (Boolean WasMapped, String? SessionSuffix, Int32 Order) Apply(HttpContext Context)
+        public IMiddlewareFilter Create(Int32 Order)
         {
-            Boolean passed = _filter(Context);
-            return (passed, passed?_suffix:null, _order);
+            return new MiddlewareFilter(_predicate, _suffix, _prettyName, Order);
         }
-    }
 
+        class MiddlewareFilter : IMiddlewareFilter
+        {
+            Func<HttpContext, Boolean> _filter;
+            String _suffix;
+            Int32 _order;
+            String _prettyName;
+
+            public MiddlewareFilter(Func<HttpContext, Boolean> Filter, String Suffix, String PrettyName, Int32 Order)
+            {
+                _filter=Filter;
+                _suffix = Suffix;
+                _order=Order;
+                _prettyName=PrettyName;
+            }
+            public Int32 MinOrder => _order;
+
+            public String GetPrettyName() { return _prettyName; }
+
+
+            public (Boolean WasMapped, String? SessionSuffix, Int32 Order) Apply(HttpContext Context)
+            {
+                Boolean passed = _filter(Context);
+                return (passed, passed ? _suffix : null, _order);
+            }
+        }
+
+    }
 }
