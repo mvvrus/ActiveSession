@@ -1,21 +1,21 @@
 ﻿internal class SimplePredicateFilterSource : IMiddlewareFilterSource
 {
     Func<HttpContext, Boolean> _predicate;
+    String _prettyName = "PredicateFilter";
 
-    public SimplePredicateFilterSource(Func<HttpContext, Boolean> Predicate)
+    public SimplePredicateFilterSource(Func<HttpContext, Boolean> Predicate, String? PredicateName = null)
     {
         _predicate=Predicate;
+        _prettyName=(PredicateName??_prettyName);
     }
 
     public Boolean HasSuffix => false;
-    public Boolean IsGroupable => false;
-    public Boolean Group(IMiddlewareFilter GroupFilter) { throw new InvalidOperationException(); }
 
     internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
 
     public IMiddlewareFilter Create(Int32 Order)
     {
-        return new MiddlewareFilter(_predicate, Order);
+        return new MiddlewareFilter(_predicate, _prettyName, Order);
     }
 
     public static implicit operator SimplePredicateFilterSource(Func<HttpContext, Boolean> Predicate)
@@ -27,11 +27,13 @@
     {
         Func<HttpContext, Boolean> _filter;
         Int32 _order;
+        String _prettyName;
 
-        public MiddlewareFilter(Func<HttpContext, Boolean> Filter, Int32 Order)
+        public MiddlewareFilter(Func<HttpContext, Boolean> Filter, String PrettyName, Int32 Order)
         {
             _filter=Filter;
             _order=Order;
+            _prettyName=PrettyName;
         }
         public Int32 MinOrder => _order;
 
@@ -39,6 +41,9 @@
         {
             return (_filter(Context), null, _order);
         }
+
+        public String GetPrettyName() { return _prettyName; }
+
     }
 
 }

@@ -5,9 +5,5 @@ public interface IMiddlewareFilterSource
     public IMiddlewareFilter Create(Int32 Order);
     /// TODO document this!
     public Boolean HasSuffix { get; }
-    /// TODO document this!
-    public Boolean IsGroupable { get; }
-    /// TODO document this!
-    public Boolean Group(IMiddlewareFilter GroupFilter);
 }
 

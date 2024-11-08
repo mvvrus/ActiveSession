@@ -2,23 +2,23 @@
 {
     Func<HttpContext, Boolean> _predicate;
     String _suffix;
+    String _prettyName="PredicateFilter";
 
-    public PredicateWithSuffixFilterSource(Func<HttpContext, Boolean> Predicate, String Suffix)
+    public PredicateWithSuffixFilterSource(Func<HttpContext, Boolean> Predicate, String Suffix, String? PredicateName=null)
     {
         _predicate=Predicate;
         _suffix=Suffix;
+        _prettyName=(PredicateName??_prettyName)+"->"+Suffix;
     }
 
     public Boolean HasSuffix => true;
-    public Boolean IsGroupable => false;
-    public Boolean Group(IMiddlewareFilter GroupFilter) { throw new InvalidOperationException(); }
 
     internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
     internal String Suffix { get => _suffix; }
 
     public IMiddlewareFilter Create(Int32 Order)
     {
-        return new MiddlewareFilter(_predicate, _suffix, Order);
+        return new MiddlewareFilter(_predicate, _suffix, _prettyName, Order);
     }
 
     class MiddlewareFilter : IMiddlewareFilter
@@ -26,14 +26,19 @@
         Func<HttpContext, Boolean> _filter;
         String _suffix;
         Int32 _order;
+        String _prettyName;
 
-        public MiddlewareFilter(Func<HttpContext, Boolean> Filter, String Suffix, Int32 Order)
+        public MiddlewareFilter(Func<HttpContext, Boolean> Filter, String Suffix, String PrettyName, Int32 Order)
         {
             _filter=Filter;
             _suffix = Suffix;
             _order=Order;
+            _prettyName=PrettyName;
         }
         public Int32 MinOrder => _order;
+
+        public String GetPrettyName() { return _prettyName; }
+
 
         public (Boolean WasMapped, String? SessionSuffix, Int32 Order) Apply(HttpContext Context)
         {

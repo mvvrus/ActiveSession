@@ -160,7 +160,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 TimeOut=Builder.ApplicationServices.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.PathRegexTimeout;
             Regex path_matcher=new Regex(Filter, IgnoreCase | Compiled | CultureInvariant, TimeOut);
             Func<HttpContext, Boolean> filter = context => path_matcher.IsMatch(context.Request.Path); 
-            return UseActiveSessions(Builder, filter);
+            return UseActiveSessions(Builder, new SimplePredicateFilterSource(filter, "Path|\""+Filter+"\""));
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                 TimeOut=Builder.ApplicationServices.GetRequiredService<IOptions<ActiveSessionOptions>>().Value.PathRegexTimeout;
             Regex path_matcher = new Regex(Filter, IgnoreCase | Compiled | CultureInvariant, TimeOut);
             Func<HttpContext, Boolean> filter = context => path_matcher.IsMatch(context.Request.Path);
-            return UseActiveSessions(Builder, filter, Suffix);
+            return UseActiveSessions(Builder, new PredicateWithSuffixFilterSource(filter, Suffix, "Path|\""+Filter+"\""));
         }
 
         internal const String ACTIVESESSION_PROPERTYNAME = "__ActiveSession__";

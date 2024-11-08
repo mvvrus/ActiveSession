@@ -8,5 +8,8 @@ public interface IMiddlewareFilter
 
     /// TODO document this!
     public (Boolean WasMapped, String? SessionSuffix, Int32 Order) Apply(HttpContext Context);
+
+    /// TODO document this!
+    public String GetPrettyName() { return "<unspecified filter>"; } 
 }
 
