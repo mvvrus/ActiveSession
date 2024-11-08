@@ -68,11 +68,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public static partial void LogInformationNoRunnerInSession(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
 
-        [LoggerMessage(D_FEATUREACTIVATED, Debug, "ActiveSession feature is activated, TraceIdentifier={TraceIdentifier}.")]
-        public static partial void LogDebugActiveSessionFeatureActivated(this ILogger Logger, String TraceIdentifier);
+        [LoggerMessage(D_FEATUREACTIVATED, Debug, "ActiveSession feature is added to the request context with suffix:{Suffix}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogDebugActiveSessionFeatureActivated(this ILogger Logger, String Suffix, String TraceIdentifier);
 
         [LoggerMessage(D_SERVICESSUBSTITUTED, Debug, "Original RequestServices are substituted by the ActiveSession.SessionServices , TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugRequestServicesChangedToSessionServices(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(D_ADDMIDLWAREFILTER, Debug, "New middleware filter added: {Name}:{Order}.")]
+        public static partial void LogDebugAddNewFilter(this ILogger Logger, String Name, Int32 Order);
+
+        [LoggerMessage(D_GROUPMIDLWAREFILTER, Debug, "The source {Name}:{Order} was groupped with the existing middleware group filter: {GroupName}:{GroupOrder}.")]
+        public static partial void LogDebugGroupFilter(this ILogger Logger, String Name, Int32 Order, String GroupName, Int32 GroupOrder);
+
+        [LoggerMessage(D_MIDLWAREMAPPINGFINISHED, Debug, "Mappig request to the set of middleware filters finished, WasMapped={WasMapped}, Suffix={Suffix}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogDebugMappingFinished(this ILogger Logger, Boolean WasMapped, String Suffix, String TraceIdentifier);
 
         [LoggerMessage(D_STORECONSTRUCTOROPTIONS, Debug, "ActiveSessionStore constructor will use the follwing options: {Options}.")]
         public static partial void LogDebugActiveSessionStoreConstructorOptions(this ILogger Logger, ActiveSessionOptions Options);
@@ -138,6 +147,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_MIDDLEWAREENTER, Trace, "Entering ActiveSessionMiddleware, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceInvokeActiveSessionMiddleware(this ILogger Logger, String TraceIdentifier);
 
+        [LoggerMessage(T_MIDDLEWAREADDFEATURE, Trace, "The request did pass criteria for assigning an ActiveSession (suffix: {Suffix}), TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionMiddlewareAssignFeature(this ILogger Logger, String Suffix, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREDONTADDFEATURE, Trace, "The request did not pass criteria for assigning an ActiveSession, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionMiddlewareAssignNoFeature(this ILogger Logger, String TraceIdentifier);
+
         [LoggerMessage(T_MIDDLEWARELOADAWAIT, Trace, "Awaiting while loading ActiveSession for SessionServices, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceWaitingForActiveSessionLoading(this ILogger Logger, String TraceIdentifier);
 
@@ -155,6 +170,24 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(T_MIDDLEWAREEXIT, Trace, "ActiveSession middleware exited, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionMiddlewareExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGADDFILTER, Trace, "Adding filter from source {Name}:{Order}.")]
+        public static partial void LogTraceMiddlewareMapperAddFilter(this ILogger Logger, String Name, Int32 Order);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGSTART, Trace, "Mappig request to the set of middleware filters started, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceMiddlewareMapper(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGAPPLIED, Trace, "A filter {FilterName} was appied, WasMapped={WasMapped}, Suffix={Suffix}, Order={Order}, PrevOrder={PrevOrder}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceMiddlewareMapperFilterApplied(this ILogger Logger, String FilterName, Boolean WasMapped, String Suffix, Int32 Order, Int32? PrevOrder, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGHIGHERPRIORITY, Trace, "A filter with higher order that accepts the request is found, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceMiddlewareMapperHigherPriority(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGSET, Trace, "A mapping is done by this filter, Suffix={Suffix}, Order={Order}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceMiddlewareMapperSetMapping(this ILogger Logger, String Suffix, Int32 Order, String TraceIdentifier);
+
+        [LoggerMessage(T_MIDDLEWAREMAPPINGSUFFIXONLY, Trace, ", Suffix={Suffix}, Order={Order}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceMiddlewareMapperSetSuffixOnly(this ILogger Logger, String Suffix, Int32 Order, String TraceIdentifier);
 
         [LoggerMessage(T_STORECONS, Trace, "The ActiveSessionStore constructor entered.")]
         public static partial void LogTraceActiveSessionStoreConstructor(this ILogger Logger);

@@ -5,5 +5,7 @@ public interface IMiddlewareFilterSource
     public IMiddlewareFilter Create(Int32 Order);
     /// TODO document this!
     public Boolean HasSuffix { get; }
+    /// TODO document this!
+    public String GetPrettyName() { return "<unspecified filter>"; }
 }
 

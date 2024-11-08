@@ -18,6 +18,8 @@
         return new MiddlewareFilter(_predicate, _prettyName, Order);
     }
 
+    public String GetPrettyName() { return _prettyName; }
+
     public static implicit operator SimplePredicateFilterSource(Func<HttpContext, Boolean> Predicate)
     {
         return new SimplePredicateFilterSource(Predicate);

@@ -6,6 +6,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class ActiveSessionMiddleware
     {
+        const String NO_SUFFIX = "<no suffix>";
+
         readonly RequestDelegate _next;
         readonly IActiveSessionStore _store;
         readonly ILogger? _logger;
@@ -58,10 +60,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             try {
                 (Boolean pass, String? suffix)=_mapper.MapContext(Context);
                 if (pass) {
-                    //TODO(log) LogTrace 
+                    #if TRACE
+                    _logger?.LogTraceActiveSessionMiddlewareAssignFeature(suffix??NO_SUFFIX, Context.TraceIdentifier);
+                    #endif
                     feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier, suffix);
                     Context.Features.Set(feature);
-                    _logger?.LogDebugActiveSessionFeatureActivated(Context.TraceIdentifier);
+                    _logger?.LogDebugActiveSessionFeatureActivated(suffix??NO_SUFFIX, Context.TraceIdentifier);
                     if (_preloadActiveSession||_useSessionServicesAsRequestServices) {
                         #if TRACE
                         _logger?.LogTraceWaitingForActiveSessionLoading(Context.TraceIdentifier);
@@ -81,7 +85,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
                 else {
                     Context.Features.Set((IActiveSessionFeature?)null);
-                    //TODO(future) LogTrace 
+                    #if TRACE
+                    _logger?.LogTraceActiveSessionMiddlewareAssignNoFeature(Context.TraceIdentifier);
+                    #endif
                 }
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareInvokeRest(Context.TraceIdentifier);
@@ -115,18 +121,22 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         internal record struct MapContextResult(Boolean WasMapped, String? SessionSuffix);
+        internal record struct FilterContext (IMiddlewareFilter Filter, String FilterName);
 
         internal class MiddlewareMapper
         {
+            internal record struct FilterContext(IMiddlewareFilter Filter, String FilterName);
+
             Boolean _canSetSuffix = false;
             Boolean _acceptAll;
-            List<IMiddlewareFilter> _filters = new List<IMiddlewareFilter>();
+            List<FilterContext> _filters = new List<FilterContext>();
             Dictionary<(Type, Object?), IMiddlewareFilter> groups=new Dictionary<(Type, Object?), IMiddlewareFilter>();
             ILogger? _logger;
 
             public MiddlewareMapper(MiddlewareParam Source, ILogger? Logger=null)
             {
                 _acceptAll=Source.AcceptAll;
+                _logger=Logger;
                 for(int order=0; order<Source.Filters.Count;order++) AddFilterSource(Source.Filters[order], order);
             }
 
@@ -134,56 +144,73 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             {
                 Boolean was_mapped = false;
                 String? session_suffix = null;
-                int order = Int32.MaxValue;
+                Int32? order = null;
 
-                //TODO (log) LogTrace
+                #if TRACE
+                _logger?.LogTraceMiddlewareMapper(Context.TraceIdentifier);
+                #endif
                 for(int i = 0; i<_filters.Count && (
                         (session_suffix == null && _canSetSuffix) || 
-                        (!_acceptAll && (!was_mapped || order>_filters[i].MinOrder)) //TODO(future) Middleware filter grouping: test this
+                        (!_acceptAll && (!was_mapped || order>_filters[i].Filter.MinOrder)) //TODO(future) Middleware filter grouping: test this
                     ); i++) 
                 {
-                    (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Apply(Context);
-                    //TODO (log) LogTrace 
-                    was_mapped = was_mapped || mapped_here;
+                    (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Filter.Apply(Context);
+                    #if TRACE
+                    _logger?.LogTraceMiddlewareMapperFilterApplied(_filters[i].FilterName, mapped_here, mapped_suffix??NO_SUFFIX, 
+                        mapped_order, order, Context.TraceIdentifier);
+                    #endif
                     if(mapped_here) {
-                        if(mapped_order<order) {
-                            //In this version this case is impossible.
-                            //TODO(future) Middleware filter grouping: test this
+                        if(order is null || mapped_order<order) {
+                            //In the current version this case is possible only if it was a first mapping (order == Int32.MaxValue).
+                            //TODO(future) Middleware filter grouping: test if the order was set by a previous group filter
+                            if(order is not null) {
+                            #if TRACE
+                                _logger?.LogTraceMiddlewareMapperHigherPriority(Context.TraceIdentifier);
+                            #endif
+                            }
                             order=mapped_order;
                             session_suffix=mapped_suffix??session_suffix;
-                            //TODO (future) LogTrace 
+                            #if TRACE
+                            _logger?.LogTraceMiddlewareMapperSetMapping(session_suffix??NO_SUFFIX, order.Value, Context.TraceIdentifier);
+                            #endif
                         }
-                        else {
-                            session_suffix=session_suffix??mapped_suffix;
-                            //TODO (future) LogTrace 
+                        else if(session_suffix is null && mapped_suffix is not null) {
+                            session_suffix=mapped_suffix;
+                            #if TRACE
+                            _logger?.LogTraceMiddlewareMapperSetSuffixOnly(session_suffix, mapped_order, Context.TraceIdentifier);
+                            #endif
                         }
                     }
+                    was_mapped = was_mapped || mapped_here;
                 }
                 was_mapped = was_mapped || _acceptAll;
-                //TODO (log) LogDebug 
+                _logger?.LogDebugMappingFinished(was_mapped, session_suffix??NO_SUFFIX, Context.TraceIdentifier);
                 return new MapContextResult(was_mapped, session_suffix);
             }
 
             void AddFilterSource(IMiddlewareFilterSource FilterSource, Int32 Order)
             {
+                #if TRACE
+                _logger?.LogTraceMiddlewareMapperAddFilter(FilterSource.GetPrettyName(), Order);
+                #endif
                 _canSetSuffix = _canSetSuffix || FilterSource.HasSuffix;
-                //TODO (log) LogTrace
                 Boolean grouped = false;
                 (Type, Object?) group_key = default;
                 if(FilterSource is IMiddlewareGroupSource group_source) {
                     group_key = (group_source.GetType(), group_source.Token);
                     if(groups.ContainsKey(group_key)) {
+                        IMiddlewareFilter filter = groups[group_key];
+                        _logger?.LogDebugGroupFilter(FilterSource.GetPrettyName(), Order, filter.GetPrettyName(), filter.MinOrder);
                         group_source.GroupInto(groups[group_key]);
                         grouped = true;
-                        //TODO (log) LogDebug
                     }
                 }
                 if(!grouped) {
-                    //TODO (log) LogDebug
                     IMiddlewareFilter new_filter=FilterSource.Create(Order);
-                    _filters.Add(new_filter);
+                    _filters.Add(new FilterContext(new_filter, new_filter.GetPrettyName()+":"+new_filter.MinOrder));
+                    _logger?.LogDebugAddNewFilter(new_filter.GetPrettyName(),Order);
                     if(group_key!=default) {
-                        //TODO (future) LogDebug
+                        //TODO (future) LogTrace
                         groups.Add(group_key, new_filter);
                     }
                 }

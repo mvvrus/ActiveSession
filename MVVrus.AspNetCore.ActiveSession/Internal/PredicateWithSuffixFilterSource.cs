@@ -16,6 +16,8 @@
     internal Func<HttpContext, Boolean> Predicate { get => _predicate; }
     internal String Suffix { get => _suffix; }
 
+    public String GetPrettyName() { return _prettyName; }
+
     public IMiddlewareFilter Create(Int32 Order)
     {
         return new MiddlewareFilter(_predicate, _suffix, _prettyName, Order);

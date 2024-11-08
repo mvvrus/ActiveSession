@@ -26,6 +26,9 @@
 
         public const Int32 D_FEATUREACTIVATED = 3000;
         public const Int32 D_SERVICESSUBSTITUTED = 3001;
+        public const Int32 D_ADDMIDLWAREFILTER = 3030;
+        public const Int32 D_GROUPMIDLWAREFILTER = 3031;
+        public const Int32 D_MIDLWAREMAPPINGFINISHED = 3032;
         public const Int32 D_STORECONSTRUCTOROPTIONS = 3100;
         public const Int32 D_STORECACHEOPTIONS = 3101;
         public const Int32 D_STORESESSIONFOUNDTERMINATED = 3121;
@@ -48,12 +51,20 @@
         public const Int32 T_MIDDLEWARECONS = 4010;
         public const Int32 T_MIDDLEWARECONSEXIT = 4011;
         public const Int32 T_MIDDLEWAREENTER = 4020;
-        public const Int32 T_MIDDLEWARELOADAWAIT = 4021;
-        public const Int32 T_MIDDLEWARESERVICESSUBSTITUTED = 4022;
-        public const Int32 T_MIDDLEWARENEXTINVOKE = 4023;
-        public const Int32 T_MIDDLEWARENEXTRETURN = 4024;
-        public const Int32 T_MIDDLEWARENEXTEXCEPTION = 4025;
-        public const Int32 T_MIDDLEWAREEXIT = 4026;
+        public const Int32 T_MIDDLEWAREADDFEATURE = 4021;
+        public const Int32 T_MIDDLEWAREDONTADDFEATURE = 4022;
+        public const Int32 T_MIDDLEWARELOADAWAIT = 4023;
+        public const Int32 T_MIDDLEWARESERVICESSUBSTITUTED = 4024;
+        public const Int32 T_MIDDLEWARENEXTINVOKE = 4025;
+        public const Int32 T_MIDDLEWARENEXTRETURN = 4026;
+        public const Int32 T_MIDDLEWARENEXTEXCEPTION = 4027;
+        public const Int32 T_MIDDLEWAREEXIT = 4028;
+        public const Int32 T_MIDDLEWAREMAPPINGADDFILTER = 4030;
+        public const Int32 T_MIDDLEWAREMAPPINGSTART = 4031;
+        public const Int32 T_MIDDLEWAREMAPPINGAPPLIED = 4032;
+        public const Int32 T_MIDDLEWAREMAPPINGHIGHERPRIORITY = 4033;
+        public const Int32 T_MIDDLEWAREMAPPINGSET = 4034;
+        public const Int32 T_MIDDLEWAREMAPPINGSUFFIXONLY = 4035;
         public const Int32 T_STORECONS = 4100;
         public const Int32 T_STORECONSOWNCACHE = 4101;
         public const Int32 T_STORECONSSHAREDCACHE = 4102;
