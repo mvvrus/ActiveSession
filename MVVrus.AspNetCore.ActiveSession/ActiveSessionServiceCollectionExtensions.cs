@@ -354,7 +354,7 @@ namespace MVVrus.AspNetCore.ActiveSession
 
         //The class, containing the method to be called as factory creating TypeRunnerFactory specialization
         //It is used just to facilitate testing
-        //TODO(future) check possibility of more direct implementation of factory - as a type, not as a delegate, that calls constructor
+        //(future) check possibility of more direct implementation of factory - as a type, not as a delegate, that calls constructor
         internal class FactoryDelegateTarget
         {
             internal ConstructorInfo FactoryImplObjectConstructor { get; init; }

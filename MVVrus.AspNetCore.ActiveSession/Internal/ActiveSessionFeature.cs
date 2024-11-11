@@ -40,7 +40,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IActiveSession ActiveSession { get { Load(); return _activeSession; } }
 
-        public ILocalSession LocalSession { get => DummyLocalSession; } //TODO (future) Implement
+        public ILocalSession LocalSession { get => DummyLocalSession; } //(future) Implement
 
         public async Task CommitAsync(CancellationToken Token = default)
         {
@@ -156,7 +156,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
-        //TODO(future) Implement LocalSession
+        //(future) Implement LocalSession
 
         static readonly internal NullActiveSession DummySession = new NullActiveSession();
         static readonly internal NullLocalSession DummyLocalSession = new NullLocalSession();

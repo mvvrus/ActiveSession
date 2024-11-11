@@ -127,7 +127,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             internal record struct FilterContext(IMiddlewareFilter Filter, String FilterName);
 
-            Boolean _canSetSuffix = false; //TODO(future) Optimes suffix determination if no more filters left can set it
+            Boolean _canSetSuffix = false; //(future) Optimise suffix determination if no more filters left can set it
             Boolean _acceptAll;
             List<FilterContext> _filters = new List<FilterContext>();
             Dictionary<(Type, Object?), IMiddlewareFilter> groups=new Dictionary<(Type, Object?), IMiddlewareFilter>();
@@ -151,7 +151,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #endif
                 for(int i = 0; i<_filters.Count && (
                         (session_suffix == null && _canSetSuffix) || 
-                        (!_acceptAll && (!was_mapped || order>_filters[i].Filter.MinOrder)) //TODO(future) Middleware filter grouping: test this
+                        (!_acceptAll && (!was_mapped || order>_filters[i].Filter.MinOrder)) //(future) Middleware filter grouping: test this
                     ); i++) 
                 {
                     (Boolean mapped_here, String? mapped_suffix, Int32 mapped_order) = _filters[i].Filter.Apply(Context);
@@ -162,7 +162,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     if(mapped_here) {
                         if(order is null || mapped_order<order) {
                             //In the current version this case is possible only if it was a first mapping (order == Int32.MaxValue).
-                            //TODO(future) Middleware filter grouping: test if the order was set by a previous group filter
+                            //(future) Middleware filter grouping: test if the order was set by a previous group filter
                             if(order is not null) {
                             #if TRACE
                                 _logger?.LogTraceMiddlewareMapperHigherPriority(Context.TraceIdentifier);
@@ -210,7 +210,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _filters.Add(new FilterContext(new_filter, new_filter.GetPrettyName()+":"+new_filter.MinOrder));
                     _logger?.LogDebugAddNewFilter(new_filter.GetPrettyName(),Order);
                     if(group_key!=default) {
-                        //TODO (future) LogTrace
+                        //(future) LogTrace
                         groups.Add(group_key, new_filter);
                     }
                 }

@@ -41,7 +41,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _newRunnerNumber=_minRunnerNumber=MinRunnerNumber;
             _maxRunnerNumber=MaxRunnerNumber;
             if (MaxRunnerNumber!=Int32.MaxValue) {
-                //TODO (future) Implement runner number reusage
+                //(future) Implement runner number reusage
             }
             _cleanupLoggingTimeoutMs=CleanupLoggingTimeoutMs;
             _runners=new Dictionary<int, RunnerInfo>();

@@ -1,6 +1,6 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession
 {
-    internal /* TODO(future) change to public */ interface IMiddlewareGroupSource
+    internal /* (future) change to public when implementing middleware filter grouping*/ interface IMiddlewareGroupSource
     {
         Object? Token { get; }
         Type FilterType { get; }

@@ -226,7 +226,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
                                     _loggerFactory?.CreateLogger(RUNNERMANAGER_CATEGORY_NAME),
                                     session_scope.ServiceProvider
-                                    ); //TODO(future) Set MinRunnerNumber & MaxRunnerNumber
+                                    ); //(future) Set MinRunnerNumber & MaxRunnerNumber
                                 PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
                                 end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
                                 TaskCompletionSource cleanup_task_source = new TaskCompletionSource();
@@ -886,7 +886,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         Int32 GetRunnerSize(Type RunnerType)
         {
-            return _runnerSize; //TODO(future) it's a stub
+            return _runnerSize; //(future) it's a stub
         }
 
         internal void InitCacheExpiration()
