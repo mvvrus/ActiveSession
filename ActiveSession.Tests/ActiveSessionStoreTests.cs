@@ -130,6 +130,7 @@ namespace ActiveSession.Tests
                     Assert.True(ts.Cache.ExpirationTokens[0].ActiveChangeCallbacks);
                     Assert.False(ts.Cache.ExpirationTokens[0].HasChanged);
                     Assert.Equal(1, ts.Cache.PostEvictionCallbacks.Count);
+                    Assert.Equal(CreateFetchTestSetup.TEST_ACTIVESESSION_ID, session.BaseId);
 
                     //Test case: fetch ActiveSession from cache
                     IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, null);
@@ -272,6 +273,7 @@ namespace ActiveSession.Tests
                     //Assess IActiveSession
                     String id_to_be= CreateFetchTestSetup.TEST_ACTIVESESSION_ID+"-"+SUFFIX;
                     Assert.Equal(id_to_be, session.Id);
+                    Assert.Equal(CreateFetchTestSetup.TEST_ACTIVESESSION_ID, session.BaseId);
                     //Assess a cache entry
                     Assert.True(ts.Cache.IsEntryStored);
                     Assert.Equal(DEFAULT_SESSION_KEY_PREFIX+"_"+id_to_be, ts.Cache.Key);

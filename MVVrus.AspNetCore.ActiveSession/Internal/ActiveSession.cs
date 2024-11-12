@@ -33,7 +33,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , Int32 Generation
             , Task? CleanupCompletionTask = null
             , String? TraceIdentifier = null
-            , String? BaseId=null   //(future) see if this ever will be used
+            , String? BaseId=null
         )
         {
             ArgumentNullException.ThrowIfNull(SessionId, nameof(SessionId));
@@ -159,7 +159,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public String Id { get => _sessionId; }
 
-        public String BaseId { get => _baseId; } //(future) see if this ever will be used
+        public String BaseId { get => _baseId; }
 
         public CancellationToken CompletionToken { get; private set; }
 

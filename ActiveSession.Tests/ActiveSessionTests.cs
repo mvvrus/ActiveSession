@@ -41,6 +41,28 @@ namespace ActiveSession.Tests
                 Assert.True(active_session.IsFresh);
                 Assert.False(active_session.Disposed);
                 Assert.True(active_session.CleanupCompletionTask.IsCompletedSuccessfully);
+                Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.BaseId);
+
+                //Test case: normal creation with specific base name
+                active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
+                    test_setup.MockServiceScope.Object,
+                    test_setup.MockStore.Object,
+                    ConstructorTestSetup.TEST_SESSION_ID,
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION,
+                    null, 
+                    null,
+                    ConstructorTestSetup.TEST_SESSION_ID+"-SUFFIX");
+
+                Assert.True(active_session.IsAvailable);
+                Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
+                Assert.Equal(test_setup.DummyRunnerManager.Object, active_session.RunnerManager);
+                Assert.True(active_session.CompletionToken.CanBeCanceled);
+                Assert.False(active_session.CompletionToken.IsCancellationRequested);
+                Assert.Equal(test_setup.StubServiceProvider.Object, active_session.SessionServices);
+                Assert.True(active_session.IsFresh);
+                Assert.False(active_session.Disposed);
+                Assert.True(active_session.CleanupCompletionTask.IsCompletedSuccessfully);
+                Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID+"-SUFFIX", active_session.BaseId);
 
                 //Test case: normal creation with specific cleanup completion task
                 Task<Boolean> dummy_completion_task = Task.FromCanceled<Boolean>(new CancellationToken(true));

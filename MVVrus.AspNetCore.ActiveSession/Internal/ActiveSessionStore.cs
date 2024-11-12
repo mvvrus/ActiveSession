@@ -187,7 +187,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
-            String nogen_session_id = _idSupplier.GetBaseActiveSessionId(Session);
+            String base_session_id= _idSupplier.GetBaseActiveSessionId(Session);
+            String nogen_session_id = base_session_id;
             if(!String.IsNullOrEmpty(Suffix)) nogen_session_id+="-"+Suffix;
             String session_id = nogen_session_id+":?";
             #if TRACE
@@ -239,7 +240,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                     _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
                                     new_generation,
                                     cleanup_task_source.Task, 
-                                    trace_identifier);
+                                    trace_identifier,
+                                    base_session_id);
                                 try {
                                     runner_manager.RegisterSession(result);
                                     new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
@@ -848,7 +850,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 throw new InvalidOperationException("Using remote runners is not allowed  configuration setting ThrowOnRemoteRunner");
             }
             return Task.FromResult<IRunner?>(null); //Just now I do not want to implement remote runner
-            //Possible future implementation draft
+            // (future) Possible  implementation draft
             //String RunnerKey = this.RunnerKey(SessionKey(ActiveSession.Id), RunnerNumber, ActiveSession.Generation);
             //String? runner_type_name = RunnerManager.Session.GetString(RunnerKey+TYPE_KEY_PART);
             //if (runner_type_name==null) {
