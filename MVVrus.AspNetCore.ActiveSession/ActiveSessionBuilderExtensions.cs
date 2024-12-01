@@ -115,6 +115,31 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/param[@name="Builder"]' />
         /// </param>
         /// <param name="Filter">
+        /// A delegate that is used to filter requests for which an active session feature will be available 
+        /// and to assign them suffix a to be added to an <see cref="IActiveSession.Id">Id</see> property of their active session object.
+        /// </param>
+        /// <returns> <inheritdoc cref = "UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/returns' /> </returns>
+        /// <remarks>
+        /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/remarks/toinherit' />
+        /// <para>
+        /// This UseActiveSessions method overload uses a delegate returning a <see langword="bool"/> result 
+        /// consisting of <see langword="bool"/> value used decide whever a request falls into the scope of the delegate as a filter
+        /// and a value of the suffix to be assigned to an <see cref="IActiveSession.Id">Id</see> property. 
+        /// </para>
+        /// Introduced in v.1.1
+        /// </remarks>
+        public static IApplicationBuilder UseActiveSessions(this IApplicationBuilder Builder, Func<HttpContext, (Boolean, String?)> Filter)
+        {
+            return Builder.UseActiveSessions(new GeneralDelegateFilterSource(Filter));
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/summary' />
+        /// </summary>
+        /// <param name="Builder">
+        /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/param[@name="Builder"]' />
+        /// </param>
+        /// <param name="Filter">
         /// A predicate that is used to filter requests for which an active session feature will be available.
         /// </param>
         /// <returns> <inheritdoc cref = "UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/returns' /> </returns>

@@ -8,7 +8,6 @@ namespace ActiveSession.Tests
         const Int32 DEFAULT_ORDER = 42;
         const String PATH1 = "/path1", PATH2 = "/path2";
 
-        //SimplePredicateFilterSource
         [Fact]
         public void SimplePredicateFilterSource()
         {
@@ -62,6 +61,57 @@ namespace ActiveSession.Tests
             Assert.Null(session_suffix);
             Assert.Equal(DEFAULT_ORDER, order);
         }
+
+        [Fact]
+        public void GeneralDelegateFilterSource()
+        {
+            Boolean was_mapped;
+            String? session_suffix;
+            Int32 order;
+
+            Func<HttpContext, (Boolean,String ?)> filter_delegate;
+            filter_delegate = context => {
+                Boolean in_scope = context.Request.Path.StartsWithSegments(PATH1);
+                String? suffix = null;
+                if(in_scope) {
+                    String[] segments = context.Request.Path.ToString().Split('/');
+                    if(segments.Length>2) suffix=segments[2];
+                }
+                return (in_scope, suffix); 
+            };
+
+            var source = new GeneralDelegateFilterSource(filter_delegate);
+            var filter = source.Create(DEFAULT_ORDER);
+
+            FakeHttpContext fake_context = new FakeHttpContext();
+            Assert.NotNull(filter);
+            Assert.Equal(DEFAULT_ORDER, filter.MinOrder);
+            fake_context.SetPath(PATH1);
+            (was_mapped, session_suffix, order)=filter.Apply(fake_context.Context);
+            Assert.True(was_mapped);
+            Assert.Null(session_suffix);
+            Assert.Equal(DEFAULT_ORDER, order);
+
+
+            fake_context.SetPath(PATH1+"/"+SUFFIX1);
+            (was_mapped, session_suffix, order)=filter.Apply(fake_context.Context);
+            Assert.True(was_mapped);
+            Assert.Equal(SUFFIX1, session_suffix);
+            Assert.Equal(DEFAULT_ORDER, order);
+
+            fake_context.SetPath(PATH2);
+            (was_mapped, session_suffix, order)=filter.Apply(fake_context.Context);
+            Assert.False(was_mapped);
+            Assert.Null(session_suffix);
+            Assert.Equal(DEFAULT_ORDER, order);
+
+            fake_context.SetPath(PATH2+"/"+SUFFIX1);
+            (was_mapped, session_suffix, order)=filter.Apply(fake_context.Context);
+            Assert.False(was_mapped);
+            Assert.Null(session_suffix);
+            Assert.Equal(DEFAULT_ORDER, order);
+        }
+
 
         class FakeHttpContext
         {

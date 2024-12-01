@@ -185,6 +185,64 @@ namespace ActiveSession.Tests
             Assert.Null(result2.SessionSuffix);
         }
 
+        //Test case: General delegate based filter installation
+        [Fact]
+        public void UseActiveSessions_GeneralDelegateFilter()
+        {
+            //Arrange
+            const string PATH1 = "path1";
+            const string PATH2 = "path2";
+            const string REQ_PATH1 = "/"+PATH1;
+            const string REQ_PATH1X = "/"+PATH1+"/"+TEST_SUFFIX1;
+            const string REQ_PATH2 = "/"+PATH2;
+            const string REQ_PATH2X = "/"+PATH2+"/"+TEST_SUFFIX2;
+            ActiveSessionOptions options = new ActiveSessionOptions();
+
+            TestSetup ts = new TestSetup();
+            ts.stub_sp.Setup(s => s.GetService(typeof(IOptions<ActiveSessionOptions>))).Returns(Options.Create(options));
+            Mock<HttpContext> fake_context = new Mock<HttpContext>();
+            fake_context.SetupSequence(s => s.Request.Path)
+                .Returns(REQ_PATH1)
+                .Returns(REQ_PATH1X)
+                .Returns(REQ_PATH2)
+                .Returns(REQ_PATH2X)
+                ;
+
+            Func<HttpContext, (Boolean, String?)> filter_delegate = context => {
+                PathString path = context.Request.Path;
+                Boolean in_scope = path.StartsWithSegments(REQ_PATH1);
+                String? suffix = null;
+                if(in_scope) {
+                    String[] segments = path.ToString().Split('/');
+                    if(segments.Length>2) suffix=segments[2];
+                }
+                return (in_scope, suffix);
+            };
+
+
+            //Act
+            ts.mock_builder.Object.UseActiveSessions(filter_delegate);
+            //Assess
+            ActiveSessionMiddleware.MiddlewareParam middleware_param = ts.VerifyAndGetMidddewareParam();
+            IMiddlewareFilter middleware_filter = middleware_param.Filters[0].Create(0);
+            Assert.False(middleware_param.AcceptAll);
+            Assert.Single(middleware_param.Filters);
+            (Boolean WasMapped, String? SessionSuffix, Int32 Order) result;
+            result = middleware_filter.Apply(fake_context.Object); // /REQ_PATH1
+            Assert.True(result.WasMapped);
+            Assert.Null(result.SessionSuffix);
+            result = middleware_filter.Apply(fake_context.Object);// /REQ_PATH1X
+            Assert.True(result.WasMapped);
+            Assert.Equal(TEST_SUFFIX1, result.SessionSuffix);
+            result = middleware_filter.Apply(fake_context.Object); // /REQ_PATH2
+            Assert.False(result.WasMapped);
+            Assert.Null(result.SessionSuffix);
+            result = middleware_filter.Apply(fake_context.Object); // /REQ_PATH2X
+            Assert.False(result.WasMapped);
+            Assert.Null(result.SessionSuffix);
+        }
+
+
         //Test case: two UseActiveSession calls with and without delegate
         [Fact]
         public void UseActiveSessions_TwiceWithAndWithoutDelegate()
