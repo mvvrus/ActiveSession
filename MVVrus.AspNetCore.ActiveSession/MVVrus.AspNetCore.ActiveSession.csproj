@@ -9,7 +9,7 @@
     <Authors>MVVRus</Authors>
     <Title>ActiveSession library</Title>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionPrefix>1.1.0</VersionPrefix>
     <Description>The ActiveSession library is designed to execute code in the background that provides results for several logically related HTTP requests and to share data between them.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/mvvrus/ActiveSession</RepositoryUrl>

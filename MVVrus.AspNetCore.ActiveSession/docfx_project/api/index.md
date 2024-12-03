@@ -1,2 +1,3 @@
-# PLACEHOLDER
-TODO: Add .NET projects to the *src* folder and run `docfx` to generate **REAL** *API Documentation*!
+# The ActiveSession library API documentation
+
+See the Table of Contents on the left side for documentation on the classes, properties, and methods comprising the library

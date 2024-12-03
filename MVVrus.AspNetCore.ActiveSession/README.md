@@ -10,7 +10,7 @@ Unlike the other background execution mechanism in the ASP.NET Core application,
 
 ## References
 1. [The repository with the ActiveSession library source.](https://github.com/mvvrus/ActiveSession)
-2. [The AciveSession library documentation site.](https://mvvrus.github.io/) \(under construction, currently library API documentation only\).
+2. [The AciveSession library documentation site.](https://mvvrus.github.io/) \(under construction\).
 3. [The repository with examples of the ActiveSession library usage.](https://github.com/mvvrus/ActiveSessionExamples) Most оf exmamples in this document (namely those, for which file names are specified) are taken from SampleApplication project in this repository. These file names are shown relative to this project's directory.
 
 ## Components of the library and its extensions
@@ -35,6 +35,8 @@ Each runner is entirely responsible for the execution of its operation:
 - get services from the service container associated with this session;
 - read and write shared data of this session;
 - terminate this session.
+
+Starting from v.1.1 the ActiveSession library supports multiple simultaneous active session associated with a single ASP.NET Core session. Each such an active session is represented by its own active session object. These objects are distinguished by active session identifier suffixes assigned to them. Scopes of these active sessions are determined by ActiveSession library infrastructure, based the library setup during application startup, as described in the documentation. 
 
 ### ActiveSession library infrastructure
 
@@ -891,5 +893,7 @@ Second, tasks created using delegates can either return a result of type TResult
 
 ## Release notes
 
+1.1.0	Add support for multiple active sessions within one ASP.NET Core session via active session identifier suffixes
+        Add a documentation article concerning ActiveSession configuration, including this new feature.
 1.0.1 - Fix race conditions possibility in the EnumerbleRunnerBase.GetRequiredAsync method.
 1.0.0 - Initial release

@@ -1,4 +1,7 @@
-# This is the **HOMEPAGE**.
-Refer to [Markdown](http://daringfireball.net/projects/markdown/) for how to write markdown files.
-## Quick Start Notes:
-1. Add images to the *images* folder if the file is referencing an image.
+# The ActiveSession library documentation
+
+See [articles section](/articles/intro.html) to find information about using library (currently under construction).
+
+See [API section](/api) for documentation on the classes, properties, and methods comprising the library.
+
+(c) mvvrus, 2024
