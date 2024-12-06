@@ -893,7 +893,8 @@ Second, tasks created using delegates can either return a result of type TResult
 
 ## Release notes
 
-1.1.0	Add support for multiple active sessions within one ASP.NET Core session via active session identifier suffixes
+1.1.1 - Set correct release notes in the package description.
+1.1.0 - Add support for multiple active sessions within one ASP.NET Core session via active session identifier suffixes
         Add a documentation article concerning ActiveSession configuration, including this new feature.
 1.0.1 - Fix race conditions possibility in the EnumerbleRunnerBase.GetRequiredAsync method.
 1.0.0 - Initial release
