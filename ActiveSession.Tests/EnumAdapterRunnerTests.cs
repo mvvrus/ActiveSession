@@ -403,6 +403,78 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test case: robustness of FetchRequiredAsync against invalid parallelism
+        [Fact]
+        public void FetchRequiredAsync_InvalidParallelism()
+        {
+            int step1, step2, advance, end = 28;
+            Task fetch_task;
+            List<Int32> result;
+            CancellationTokenSource? fetch_cts = null;
+            TestRunner? runner = null;
+            TestEnumerable test_enumerable = new TestEnumerable();
+            try {
+                //Arrange
+                fetch_cts = new CancellationTokenSource();
+                step1 = 0;
+                test_enumerable.AddFirstPause(step1);
+                runner = new TestRunner(test_enumerable, end);
+                //Arrange: await by the first operation on the empty queue
+                runner.StartRunning();
+                Assert.NotNull(runner.EnumTask);
+                Assert.True(test_enumerable.WaitForPause());
+                advance = 10;
+                result = new List<Int32>();
+                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                Assert.False(fetch_task.IsCompleted);
+                //Test case: try to start invalid second parallel operation
+                //Act and assess
+                Assert.ThrowsAsync<InvalidOperationException>(TryRunSecondFetch);
+                //Assess: check that nothing is broken - await on the insufficiently filled queue
+                step2 = 5;
+                test_enumerable.AddNextPause(step2-step1);
+                test_enumerable.Resume();
+                Assert.True(test_enumerable.WaitForPause());
+                Assert.False(runner.EnumTask.IsCompleted);
+                Assert.False(fetch_task.IsCompleted);
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                Assert.Equal(0, runner.QueueCount);
+                Assert.Equal(step2, result.Count);
+                CheckRange(result, 0, step2);
+                //Assess: check that nothing is broken - await on the more than sufficiently filled queue
+                step1 = step2;
+                step2 = 15;
+                test_enumerable.AddNextPause(step2 - step1);
+                test_enumerable.Resume();
+                Assert.True(test_enumerable.WaitForPause());
+                Assert.False(runner.EnumTask.IsCompleted);
+                Assert.True(fetch_task.Wait(5000));
+                Assert.True(fetch_task.IsCompletedSuccessfully);
+                Assert.Equal(advance, result.Count);
+                CheckRange(result, 0, advance);
+                Assert.Equal(step2 - advance, runner.QueueCount);
+
+                Task TryRunSecondFetch()
+                {
+                    return runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                }
+            }
+            finally {
+                runner?.Dispose();
+                fetch_cts?.Dispose();
+                test_enumerable.Dispose();
+            }
+        }
+
+
+        //Some integration tests that perform checks from the base class public interface perspective
+        //?Dispose_Test(): Dispose while GetRequiredAsync is awaiting
+        //Dispose_Async_Test(): Dispose while GetRequiredAsync is awaiting
+        //GetRequiredAsync_AbortAsync
+        //GetRequiredAsync_CompletedAsync
+        //?GetRequiredAsync_FailedAsync
+        //GetRequiredAsync_InProgresAsync
+
         void CheckTaskTerminatedByDispose(Task task)
         {
             AggregateException e = Assert.Throws<AggregateException>(() => task.Wait(WAIT_TIMEOUT));
@@ -441,7 +513,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        class TestEnumerable: IDisposable
+        class TestEnumerable : IDisposable
         {
 
             Action? _pauseAction = null;
