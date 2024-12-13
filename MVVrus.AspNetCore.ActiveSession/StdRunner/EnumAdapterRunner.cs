@@ -237,39 +237,43 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncEnter(Id, TraceIdentifier);
             #endif
             Token.ThrowIfCancellationRequested();
-            using(Token.Register(()=>EnqueueAwaitContinuationForRunning(ExceptionDispatchInfo.Capture(new OperationCanceledException(Token))))) {
-                #if TRACE
-                Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(Id, TraceIdentifier);
-                #endif
-                while(Result.Count < MaxAdvance && Status.IsRunning() ){
+            try {
+                using(Token.Register(() => EnqueueAwaitContinuationForRunning(ExceptionDispatchInfo.Capture(new OperationCanceledException(Token))))) {
                     #if TRACE
-                    Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(Id, TraceIdentifier);
+                    Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(Id, TraceIdentifier);
                     #endif
+                    while(Result.Count < MaxAdvance && Status.IsRunning()) {
+                        #if TRACE
+                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(Id, TraceIdentifier);
+                        #endif
 
-                    TItem? item;
-                    if(QueueTryTake(out item)) {
-                        #if TRACE
-                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncItemTaken(Id, TraceIdentifier);
-                        #endif
-                        Result.Add(item!);
-                    }
-                    else if(QueueIsAddingCompleted) {
-                        #if TRACE
-                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncNoMoreItems(Id, TraceIdentifier);
-                        #endif
-                        break;
-                    }
-                    else {
-                        #if TRACE
-                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncBeforeAwaiting(Id, TraceIdentifier);
-                        #endif
-                        await this;
-                        #if TRACE
-                        Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncAfterAwaiting(Id, TraceIdentifier);
-                        #endif
+                        TItem? item;
+                        if(QueueTryTake(out item)) {
+                            #if TRACE
+                            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncItemTaken(Id, TraceIdentifier);
+                            #endif
+                            Result.Add(item!);
+                        }
+                        else if(QueueIsAddingCompleted) {
+                            #if TRACE
+                            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncNoMoreItems(Id, TraceIdentifier);
+                            #endif
+                            break;
+                        }
+                        else {
+                            #if TRACE
+                            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncBeforeAwaiting(Id, TraceIdentifier);
+                            #endif
+                            await this;
+                            #if TRACE
+                            Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncAfterAwaiting(Id, TraceIdentifier);
+                            #endif
+                        }
                     }
                 }
-
+            }
+            finally {
+                Volatile.Write(ref _exceptInfo, null);
             }
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncExit(Id, TraceIdentifier);
@@ -425,13 +429,13 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRun(Id);
             #endif
+            Interlocked.CompareExchange(ref _exceptInfo, ExceptInfo, null);
             Action? continuation = Interlocked.Exchange(ref _continuation, null);
             if (continuation != null)
             {
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRunReally(Id);
                 #endif
-                _exceptInfo = ExceptInfo;
                 if(PassExecutionContext) ThreadPool.QueueUserWorkItem(_runAwaitContinuationDelegate, continuation, false);
                 else ThreadPool.UnsafeQueueUserWorkItem(_runAwaitContinuationDelegate, continuation, false);
             }
