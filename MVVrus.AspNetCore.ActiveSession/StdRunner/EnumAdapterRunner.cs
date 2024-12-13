@@ -6,6 +6,7 @@ using static MVVrus.AspNetCore.ActiveSession.StdRunner.StdRunnerConstants;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MVVrus.AspNetCore.ActiveSession.Internal;
+using System.Runtime.ExceptionServices;
 
 namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 {
@@ -23,9 +24,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         IEnumerable<TItem>? _source;
         Boolean _passSourceOwnership;
         Task? _enumTask;
-        readonly Action _queueAwaitContinuationDelegate;
         internal Task? EnumTask { get => _enumTask; }
         Task? _fetchTask;
+        ExceptionDispatchInfo? _exceptInfo;
 
         /// <summary>
         /// <inheritdoc cref="EnumAdapterRunner{TItem}.EnumAdapterRunner(IEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />
@@ -131,7 +132,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     StartInConstructor);
             }
             _runAwaitContinuationDelegate = RunAwaitContinuation;
-            _queueAwaitContinuationDelegate = () => EnqueueAwaitContinuationForRunning();
             if (StartInConstructor) this.StartRunning();
             #if TRACE
             Logger?.LogTraceEnumAdapterConstructorExit(Id);
@@ -190,7 +190,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDispose(Id);
             #endif
-            EnqueueAwaitContinuationForRunning();
+            EnqueueAwaitContinuationForRunning(ExceptionDispatchInfo.Capture(new ObjectDisposedException(DisposedObjectName())));
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerPreDisposeExit(Id);
             #endif
@@ -236,7 +236,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncEnter(Id, TraceIdentifier);
             #endif
-            using(Token.Register(_queueAwaitContinuationDelegate)) {
+            Token.ThrowIfCancellationRequested();
+            using(Token.Register(()=>EnqueueAwaitContinuationForRunning(ExceptionDispatchInfo.Capture(new OperationCanceledException(Token))))) {
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(Id, TraceIdentifier);
                 #endif
@@ -244,9 +245,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                     #if TRACE
                     Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(Id, TraceIdentifier);
                     #endif
-
-                    CheckDisposed();
-                    Token.ThrowIfCancellationRequested();
 
                     TItem? item;
                     if(QueueTryTake(out item)) {
@@ -374,7 +372,15 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
 #pragma warning disable IDE0051 // Remove unused private members. These methods are realy used by an await operator implementation.
         EnumAdapterRunner<TItem> GetAwaiter() { return this; }
         bool IsCompleted { get { return QueueCount > 0; } }
-        void GetResult() { _complete_event.Wait(); }
+        void GetResult() { 
+            _complete_event.Wait();
+            try {
+                _exceptInfo?.Throw();
+            }
+            finally {
+                _exceptInfo=null;
+            }
+        }
 #pragma warning restore IDE0051 // Remove unused private members
         void ICriticalNotifyCompletion.UnsafeOnCompleted(Action Continuation) { Schedule(Continuation);}
         void INotifyCompletion.OnCompleted(Action Continuation) {Schedule(Continuation, true);}
@@ -407,14 +413,14 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerSheduleQueueContnuationToRunAsLastChancePossible(Id);
                 #endif
-                EnqueueAwaitContinuationForRunning(PassExecutionContext);
+                EnqueueAwaitContinuationForRunning(null, PassExecutionContext);
             }
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerEnumerateScheduleContinuationDone(Id);
             #endif
         }
 
-        void EnqueueAwaitContinuationForRunning(Boolean PassExecutionContext = false)
+        void EnqueueAwaitContinuationForRunning(ExceptionDispatchInfo? ExceptInfo=null, Boolean PassExecutionContext = false)
         {
             #if TRACE
             Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRun(Id);
@@ -425,10 +431,11 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRunReally(Id);
                 #endif
+                _exceptInfo = ExceptInfo;
                 if(PassExecutionContext) ThreadPool.QueueUserWorkItem(_runAwaitContinuationDelegate, continuation, false);
                 else ThreadPool.UnsafeQueueUserWorkItem(_runAwaitContinuationDelegate, continuation, false);
             }
-#if TRACE
+            #if TRACE
             Logger?.LogTraceEnumAdapterRunnerQueueContnuationToRunExit(Id);
             #endif
         }
