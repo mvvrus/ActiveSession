@@ -242,10 +242,12 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopStart(Id, TraceIdentifier);
                 #endif
-                while(!Disposed() && Result.Count < MaxAdvance && Status.IsRunning() ){
+                while(Result.Count < MaxAdvance && Status.IsRunning() ){
                     #if TRACE
                     Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncLoopNext(Id, TraceIdentifier);
                     #endif
+
+                    CheckDisposed();
                     Token.ThrowIfCancellationRequested();
 
                     TItem? item;
@@ -275,7 +277,6 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                         #if TRACE
                         Logger?.LogTraceEnumAdapterRunnerFetchRequiredAsyncAfterAwaiting(Id, TraceIdentifier);
                         #endif
-                        CheckDisposed();
                     }
                 }
 
