@@ -403,6 +403,81 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Some functional tests that perform checks from the base class public interface perspective
+        //Functional test scenarios.
+        //1. Normal flow
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure precize amount of data to complete await
+        // - GetAvailable(part of)
+        // - GetAvailable(rest of)
+        // - GetAvailable(should return empty)
+        // ...acquire more data
+        // - GetRequiredAsync(sync, part of)
+        // - GetRequiredAsync(sync, rest of)
+        // ...acquire more data
+        // - GetRequiredAsync(await more data than left)
+        // ...acquire more data than the rest of awaited for and complete
+        // - GetAvailble (check Status)
+
+        //2. Complete then awaited more data than than returned before completion
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acquire less data than awaited and complete
+        // - GetRequiredAsync(return status)
+
+        //3. Background fails, GetAvailable
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure more data than awaited for and fail
+        // - GetAvailable(part of)
+        // - GetAvailable(rest of, check status and exception)
+        // - GetAvailable(return status)
+
+        //4. Background fails, GetRequiredAsync(sync)
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure precize amount of data to complete await
+        // ...acqure some data and fail
+        // - GetRequiredAsync(sync, part of)
+        // - GetRequiredAsync(sync, rest of)
+        // - GetRequiredAsync(return status)
+
+        //5. Background fails, GetRequiredAsync(awaiting)
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure less data than awaited for and fail
+
+        //6. Abort, no GetRequiredAsync awaiting
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure precize amount of data to complete await
+        // - Abort()
+        // - GetAvailable()
+        // - GetRequiredAsync()
+
+        //7. Abort, GetRequiredAsync awaiting
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure more data than awaited for
+        // - Abort()
+
+        //8. Dispose() while GetRequiredAsync is awaiting
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure more data than awaited for
+        // - Dispose()
+
+        //9. DisposeAsync() while GetRequiredAsync is awaiting
+        // - GetRequiredAsync(start background, await on empty queue)
+        // ...acqure more data than awaited for
+        // - DisposeAsync()
+
+        //10. Method calls on disposed runner
+        // - Dispose()
+        // - GetAvailable()
+        // - GetRequiredAsync()
+        // - Abort()
+
+        //Dispose_Test(): Dispose while GetRequiredAsync is awaiting
+        //Dispose_Async_Test(): Dispose while GetRequiredAsync is awaiting
+        //GetRequiredAsync_AbortAsync
+        //GetRequiredAsync_CompletedAsync
+        //GetRequiredAsync_FailedAsync
+        //GetRequiredAsync_InProgresAsync
+
         void CheckTaskTerminatedByDispose(Task task)
         {
             AggregateException e = Assert.Throws<AggregateException>(() => task.Wait(WAIT_TIMEOUT));
