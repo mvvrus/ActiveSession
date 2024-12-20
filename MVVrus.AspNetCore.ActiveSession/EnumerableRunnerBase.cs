@@ -61,6 +61,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         //A field used to set pseudo-lock on the runner to block parallel execution of its GetRequiredAsync/GetAvailable methods,
         //The code using this pseudo-lock does not wait but throws an exception then the pseudo-lock cannot be acquired
         int _busy;
+        volatile Boolean _aborted=false;
 
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
         /// <param name="Options">Presents access to a configuration object via the options pattern</param>
@@ -415,6 +416,7 @@ namespace MVVrus.AspNetCore.ActiveSession
                     _queue.CompleteAdding();
                 }
             catch(ObjectDisposedException) { };
+            _aborted = true;
             base.DoAbort(TraceIdentifier);
         }
 
@@ -462,9 +464,14 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </remarks>
         protected internal Boolean QueueTryAdd(TItem Item)
         {
-            Boolean result;
+            Boolean result=false;
             try{
-                result = _queue.TryAdd(Item, -1, CompletionToken);
+                do {
+                    if(_aborted) break;
+                    result = _queue.TryAdd(Item, 100, CompletionToken);
+                    if(!result) Task.Yield().GetAwaiter().GetResult();
+                }
+                while(!result);
             }
             catch (OperationCanceledException){
                 #if TRACE
