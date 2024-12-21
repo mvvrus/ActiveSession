@@ -7,6 +7,8 @@ namespace ActiveSession.Tests
 {
     internal abstract class TestEnumerableSetupBase
     {
+        public Int32? EnumAheadLimit { get; set; } = null;
+
         protected TestSequence _testSequence { get; init; }
         readonly MockedLoggerFactory _loggerFactoryMock = new MockedLoggerFactory();
 
