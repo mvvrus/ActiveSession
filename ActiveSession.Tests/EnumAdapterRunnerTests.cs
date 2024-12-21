@@ -1,139 +1,156 @@
 ﻿using Microsoft.Extensions.Logging;
 using MVVrus.AspNetCore.ActiveSession.Internal;
 using MVVrus.AspNetCore.ActiveSession.StdRunner;
-using System;
 using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using RunnerCommonBase = MVVrus.AspNetCore.ActiveSession.EnumerableRunnerBase<System.Int32>;
 
 namespace ActiveSession.Tests
 {
     public class EnumAdapterRunnerTests
     {
-        const Int32 WAIT_TIMEOUT = 5000;
+        const Int32 WAIT_TIMEOUT = -1; //TODO 5000;
         //Test group: check background processing w/o any FetchRequiredAsync task awaiting
         [Fact]
-        public void BackgroundEnumeration()
+        public async Task BackgroundEnumeration()
         {
             int step1, end=20;
+            RunnerCommonBase runner;
+            Task step_task;
 
             //Test case: start background process and perform incomplete enumeration
-            using(TestEnumerable test_enumerable = new TestEnumerable()) {
-                step1 = 5;
-                test_enumerable.AddFirstPause(step1);
-                using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundExecution();
-                    Assert.NotNull(runner.EnumTask);
-                    Assert.True(test_enumerable.WaitForPause());
-                    Assert.False(runner.EnumTask.IsCompleted);
-                    Assert.False(runner.QueueIsAddingCompleted);
-                    runner.FetchAndCheck(0, step1);
-                    //Test case: enumeration to the end
-                    test_enumerable.Resume();
-                    Assert.True(runner.EnumTask.Wait(WAIT_TIMEOUT));
-                    Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.QueueIsAddingCompleted);
-                    Assert.Null(runner.Exception);
-                    runner.FetchAndCheck(step1, end - step1);
-                }
-                //Test case Abort call while eumerating
-                test_enumerable.ReleaseTestEnumerable();
-                step1 = 19;
-                test_enumerable.AddFirstPause(step1);
-                using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundExecution();
-                    Assert.NotNull(runner.EnumTask);
-                    Assert.True(test_enumerable.WaitForPause());
-                    Assert.False(runner.EnumTask.IsCompleted);
-                    Assert.False(runner.QueueIsAddingCompleted);
-                    runner.Abort();
-                    test_enumerable.Resume();
-                    Assert.True(runner.EnumTask.Wait(WAIT_TIMEOUT));
-                    Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.QueueIsAddingCompleted);
-                    Assert.Null(runner.Exception);
-                    runner.FetchAndCheck(0, step1);
-                }
-                //Test case: exception while enumerating
-                test_enumerable.ReleaseTestEnumerable();
-                step1 = 10;
-                test_enumerable.AddFirstPause(step1, () => throw new TestException());
-                using(TestRunner runner = new TestRunner(test_enumerable, end)) {
-                    runner.StartBackgroundExecution();
-                    Assert.NotNull(runner.EnumTask);
-                    Assert.True(runner.EnumTask.Wait(WAIT_TIMEOUT));
-                    Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.QueueIsAddingCompleted);
-                    Assert.NotNull(runner.Exception);
-                    Assert.IsType<TestException>(runner.Exception);
-                    runner.FetchAndCheck(0, step1);
-                }
-                //Test case Abort call while enumerating with a full queue
-                test_enumerable.ReleaseTestEnumerable();
-                using(TestRunner runner = new TestRunner(test_enumerable, end, end/2)) {
-                    runner.StartBackgroundExecution();
-                    Assert.NotNull(runner.EnumTask);
-                    Thread.Sleep(100);
-                    Assert.False(runner.EnumTask.IsCompleted);
-                    Assert.False(runner.QueueIsAddingCompleted);
-                    Assert.Equal(end/2, runner.GetProgress().Progress);
-                    runner.Abort();
-                    Assert.True(runner.EnumTask.Wait(WAIT_TIMEOUT));
-                    Assert.True(runner.EnumTask.IsCompletedSuccessfully);
-                    Assert.True(runner.QueueIsAddingCompleted);
-                    Assert.Null(runner.Exception);
-                }
+            TestEnumAdapterSetup ts = new TestEnumAdapterSetup();
+            step1 = 5;
+            step_task=ts.ResumeEnumeration(step1);
+            runner = ts.CreateRunner();
+            try {
+                await runner.StartBackgroundExecutionAsync();
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(step_task);
+                Assert.False(runner.EnumTask.IsCompleted);
+                Assert.False(runner.QueueIsAddingCompleted);
+                runner.FetchAndCheck(0, step1);
+                //Test case: enumeration to the end
+                step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
+                await CheckTimeoutAsync(runner.EnumTask);
+                Assert.True(runner.EnumTask.IsCompletedSuccessfully);
+                Assert.True(runner.QueueIsAddingCompleted);
+                Assert.Null(runner.Exception);
+                runner.FetchAndCheck(step1, end - step1);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
 
+            //Test case Abort call while eumerating
+            step1 = 19;
+            step_task=ts.ResumeEnumeration(step1);
+            runner = ts.CreateRunner();
+            try {
+                await runner.StartBackgroundExecutionAsync();
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(step_task);
+                Assert.False(runner.EnumTask.IsCompleted);
+                Assert.False(runner.QueueIsAddingCompleted);
+                runner.Abort();
+                step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
+                await CheckTimeoutAsync(runner.EnumTask);
+                Assert.True(runner.EnumTask.IsCompletedSuccessfully);
+                Assert.True(runner.QueueIsAddingCompleted);
+                Assert.Null(runner.Exception);
+                runner.FetchAndCheck(0, step1);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+            //Test case: exception while enumerating
+            step1 = 10;
+            step_task=ts.ResumeEnumeration(step1,TestSequence.StopAction.Fail);
+            runner = ts.CreateRunner();
+            try {
+                await runner.StartBackgroundExecutionAsync();
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(step_task);
+                await CheckTimeoutAsync(runner.EnumTask);
+                Assert.True(runner.EnumTask.IsCompletedSuccessfully);
+                Assert.True(runner.QueueIsAddingCompleted);
+                Assert.NotNull(runner.Exception);
+                Assert.IsType<TestSequence.TestException>(runner.Exception);
+                runner.FetchAndCheck(0, step1);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+            //Test case Abort call while enumerating with a full queue
+            step_task=ts.ResumeEnumeration(end, TestSequence.StopAction.Complete);
+            ts.EnumAheadLimit=end/2;
+            runner = ts.CreateRunner();
+            try {
+                await runner.StartBackgroundExecutionAsync();
+                Assert.NotNull(runner.EnumTask);
+                int i;
+                for(i = 0; i<100 && !runner.IsQueueBlocked; i++) { Thread.Sleep(0); } 
+                Assert.False(runner.EnumTask.IsCompleted);
+                Assert.False(runner.QueueIsAddingCompleted);
+                Assert.Equal(end/2, runner.GetProgress().Progress);
+                runner.Abort();
+                await CheckTimeoutAsync(step_task);
+                await CheckTimeoutAsync(runner.EnumTask);
+                Assert.True(runner.EnumTask.IsCompletedSuccessfully);
+                Assert.True(runner.QueueIsAddingCompleted);
+                Assert.Null(runner.Exception);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Abort();
+                runner.Dispose();
             }
         }
 
         [Fact]
         //Test group: FetchRequiredAsync normal flow
-        public void FetchRequiredAsync_NoCancel()
+        public async Task FetchRequiredAsync_NoCancel()
         {
             int step1, step2, advance, end = 28;
             Task fetch_task;
             List<Int32> result;
-            CancellationTokenSource? fetch_cts=null;
-            TestRunner? runner=null;
-            TestEnumerable test_enumerable = new TestEnumerable();
+            RunnerCommonBase? runner=null;
+            Task step_task;
+            TestEnumAdapterSetup ts = new TestEnumAdapterSetup();
             try {
-                fetch_cts = new CancellationTokenSource();
+                runner = ts.CreateRunner();
                 step1 = 0;
-                test_enumerable.AddFirstPause(step1);
-                runner = new TestRunner(test_enumerable, end);
-                //Test case: await on the empty queue, background fetch is in progress
-                runner.StartRunning();
+                step_task = ts.ResumeEnumeration(step1);
+                await runner.StartRunningAsync();
                 Assert.NotNull(runner.EnumTask);
-                Assert.True(test_enumerable.WaitForPause());
-                Assert.False(runner.EnumTask.IsCompleted);  
+                //Test case: await on the empty queue, background fetch is in progress
+                await CheckTimeoutAsync(step_task);
+                Assert.False(runner.EnumTask.IsCompleted);
                 advance = 10;
                 result = new List<Int32>();
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                fetch_task = runner.FetchRequiredAsync(advance, result, default, "<unknown>");
+                await Task.Yield();
                 Assert.False(fetch_task.IsCompleted);
                 Assert.Empty(result);
                 //Test case: await on the insufficiently filled queue, background fetch is in progress
                 step2 = 5;
-                test_enumerable.AddNextPause(step2-step1);
-                test_enumerable.Resume();
-                Assert.True(test_enumerable.WaitForPause());
+                step_task = ts.ResumeEnumeration(step2-step1);
+                await CheckTimeoutAsync(step_task);
                 Assert.False(runner.EnumTask.IsCompleted);
                 Assert.False(fetch_task.IsCompleted);
-                for(int i = 0; i < 1000 && runner.QueueCount > 0 ; i++) Thread.Sleep(100);
+                //for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
                 Assert.Equal(0, runner.QueueCount);
                 Assert.Equal(step2, result.Count);
                 CheckRange(result, 0, step2);
                 //Test case: await on the more than sufficiently filled queue, background fetch is in progress
                 step1 = step2;
                 step2 = 15;
-                test_enumerable.AddNextPause(step2 - step1);
-                test_enumerable.Resume();
-                Assert.True(test_enumerable.WaitForPause());
+                step_task = ts.ResumeEnumeration(step2-step1);
+                await CheckTimeoutAsync(step_task);
                 Assert.False(runner.EnumTask.IsCompleted);
-                Assert.True(fetch_task.Wait(WAIT_TIMEOUT));
+                await CheckTimeoutAsync(fetch_task);
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(advance, result.Count);
                 CheckRange(result, 0, advance);
@@ -141,114 +158,115 @@ namespace ActiveSession.Tests
                 //Test case: await on queue to be filled with just the same amount as requested, background fetch is in progress
                 result = new List<Int32>();
                 runner.FetchAvailable(advance, result);
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                fetch_task = runner.FetchRequiredAsync(advance, result, default, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
                 step1 = step2;
                 step2 = 20;
-                test_enumerable.AddNextPause(step2 - step1);
-                test_enumerable.Resume();
-                Assert.True(test_enumerable.WaitForPause());
+                step_task = ts.ResumeEnumeration(step2-step1);
+                await CheckTimeoutAsync(step_task);
                 Assert.False(runner.EnumTask.IsCompleted);
-                Assert.True(fetch_task.Wait(WAIT_TIMEOUT));
+                await CheckTimeoutAsync(fetch_task);
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(advance, result.Count);
                 CheckRange(result, advance, advance);
                 Assert.Equal(0, runner.QueueCount);
                 step1 = step2;
                 step2 = 25;
-                test_enumerable.AddNextPause(step2 - step1);
-                test_enumerable.Resume();
-                Assert.True(test_enumerable.WaitForPause());
+                step_task = ts.ResumeEnumeration(step2-step1);
+                await CheckTimeoutAsync(step_task);
                 Assert.Equal(step2 - 2*advance, runner.QueueCount);
                 //Test case: await on the initially insufficiently filled queue, background fetch is in progress
                 result = new List<Int32>();
-                runner.FetchAvailable(advance,result);
-                fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts.Token, "<unknown>");
+                runner.FetchAvailable(advance, result);
+                fetch_task = runner.FetchRequiredAsync(advance, result, default, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
-                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
+                //for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
                 Assert.Equal(step2-2*advance, result.Count);
                 CheckRange(result, 2*advance, step2-2*advance);
                 //Test case: await on the insufficiently filled queue, background fetch is complete
-                test_enumerable.Resume();
-                Assert.True(runner.EnumTask.Wait(WAIT_TIMEOUT));
-                Assert.True(fetch_task.Wait(WAIT_TIMEOUT));
+                step_task = ts.ResumeEnumeration(end-step2, TestSequence.StopAction.Complete);
+                await CheckTimeoutAsync(step_task);
+                await CheckTimeoutAsync(runner.EnumTask);
+                await CheckTimeoutAsync(fetch_task);
                 Assert.True(fetch_task.IsCompletedSuccessfully);
                 Assert.Equal(end-2*advance, result.Count);
                 CheckRange(result, 2*advance, end-2*advance);
                 Assert.Equal(0, runner.QueueCount);
             }
             finally {
+                ts.ReleaseEnumerable();
                 runner?.Dispose();
-                fetch_cts?.Dispose();
-                test_enumerable.Dispose();
             }
         }
 
         [Fact]
         //Test group: FetchRequiredAsync cancellation and aborting
-        public void FetchRequiredAsync_Cancellation()
+        public async Task FetchRequiredAsync_Cancellation()
         {
-            TestEnumerable test_enumerable;
-            int step1, advance, end = 18;
+            TestEnumAdapterSetup ts = new TestEnumAdapterSetup();
+            Task step_task;
             Task fetch_task=null!;
-            List<Int32> result;
             CancellationTokenSource? fetch_cts = null;
-            TestRunner runner;
+            int step1, advance;
+            List<Int32> result;
+            RunnerCommonBase? runner = null;
 
-            using(test_enumerable = new TestEnumerable()) {
-                //Test case: pass already canceled token
-                PerformTest(() => { },
-                    () =>
-                    {
-                        AggregateException e = Assert.Throws<AggregateException>(() => fetch_task.Wait(WAIT_TIMEOUT));
-                        Assert.Single(e.InnerExceptions);
-                        Assert.IsType<TaskCanceledException>(e.InnerExceptions[0]);
-                        Assert.True(fetch_task.IsCanceled);
-                    },
-                    ()=>new CancellationToken(true));
+            //Test case: pass already canceled token
+            await PerformTest(() => { },
+                async () =>
+                {
+                    await Assert.ThrowsAsync<OperationCanceledException>(()=>CheckTimeoutAsync(fetch_task));
+                    Assert.True(fetch_task.IsCanceled);
+                },
+                () => new CancellationToken(true));
+            //Test case: cancel the awaiting fetch task
+            await PerformTest(() => fetch_cts!.Cancel(),
+                async () =>
+                {
+                    await Assert.ThrowsAsync<OperationCanceledException>(() => CheckTimeoutAsync(fetch_task));
+                    Assert.True(fetch_task.IsCanceled);
+                });
+            //Test case: abort the awaiting fetch task
+            await PerformTest(() => runner!.Abort(),
+                async () =>
+                {
+                    await CheckTimeoutAsync(fetch_task);
+                    Assert.True(fetch_task.IsCompletedSuccessfully);
+                    Assert.True(runner!.CompletionToken.IsCancellationRequested);
+                });
+            //Test case: dispose runner while fetch task is awaiting
+            Task dispose_task = Task.CompletedTask;
+            await PerformTest(() => { dispose_task = runner!.DisposeAsync().AsTask(); ts.ReleaseEnumerable(); },
+                async () => {
+                    ObjectDisposedException ode = await Assert.ThrowsAsync<ObjectDisposedException>(() => CheckTimeoutAsync(fetch_task));
+                    Assert.Equal(nameof(EnumAdapterRunner<Int32>), ode.ObjectName);
+                    Assert.True(fetch_task.IsFaulted);
+                    await CheckTimeoutAsync(dispose_task);
+                });
 
-                //Test case: cancel the awaiting fetch task
-                PerformTest(() => fetch_cts!.Cancel(),
-                    () =>
-                    {
-                        AggregateException e = Assert.Throws<AggregateException>(() => fetch_task.Wait(WAIT_TIMEOUT));
-                        Assert.Single(e.InnerExceptions);
-                        Assert.IsType<TaskCanceledException>(e.InnerExceptions[0]);
-                        Assert.True(fetch_task.IsCanceled);
-                    });
-
-                //Test case: abort the awaiting fetch task
-                PerformTest(() => runner.Abort(),
-                    () =>
-                    {
-                        Assert.True(fetch_task.Wait(WAIT_TIMEOUT));
-                        Assert.True(fetch_task.IsCompletedSuccessfully);
-                    });
 
 
-                //Test case: dispose runner while fetch task is awaiting
-                ValueTask vt = ValueTask.CompletedTask;
-                PerformTest(() => { vt = runner.DisposeAsync(); },
-                    () => { CheckTaskTerminatedByDispose(fetch_task!); vt.AsTask().Wait(WAIT_TIMEOUT); });
-            }
-
-            void PerformTest(Action Act, Action Assess, Func<CancellationToken>? MakeToken=null)
+            async Task PerformTest(Action Act, Func<Task> Assess, Func<CancellationToken>? MakeToken = null)
             {
-                test_enumerable.ReleaseTestEnumerable();
                 fetch_cts = new CancellationTokenSource();
-                MakeToken = MakeToken??(()=>fetch_cts.Token);
+                MakeToken = MakeToken??(() => fetch_cts.Token);
                 try {
                     step1 = 5;
-                    test_enumerable.AddFirstPause(step1);
-                    using(runner = new TestRunner(test_enumerable, end)) {
-                        runner.StartRunning();
+                    step_task = ts.ResumeEnumeration(step1);
+                    runner = ts.CreateRunner();
+                    try {
+                        await runner.StartRunningAsync();
                         Assert.NotNull(runner.EnumTask);
-                        Assert.True(test_enumerable.WaitForPause());
+                        await CheckTimeoutAsync(step_task);
                         advance = 10;
                         result = new List<Int32>();
                         fetch_task = runner.FetchRequiredAsync(advance, result, MakeToken(), "<unknown>");
                         Act();
-                        Assess();
+                        await Assess();
+                    }
+                    finally {
+                        ts.ReleaseEnumerable();
+                        runner?.Dispose();
                     }
                 }
                 finally {
@@ -256,117 +274,132 @@ namespace ActiveSession.Tests
                     fetch_cts = null;
                 }
             }
-
         }
 
         [Fact]
         //Test group: Disposing (DisposeAsync and hence Dispose) tests
-        public void Disposing()
+        public async Task Disposing()
         {
-            TestEnumerable test_enumerable;
-            int step1, advance, end = 18;
+            RunnerCommonBase runner =null!;
             Task fetch_task = null!;
             List<Int32> result;
+            int step1=0, advance, end = 18;
             CancellationTokenSource? fetch_cts = null;
-            TestRunner runner;
-            Task? dispose_task= null;
+            Task step_task=Task.FromException(new InvalidOperationException("Using uninitialized task"));
+            TestEnumAdapterSetup ts = new TestEnumAdapterSetup();
+            Task dispose_task = Task.CompletedTask;
 
+            fetch_cts = new CancellationTokenSource();
 
-            using(test_enumerable = new TestEnumerable()) {
-                fetch_cts = new CancellationTokenSource();
-                //Test case: dispose non-started runner
-                PerformTest(() => { }, () => { Assert.True(dispose_task!.Wait(WAIT_TIMEOUT)); });
-                //Test case: dispose runner with only a background processing started and not completed before disposing
-                PerformTest(() => { StartBkg(); },
-                    () =>
-                    {
-                        Assert.False(runner!.EnumTask!.IsCompleted);
-                        test_enumerable.Resume();
-                        Assert.True(dispose_task!.Wait(WAIT_TIMEOUT));
-                    });
-                //Test case: dispose runner with both fetch and background processing started and not completed before disposing
-                PerformTest(
-                    () =>
-                    {
-                        advance = 10;
-                        StartFetch();
-                        Assert.NotNull(fetch_task);
-                        for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(100);
-                        Assert.False(runner!.EnumTask!.IsCompleted);
-                    },
-                    () =>
-                    {
-                        Assert.NotNull(fetch_task);
-                        CheckTaskTerminatedByDispose(fetch_task!);
-                        test_enumerable.Resume();
-                        Assert.True(dispose_task!.Wait(WAIT_TIMEOUT));
-                    });
-                //Test case: dispose runner with both fetch and background processing started but only fetch completed before disposing
-                PerformTest(
-                    () =>
-                    {
-                        advance = 5;
-                        StartFetch();
-                        Assert.NotNull(fetch_task);
-                        Assert.True(fetch_task!.Wait(WAIT_TIMEOUT));
-                        Assert.True(fetch_task!.IsCompletedSuccessfully);
-                    },
-                    () =>
-                    {
-                        Assert.False(runner!.EnumTask!.IsCompleted);
-                        test_enumerable.Resume();
-                        Assert.True(dispose_task!.Wait(WAIT_TIMEOUT));
-                    });
-                //Test case: dispose runner with both fetch and background processing started and completed before disposing
-                PerformTest(
-                    () =>
-                    {
-                        advance = 20;
-                        StartFetch();
-                        test_enumerable.Resume();
-                        Assert.NotNull(fetch_task);
-                        Assert.True(fetch_task!.Wait(WAIT_TIMEOUT));
-                        Assert.True(fetch_task!.IsCompletedSuccessfully);
-                        Assert.True(runner!.EnumTask!.IsCompleted);
-                    },
-                    () =>
-                    {
-                        Assert.True(dispose_task!.Wait(WAIT_TIMEOUT));
-                    });
+            //Test case: dispose non-started runner
+            await PerformTest(() => Task.CompletedTask, async () => { await CheckTimeoutAsync(dispose_task); });
+            //Test case: dispose runner with only a background processing started and not completed before disposing
+            await PerformTest(
+                () => {
+                    step1 = 5;
+                    step_task = ts.ResumeEnumeration(step1);
+                    return StartBkg(); 
+                }, 
+                async () =>
+                {
+                    Assert.False(runner.EnumTask!.IsCompleted);
+                    await Finalization();
+                });
+            //Test case: dispose runner with both fetch and background processing started and not completed before disposing
+            await PerformTest(
+                async () =>
+                {
+                    step1 = 5;
+                    step_task = ts.ResumeEnumeration(step1);
+                    advance = 10;
+                    await StartFetch();
+                    Assert.NotNull(fetch_task);
+                    for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) Thread.Sleep(0);
+                    Assert.Equal(0, runner.QueueCount);
+                    Assert.False(runner!.EnumTask!.IsCompleted);
+                },
+                async () =>
+                {
+                    Assert.NotNull(fetch_task);
+                    ObjectDisposedException ode = await Assert.ThrowsAsync<ObjectDisposedException>(() => CheckTimeoutAsync(fetch_task));
+                    Assert.Equal(nameof(EnumAdapterRunner<Int32>), ode.ObjectName);
+                    Assert.True(fetch_task.IsFaulted);
+                    await Finalization();
+                });
+            //Test case: dispose runner with both fetch and background processing started but only fetch completed before disposing
+            await PerformTest(
+                async () =>
+                {
+                    step1 = 5;
+                    step_task = ts.ResumeEnumeration(step1);
+                    advance = 5;
+                    await StartFetch();
+                    Assert.NotNull(fetch_task);
+                    await CheckTimeoutAsync(fetch_task);
+                    Assert.True(fetch_task!.IsCompletedSuccessfully);
+                },
+                async () =>
+                {
+                    Assert.False(runner!.EnumTask!.IsCompleted);
+                    await Finalization();
+                });
+            //Test case: dispose runner with both fetch and background processing started and completed before disposing
+            await PerformTest(
+                async () =>
+                {
+                    advance = 20;
+                    step1 = 5;
+                    step_task = ts.ResumeEnumeration(step1);
+                    await StartFetch();
+                    Assert.NotNull(fetch_task);
+                    step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
+                    await step_task;
+                    await CheckTimeoutAsync(fetch_task);
+                    Assert.True(fetch_task!.IsCompletedSuccessfully);
+                    await CheckTimeoutAsync(runner!.EnumTask!);
+                },
+                async () =>
+                {
+                    await CheckTimeoutAsync(dispose_task);
+                });
 
-
+            //Supplement local functions
+            async Task Finalization() {
+                step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
+                await step_task;
+                ts.ReleaseEnumerable();
+                await CheckTimeoutAsync(dispose_task);
             }
-            
-            void StartBkg()
+
+            async Task StartBkg()
             {
-                runner.StartRunning();
+                await runner.StartRunningAsync();
                 Assert.NotNull(runner.EnumTask);
-                Assert.True(test_enumerable.WaitForPause());
+                await CheckTimeoutAsync(step_task);
             }
 
-            void StartFetch()
+            async Task StartFetch()
             {
-                StartBkg();
+                await StartBkg();
                 result = new List<Int32>();
                 fetch_task = runner.FetchRequiredAsync(advance, result, fetch_cts?.Token??default, "<unknown>");
             }
 
-            void PerformTest(Action Arrnage, Action Assess)
+            async Task PerformTest(Func<Task> Arrnage, Func<Task> Assess)
             {
-                test_enumerable.ReleaseTestEnumerable();
                 fetch_cts = new CancellationTokenSource();
                 try {
-                    step1 = 5;
-                    test_enumerable.AddFirstPause(step1);
-                    runner = new TestRunner(test_enumerable, end);
-                    Arrnage();
+                    runner = ts.CreateRunner();
+                    await Arrnage();
                     dispose_task=runner.DisposeAsync().AsTask();
-                    Assess();
+                    Thread.Sleep(0);
+                    await Assess();
                 }
                 finally {
                     fetch_cts?.Dispose();
                 }
             }
+
         }
 
         [Fact]
@@ -478,15 +511,6 @@ namespace ActiveSession.Tests
         //GetRequiredAsync_FailedAsync
         //GetRequiredAsync_InProgresAsync
 
-        void CheckTaskTerminatedByDispose(Task task)
-        {
-            AggregateException e = Assert.Throws<AggregateException>(() => task.Wait(WAIT_TIMEOUT));
-            Assert.Single(e.InnerExceptions);
-            ObjectDisposedException ode = Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(TestRunner), ode.ObjectName);
-            Assert.True(task!.IsFaulted);
-        }
-
         Boolean CheckRange(IEnumerable<Int32> Range, Int32 Start, Int32 Length)
         {
             Int32 item_to_compare = Start;
@@ -496,119 +520,43 @@ namespace ActiveSession.Tests
             return item_to_compare == Start + Length;
         }
 
-        class TestException : Exception {}
 
-        class TestRunner: EnumAdapterRunner<Int32>
+        async Task CheckTimeoutAsync(Task Task)
         {
-            readonly TestEnumerable _source;
+            Task<Task> wait_outcome = Task.WhenAny(Task, Task.Delay(WAIT_TIMEOUT));
+            Task wait_result = await wait_outcome;
+            Assert.Same(Task, wait_result);
+            await wait_result;
+        }
 
-            public TestRunner(TestEnumerable Source, Int32 Max, Int32? QLimit = null) 
-                : base(Source.GetTestEnumerable(Max), true, null, true, null, QLimit, false, 
-                      default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory.CreateLogger<EnumAdapterRunner<Int32>>()) 
-            {
-                _source = Source;
-            }
+        class TestEnumAdapterSetup : TestEnumerableSetupBase
+        {
+            public TestEnumAdapterSetup(): base(typeof (EnumAdapterRunner<Int32>) ) { }
+            public Int32? EnumAheadLimit { get; set; } =null;
 
-            protected override void PreDispose()
+            protected override RunnerCommonBase CreateRunnerImpl()
             {
-                base.PreDispose();
-                _source.CancelPause();
+                return new EnumAdapterRunner<Int32>(
+                    new EnumAdapterParams<Int32>() {
+                        Source=_testSequence.GetEnumerable(),
+                        EnumAheadLimit=EnumAheadLimit
+                    }, default, 
+                    new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), 
+                    LoggerFactory.CreateLogger<EnumAdapterRunner<Int32>>()
+                );
             }
         }
 
-        class TestEnumerable: IDisposable
-        {
-
-            Action? _pauseAction = null;
-            Int32 _pauseBefore = -1;
-            readonly ManualResetEventSlim _testEvent = new ManualResetEventSlim(false);
-            readonly ManualResetEventSlim _proceedEvent = new ManualResetEventSlim(false);
-            CancellationTokenSource? _cts=null;
-            readonly Action _defaultPauseAction;
-            readonly MockedLoggerFactory _loggerFactoryMock = new MockedLoggerFactory();
-
-            public TestEnumerable() 
-            {
-                _defaultPauseAction = () => { _proceedEvent.Reset(); _testEvent.Set(); _proceedEvent.Wait(_cts?.Token??default); };
-                _loggerFactoryMock.MonitorLoggerCategory(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<Int32>)));
-            }
-
-            public ILoggerFactory LoggerFactory { get => _loggerFactoryMock.LoggerFactory; }
-
-            public void AddFirstPause(Int32 PauseBefore, Action? PauseAction=null)
-            {
-                _pauseAction = PauseAction??_defaultPauseAction;
-                _pauseBefore = PauseBefore;
-            }
-
-            public void AddNextPause(Int32 Step, Action? PauseAction=null)
-            {
-                if(_pauseBefore < 0) throw new InvalidOperationException();
-                if(Step <= 0) throw new InvalidOperationException();
-                _pauseAction = PauseAction??_pauseAction;
-                _pauseBefore+=Step;
-            }
-
-            public Boolean WaitForPause()
-            {
-                return _testEvent.Wait(WAIT_TIMEOUT);
-            }
-
-            public void Resume()
-            {
-                _testEvent.Reset();
-                _proceedEvent.Set();
-            }
-
-            public void CancelPause()
-            {
-                _cts?.Cancel();
-            }
-
-            public void ReleaseTestEnumerable()
-            {
-                CancelPause();
-                CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
-                cts?.Dispose();
-                _pauseAction = null;
-                _pauseBefore = -1;
-                _testEvent.Reset();
-                _proceedEvent.Set();
-            }
-
-            public IEnumerable<Int32> GetTestEnumerable(Int32 Max)
-            {
-                CancellationTokenSource cts = new CancellationTokenSource();
-                if(Interlocked.CompareExchange(ref _cts, cts, null) != null) {
-                    cts.Dispose();
-                    throw new InvalidOperationException();
-                }
-                for(Int32 i = 0; i < Max; i++) {
-                    if(i == _pauseBefore) _pauseAction?.Invoke();
-                    yield return i;
-                }
-                _pauseAction = null;
-                _pauseBefore = -1;
-            }
-
-            public void Dispose()
-            {
-                ReleaseTestEnumerable();
-                _testEvent.Dispose();
-                _proceedEvent.Dispose();
-            }
-
-        }
     }
 
-    static class EnumAdapterRunnerTestsUtil
+    static class RunnerCommonBaseTestsUtil
     {
-        public static void FetchAndCheck(this EnumerableRunnerBase<Int32> runner, Int32 StartValue, Int32 Count)
+        public static void FetchAndCheck(this RunnerCommonBase Runner, Int32 StartValue, Int32 Count)
         {
-            Assert.Equal(Count, runner.QueueCount);
+            Assert.Equal(Count, Runner.QueueCount);
             for(int i = 0; i < Count; i++) {
                 Int32 Item;
-                Assert.True(runner.QueueTryTake(out Item));
+                Assert.True(Runner.QueueTryTake(out Item));
                 Assert.Equal(StartValue + i, Item);
             }
         }

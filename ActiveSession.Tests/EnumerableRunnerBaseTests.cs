@@ -880,7 +880,7 @@ namespace ActiveSession.Tests
                 Assert.True(result_as_task.Wait(TIMEOUT));
                 Assert.True(result_as_task.IsCompletedSuccessfully);
                 //Test another GetRequiredAsync call when GetRequiredAsync has been completed
-                runner.GetRequiredAsync(PAGE_SIZE);
+                Task unused=runner.GetRequiredAsync(PAGE_SIZE).AsTask();
                 //Test GetAvailable call when GetRequiredAsync has been completed
                 runner.GetAvailable();
             }
@@ -1278,7 +1278,11 @@ namespace ActiveSession.Tests
                 _startBkgTask = _startBkgFaultedSync?Task.FromException(new TestException()):
                     _startBkgCancelededSync?Task.FromCanceled(new CancellationToken(true)):
                         _pauseBkgStart ?Task.Run(pause, _cts.Token) :Task.CompletedTask;
+#pragma warning disable VSTHRD110 // Observe result of async calls
+#pragma warning disable VSTHRD105 // Avoid method overloads that assume TaskScheduler.Current
                 _startBkgTask.ContinueWith(SetStarted,TaskContinuationOptions.ExecuteSynchronously);
+#pragma warning restore VSTHRD105 // Avoid method overloads that assume TaskScheduler.Current
+#pragma warning restore VSTHRD110 // Observe result of async calls
                 return _startBkgTask;
             }
 

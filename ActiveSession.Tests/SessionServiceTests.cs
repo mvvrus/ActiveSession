@@ -164,7 +164,9 @@ namespace ActiveSession.Tests
             {
                 Boolean wait_result = await Semaphore.WaitAsync(d, t);
                 if(wait_result)
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
                     lock(Semaphore) if(Semaphore.Wait(0)) Semaphore.Release();  //This is a check if the semaphore has been disposed
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
                 return wait_result;
             }
         }

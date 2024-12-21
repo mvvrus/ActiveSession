@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.Threading;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,16 +11,17 @@ namespace ActiveSession.Tests
     internal class TestSequence
     {
         Boolean _busy;
+        Boolean _released = false;
         Int32 _current=-1;
         Int32? _nextStop;
         StopAction _nextStopAction;
-        TaskCompletionSource? _nextStopTcs;
-        SemaphoreSlim _resumeSemaphore = new SemaphoreSlim(0,1);
+        AsyncManualResetEvent _resumeEvent = new AsyncManualResetEvent(false);
+        AsyncManualResetEvent _nextStopEvent = new AsyncManualResetEvent(true);
         Boolean _done=false;
+        CancellationToken _token = default;
 
         public Int32? NextStop { get { return _nextStop; } }
         public StopAction NextStopAction {  get { return _nextStopAction; } }
-        public Task? NextStopTask { get { return _nextStopTcs?.Task; } }
         public Int32 Current { get { return _current; } }
 
 
@@ -32,26 +34,30 @@ namespace ActiveSession.Tests
             _current = -1;
             _nextStop=null;
             _nextStopAction=StopAction.Unknown;
-            while(_resumeSemaphore.CurrentCount>0) _resumeSemaphore.Wait();
+            _nextStopEvent.Set();
+            _resumeEvent.Set();
+            Task.Yield().GetAwaiter().GetResult();
+            _resumeEvent.Reset();
             _done=false;
+            _token=default;
+            _released=false;
         }
 
         async Task<Boolean> MoveNext()
         {
-            await _resumeSemaphore.WaitAsync();
-            Int32 next_stop = _nextStop ?? throw new InvalidOperationException("No next stop point specified.");
-            if(_done) return false;
+            if(_done || _released) return false;
             _current++;
+            Int32 next_stop = _nextStop ?? throw new InvalidOperationException("No next stop point specified.");
             Boolean result=true;
             if(_current>=next_stop) {
+                _resumeEvent.Reset();
+                _nextStopEvent.Set();
                 try {
-
-                    if(_nextStopTcs is null) throw new InvalidOperationException("No next stop task completion source.");
-                    _nextStopTcs.SetResult();
                     switch(_nextStopAction) {
                         case StopAction.Wait:
                             _nextStopAction=StopAction.Unknown;
-                            result=true;
+                            await _resumeEvent.WaitAsync(_token);
+                            result=!_released;
                             break;
                         case StopAction.Complete:
                             _done=true;
@@ -68,7 +74,6 @@ namespace ActiveSession.Tests
                     throw;
                 }
             }
-            else _resumeSemaphore.Release();
             return result;
         }
 
@@ -78,30 +83,38 @@ namespace ActiveSession.Tests
                 +"Dispose the the active (Async)Enumerable before getting a new one.");
         }
 
-        public void Resume(Int32 OffsetToNextStop, StopAction NextStopAction=StopAction.Wait)
+        public Task Resume(Int32 OffsetToNextStop, StopAction NextStopAction=StopAction.Wait)
 
         {
-            if(OffsetToNextStop<0) throw new ArgumentOutOfRangeException(nameof(OffsetToNextStop), " must not be negative");
-            if(NextStopAction!=StopAction.Wait || NextStopAction!=StopAction.Complete || NextStopAction!=StopAction.Fail)
+            if(OffsetToNextStop<0 || OffsetToNextStop==0 && _current>=0) throw new ArgumentOutOfRangeException(nameof(OffsetToNextStop));
+            if(NextStopAction!=StopAction.Wait && NextStopAction!=StopAction.Complete && NextStopAction!=StopAction.Fail)
                 throw new ArgumentOutOfRangeException(nameof(NextStopAction));
             if(_nextStopAction!=StopAction.Unknown)
                 throw new InvalidOperationException("Cannot resume in this state");
-            _nextStopTcs = new TaskCompletionSource();
             _nextStop = (_nextStop??0)+OffsetToNextStop;
             _nextStopAction = NextStopAction;
-            _resumeSemaphore.Release();
+            _nextStopEvent.Reset();
+            _resumeEvent.Set();
+            return _nextStopEvent.WaitAsync();
         }
 
         public IEnumerable<Int32> GetEnumerable()
         {
             CheckBusy();
+            _token=default;
             return new SyncEnumeration(this);
         }
 
-        public IAsyncEnumerable<Int32> GetAsyncEnumerable()
+        public IAsyncEnumerable<Int32> GetAsyncEnumerable(CancellationToken Token=default)
         {
             CheckBusy();
+            _token=Token;
             return new AsyncEnumeration(this);
+        }
+
+        public void ReleaseEnumerable()
+        {
+            _resumeEvent.Set();
         }
 
         public enum StopAction { Unknown, Wait, Complete, Fail}
@@ -173,7 +186,7 @@ namespace ActiveSession.Tests
 
             public Boolean MoveNext()
             {
-                return _owner.MoveNext().Result;
+                return _owner.MoveNext().GetAwaiter().GetResult();
             }
 
             public void Reset()
