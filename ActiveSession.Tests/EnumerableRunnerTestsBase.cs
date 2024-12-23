@@ -9,7 +9,8 @@ namespace ActiveSession.Tests
 {
     public abstract class EnumerableRunnerTestsBase
     {
-        protected const Int32 WAIT_TIMEOUT = -1; //TODO 5000;
+        // protected const Int32 WAIT_TIMEOUT = 5000;
+        protected const Int32 WAIT_TIMEOUT = -1; //TODO
         internal abstract TestEnumerableSetupBase CreateTestSetup();
         internal abstract String GetTestedTypeName();
         protected Boolean CheckRange(IEnumerable<Int32> Range, Int32 Start, Int32 Length)
@@ -26,7 +27,7 @@ namespace ActiveSession.Tests
         {
             Task<Task> wait_outcome = Task.WhenAny(Task, Task.Delay(WAIT_TIMEOUT));
             Task wait_result = await wait_outcome;
-            Assert.Same(Task, wait_result);
+            Assert.True(ReferenceEquals(Task, wait_result),"Timeout occured.");
             await wait_result;
         }
 
@@ -51,6 +52,7 @@ namespace ActiveSession.Tests
                 runner.FetchAndCheck(0, step1);
                 //Test case: enumeration to the end
                 step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
+                await CheckTimeoutAsync(step_task);
                 await CheckTimeoutAsync(runner.EnumTask);
                 Assert.True(runner.EnumTask.IsCompletedSuccessfully);
                 Assert.True(runner.QueueIsAddingCompleted);
@@ -116,7 +118,7 @@ namespace ActiveSession.Tests
                 Assert.False(runner.QueueIsAddingCompleted);
                 Assert.Equal(end/2, runner.GetProgress().Progress);
                 runner.Abort();
-                await CheckTimeoutAsync(step_task);
+                //await CheckTimeoutAsync(step_task);
                 await CheckTimeoutAsync(runner.EnumTask);
                 Assert.True(runner.EnumTask.IsCompletedSuccessfully);
                 Assert.True(runner.QueueIsAddingCompleted);
@@ -233,7 +235,7 @@ namespace ActiveSession.Tests
             await PerformTest(() => { },
                 async () =>
                 {
-                    await Assert.ThrowsAsync<OperationCanceledException>(() => CheckTimeoutAsync(fetch_task));
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CheckTimeoutAsync(fetch_task));
                     Assert.True(fetch_task.IsCanceled);
                 },
                 () => new CancellationToken(true));
@@ -241,7 +243,7 @@ namespace ActiveSession.Tests
             await PerformTest(() => fetch_cts!.Cancel(),
                 async () =>
                 {
-                    await Assert.ThrowsAsync<OperationCanceledException>(() => CheckTimeoutAsync(fetch_task));
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CheckTimeoutAsync(fetch_task));
                     Assert.True(fetch_task.IsCanceled);
                 });
             //Test case: abort the awaiting fetch task

@@ -45,7 +45,10 @@ namespace ActiveSession.Tests
 
         async Task<Boolean> MoveNext()
         {
-            if(_done || _released) return false;
+            if(_done || _released) {
+                _nextStopEvent.Set();
+                return false;
+            }
             _current++;
             Int32 next_stop = _nextStop ?? throw new InvalidOperationException("No next stop point specified.");
             Boolean result=true;
