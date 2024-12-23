@@ -29,7 +29,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         volatile FetchContext? _fetchContext;
         volatile Task _taskChainTail;
 
-        internal Task EnumTask { get => _taskChainTail; } //For tests only
+        internal override Task? EnumTask { get => _taskChainTail; } //For tests only
 
         /// <summary>
         /// <inheritdoc cref="AsyncEnumAdapterRunner{TItem}.AsyncEnumAdapterRunner(IAsyncEnumerable{TItem}, bool, CancellationTokenSource?, bool, int?, int?, bool, RunnerId, IOptionsSnapshot{ActiveSessionOptions}, ILogger?)" path='/summary/common' />

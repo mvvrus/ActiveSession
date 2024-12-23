@@ -62,6 +62,9 @@ namespace MVVrus.AspNetCore.ActiveSession
         //The code using this pseudo-lock does not wait but throws an exception then the pseudo-lock cannot be acquired
         int _busy;
         volatile Boolean _aborted=false;
+        internal Boolean IsQueueBlocked { get; private set; }= false;
+
+        internal virtual Task? EnumTask { get => throw new NotImplementedException(); } //For tests only
 
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment (but other parameters do)
         /// <param name="Options">Presents access to a configuration object via the options pattern</param>
@@ -469,7 +472,10 @@ namespace MVVrus.AspNetCore.ActiveSession
                 do {
                     if(_aborted) break;
                     result = _queue.TryAdd(Item, 100, CompletionToken);
-                    if(!result) Task.Yield().GetAwaiter().GetResult();
+                    if(!result) {
+                        IsQueueBlocked=true;
+                        Task.Yield().GetAwaiter().GetResult();
+                    }
                 }
                 while(!result);
             }
@@ -478,6 +484,9 @@ namespace MVVrus.AspNetCore.ActiveSession
                 Logger?.LogTraceEnumerableRunnerQueueAdditionCanceled(Id);
                 #endif
                 result = false;
+            }
+            finally {
+                IsQueueBlocked=false;
             }
             if(result) _queueAddedCount++;
             return result;

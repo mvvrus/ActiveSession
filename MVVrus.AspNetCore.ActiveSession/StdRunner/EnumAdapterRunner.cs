@@ -24,7 +24,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         Boolean _passSourceOwnership;
         Task? _enumTask;
         readonly Action _queueAwaitContinuationDelegate;
-        internal Task? EnumTask { get => _enumTask; }
+        internal override Task? EnumTask { get => _enumTask; }
         Task? _fetchTask;
 
         /// <summary>
