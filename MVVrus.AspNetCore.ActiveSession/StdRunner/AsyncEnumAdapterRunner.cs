@@ -30,7 +30,9 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
         volatile Task _taskChainTail;
         readonly TaskCompletionSource _enumMonitorTaskSource;
         Boolean _enumStarted = false;
-
+        TaskCompletionSource<Boolean> _runnerCompletedTcs = new TaskCompletionSource<Boolean>();
+        CancellationTokenRegistration _completionCallback;
+        
         internal override Task? EnumTask { get => _enumStarted?_enumMonitorTaskSource.Task:null; } //For tests only
 
         /// <summary>
@@ -149,6 +151,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             _itemActionDelegate = ItemAction;
             _asyncEnumerableOwned=PassSourceOnership;
             _enumMonitorTaskSource=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); //For tests only
+            _completionCallback = CompletionToken.Register(() => { _runnerCompletedTcs.TrySetResult(false); });
              if(StartInConstructor) this.StartRunning();
             #if TRACE
             Logger?.LogTraceAsyncEnumAdapterConstructorExit(Id);
@@ -205,8 +208,8 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             Logger?.LogTraceAsyncEnumAdapterRunnerDisposeCore(Id);
             #endif
             DoAbort(UNKNOWN_TRACE_IDENTIFIER);
-            do
-            {
+            _completionCallback.Dispose();
+            do {
                 task_chain_tail = _taskChainTail;
                 await task_chain_tail;
             } while (_taskChainTail != task_chain_tail);
@@ -304,8 +307,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
             //Start _asyncEnumerable enumeration task chain
             _asyncEnumerator = _asyncSource.GetAsyncEnumerator(CompletionToken);
             _enumStarted=true;
-            _taskChainTail=_asyncEnumerator.MoveNextAsync().AsTask()
-                .ContinueWith(_itemActionDelegate, TaskContinuationOptions.RunContinuationsAsynchronously);
+            MakeNextStep(true);
             #if TRACE
             Logger?.LogTraceAsyncEnumAdapterRunnerStartBackgroundExit(Id);
             #endif
@@ -406,7 +408,7 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 #if TRACE
                 Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceIterationContnue(Id);
                 #endif
-                _taskChainTail = _asyncEnumerator.MoveNextAsync().AsTask().ContinueWith(_itemActionDelegate);
+                MakeNextStep(false);
             }
             else {
                 _enumMonitorTaskSource.TrySetResult();
@@ -414,6 +416,18 @@ namespace MVVrus.AspNetCore.ActiveSession.StdRunner
                 Logger?.LogTraceAsyncEnumAdapterRunnerEnumerateSourceIterationDone(Id);
                 #endif
             }
+        }
+
+        Task MakeNextStep(Boolean AsyncOnly)
+        {
+            _taskChainTail=MakeCancellableByCompletion(_asyncEnumerator.MoveNextAsync().AsTask())
+                .ContinueWith(_itemActionDelegate, AsyncOnly?TaskContinuationOptions.RunContinuationsAsynchronously: TaskContinuationOptions.None);
+            return _taskChainTail;
+        }
+
+        Task<Boolean> MakeCancellableByCompletion(Task<Boolean> ATask)
+        {
+            return Task.WhenAny(ATask, _runnerCompletedTcs.Task).Unwrap();
         }
 
         FetchContext? TryReleaseFetchContext()
