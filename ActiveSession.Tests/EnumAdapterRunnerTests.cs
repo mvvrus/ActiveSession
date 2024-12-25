@@ -80,6 +80,14 @@ namespace ActiveSession.Tests
             }
         }
 
+        [Fact]
+        //Test group: Disposing (DisposeAsync and hence Dispose) tests
+        public Task Func_NormalFlow()
+        {
+            return Func_NormalFlowImpl();
+        }
+
+
         class TestEnumAdapterSetup : TestEnumerableSetupBase
         {
             public TestEnumAdapterSetup(): base(typeof (EnumAdapterRunner<Int32>) ) { }

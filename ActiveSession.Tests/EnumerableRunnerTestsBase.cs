@@ -9,11 +9,11 @@ namespace ActiveSession.Tests
 {
     public abstract class EnumerableRunnerTestsBase
     {
-        // protected const Int32 WAIT_TIMEOUT = 5000;
-        protected const Int32 WAIT_TIMEOUT = -1; //TODO
+        protected const Int32 WAIT_TIMEOUT = 5000;
+        //protected const Int32 WAIT_TIMEOUT = -1; //TODO
         internal abstract TestEnumerableSetupBase CreateTestSetup();
         internal abstract String GetTestedTypeName();
-        protected Boolean CheckRange(IEnumerable<Int32> Range, Int32 Start, Int32 Length)
+        protected static Boolean CheckRange(IEnumerable<Int32> Range, Int32 Start, Int32 Length)
         {
             Int32 item_to_compare = Start;
             foreach(Int32 item in Range) {
@@ -23,12 +23,22 @@ namespace ActiveSession.Tests
         }
 
 
-        protected async Task CheckTimeoutAsync(Task Task)
+        protected static async Task CheckTimeoutAsync(Task Task)
         {
             Task<Task> wait_outcome = Task.WhenAny(Task, Task.Delay(WAIT_TIMEOUT));
             Task wait_result = await wait_outcome;
             Assert.True(ReferenceEquals(Task, wait_result),"Timeout occured.");
             await wait_result;
+        }
+
+        protected static async Task<T> CheckTimeoutAsync<T>(Task<T> ATask)
+        {
+#pragma warning disable VSTHRD105 // Avoid method overloads that assume TaskScheduler.Current
+            Task<Task<T>> wait_outcome = Task.WhenAny(ATask, Task.Delay(WAIT_TIMEOUT).ContinueWith((_)=>Task<T>.FromResult<T>(default!)).Unwrap());
+#pragma warning restore VSTHRD105 // Avoid method overloads that assume TaskScheduler.Current
+            Task<T> wait_result = await wait_outcome;
+            Assert.True(ReferenceEquals(ATask, wait_result), "Timeout occured.");
+            return await wait_result;
         }
 
         //Test group: check background processing w/o any FetchRequiredAsync task awaiting
@@ -420,64 +430,134 @@ namespace ActiveSession.Tests
         }
         //Some functional tests that perform checks from the base class public interface perspective
         //Functional test scenarios.
+
         //1. Normal flow
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure precize amount of data to complete await
-        // - GetAvailable(part of)
-        // - GetAvailable(rest of)
-        // - GetAvailable(should return empty)
-        // ...acquire more data
-        // - GetRequiredAsync(sync, part of)
-        // - GetRequiredAsync(sync, rest of)
-        // ...acquire more data
-        // - GetRequiredAsync(await more data than left)
-        // ...acquire more data than the rest of awaited for and complete
-        // - GetAvailble (check Status)
+        protected async Task Func_NormalFlowImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step=0, prev_step=0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                Assert.False(result_task.IsCompleted);
+                // ...produce precize amount of data to complete await
+                prev_step=step;
+                step=advance;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                await CheckTimeoutAsync(step_task);
+                AssertResult( (prev_step, step-prev_step, RunnerStatus.Stalled, step, null), await CheckTimeoutAsync(result_task));
+                // ...produce some more data
+                prev_step=step;
+                step=15;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                await CheckTimeoutAsync(step_task);
+                // - GetAvailable(part of)
+                AssertResult((prev_step, advance, RunnerStatus.Progressed, prev_step+advance, null), runner.GetAvailable(advance));
+                prev_step+=advance;
+                // - GetAvailable(rest of)
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Stalled, step, null), runner.GetAvailable());
+                // - GetAvailable(should return empty)
+                AssertResult((step, 0, RunnerStatus.Stalled, step, null), runner.GetAvailable());
+                // ...produce some more data
+                prev_step=step;
+                step=25;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                await CheckTimeoutAsync(step_task);
+                // - GetRequiredAsync(sync, part of)
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                AssertResult((prev_step, advance, RunnerStatus.Progressed, prev_step+advance, null), await CheckTimeoutAsync(result_task));
+                prev_step+=advance;
+                // - GetRequiredAsync(sync, rest of)
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Stalled, step, null), await CheckTimeoutAsync(result_task));
+                // ...produce more data
+                prev_step=step;
+                step=27;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                await CheckTimeoutAsync(step_task);
+                // - GetRequiredAsync(await more data than left)
+                Int32 await_start = prev_step;
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                Assert.False(result_task.IsCompleted);
+                // ...produce less data than the rest to awaited for and complete
+                prev_step=step;
+                step=29;
+                step_task=ts.ResumeEnumeration(step-prev_step,TestSequence.StopAction.Complete);
+                AssertResult((await_start, step-await_start, RunnerStatus.Completed, step, null), await CheckTimeoutAsync(result_task));
+                // - GetAvailble (check Status)
+                AssertResult((step, 0, RunnerStatus.Completed, step, null), runner.GetAvailable());
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+        }
+
+        void AssertResult(
+            (Int32 Start, Int32 Length, RunnerStatus Status, Int32 Position, Type? ExceptionType) Expected, 
+            RunnerResult<IEnumerable<Int32>> Actual)
+        {
+            (IEnumerable<Int32> result, RunnerStatus status, Int32 position, Exception? exception) =Actual;
+            CheckRange(result, Expected.Start, Expected.Length);
+            Assert.Equal(Expected.Status, status);
+            Assert.Equal(Expected.Position, position);
+            if(Expected.ExceptionType is null) Assert.Null(exception);
+            else {
+                Assert.NotNull(exception);
+                Assert.IsAssignableFrom(Expected.ExceptionType, exception);
+            }
+        }
 
         //2. Complete then awaited more data than than returned before completion
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acquire less data than awaited and complete
+        // ...produce less data than awaited and complete
         // - GetRequiredAsync(return status)
 
         //3. Background fails, GetAvailable
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure more data than awaited for and fail
+        // ...produce more data than awaited for and fail
         // - GetAvailable(part of)
         // - GetAvailable(rest of, check status and exception)
         // - GetAvailable(return status)
 
         //4. Background fails, GetRequiredAsync(sync)
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure precize amount of data to complete await
-        // ...acqure some data and fail
+        // ...produce precize amount of data to complete await
+        // ...produce some data and fail
         // - GetRequiredAsync(sync, part of)
         // - GetRequiredAsync(sync, rest of)
         // - GetRequiredAsync(return status)
 
         //5. Background fails, GetRequiredAsync(awaiting)
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure less data than awaited for and fail
+        // ...produce less data than awaited for and fail
 
         //6. Abort, no GetRequiredAsync awaiting
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure precize amount of data to complete await
+        // ...produce precize amount of data to complete await
         // - Abort()
         // - GetAvailable()
         // - GetRequiredAsync()
 
         //7. Abort, GetRequiredAsync awaiting
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure more data than awaited for
+        // ...produce more data than awaited for
         // - Abort()
 
         //8. Dispose() while GetRequiredAsync is awaiting
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure more data than awaited for
+        // ...produce more data than awaited for
         // - Dispose()
 
         //9. DisposeAsync() while GetRequiredAsync is awaiting
         // - GetRequiredAsync(start background, await on empty queue)
-        // ...acqure more data than awaited for
+        // ...produce more data than awaited for
         // - DisposeAsync()
 
         //10. Method calls on disposed runner
