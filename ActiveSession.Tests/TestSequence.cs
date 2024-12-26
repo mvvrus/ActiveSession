@@ -28,7 +28,7 @@ namespace ActiveSession.Tests
         public TestSequence() { }
 
 
-        void Reset()
+        internal void Reset()
         {
             _busy = false;
             _current = -1;
@@ -97,6 +97,7 @@ namespace ActiveSession.Tests
             _nextStop = (_nextStop??0)+OffsetToNextStop;
             _nextStopAction = NextStopAction;
             _nextStopEvent.Reset();
+            _released=false;
             _resumeEvent.Set();
             return _nextStopEvent.WaitAsync();
         }
@@ -117,6 +118,7 @@ namespace ActiveSession.Tests
 
         public void ReleaseEnumerable()
         {
+            _released=true;
             _resumeEvent.Set();
         }
 
@@ -160,7 +162,7 @@ namespace ActiveSession.Tests
             }
         }
 
-        class SyncEnumeration : IEnumerable<Int32>, IEnumerator<Int32>
+        class SyncEnumeration : IEnumerable<Int32>, IEnumerator<Int32>, IDisposable
         {
             TestSequence _owner;
             public SyncEnumeration(TestSequence Owner)

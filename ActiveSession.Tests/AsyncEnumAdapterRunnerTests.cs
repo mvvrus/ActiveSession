@@ -87,122 +87,63 @@ namespace ActiveSession.Tests
             Assert.False(source.Disposed);
         }
 
+        [Fact]
+        //Functional test: Normal flow
+        public Task Func_NormalFlow()
+        {
+            return Func_NormalFlowImpl();
+        }
+
+        [Fact]
+        //Functional test: complete enumeration with less data than GetRequiredAsync is awaiing for
+        public Task Func_CompleteWithLessData()
+        {
+            return Func_CompleteWithLessDataImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetAvailable
+        protected Task Func_BkgFailGetAvailable()
+        {
+            return Func_BkgFailGetAvailableImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetAvailable
+        protected Task Func_BkgFailGetRequiredSync()
+        {
+            return Func_BkgFailGetRequiredSyncImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetRequiredAsync in asynchronous mode
+        public Task Func_BkgFailGetRequiredAsync()
+        {
+            return Func_BkgFailGetRequiredAsyncImpl();
+        }
+
+        [Fact]
+        //Functional test: Abort, no GetRequiredAsync awaiting
+        public Task Func_AbortNoAwait()
+        {
+            return Func_AbortNoAwaitImpl();
+        }
+
+        [Fact]
+        //Functional test: Abort, GetRequiredAsync awaiting
+        public Task Func_AbortAwait()
+        {
+            return Func_AbortAwaitImpl();
+        }
+
+        [Fact]
+        //Functional test: Dispose[Async]() while GetRequiredAsync is awaiting
+        public Task Func_DisposeAwait()
+        {
+            return Func_DisposeAwaitImpl();
+        }
+
         ////////////////////////////////////////////////////////////////////////////////
-
-        void CheckTaskTerminatedByDispose(Task task)
-        {
-            AggregateException e = Assert.Throws<AggregateException>(() => task.Wait(5000));
-            Assert.Single(e.InnerExceptions);
-            ObjectDisposedException ode = Assert.IsType<ObjectDisposedException>(e.InnerExceptions[0]);
-            Assert.Equal(nameof(TestRunner), ode.ObjectName);
-            Assert.True(task!.IsFaulted);
-        }
-
-        class TestException : Exception { }
-
-        class TestRunner : AsyncEnumAdapterRunner<Int32>
-        {
-            public const String LOGGERNAME = "TestRunner";
-            readonly TestEnumerable _source;
-
-            public TestRunner(TestEnumerable Source, Int32 Max, Int32? QLimit=null)
-                : base(Source.GetTestEnumerable(Max), true, null, true, null, QLimit, false,
-                      default, new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), Source.LoggerFactory.CreateLogger<AsyncEnumAdapterRunner<Int32>>())
-            {
-                _source = Source;
-            }
-
-            protected override void PreDispose()
-            {
-                base.PreDispose();
-                _source.CancelPause();
-            }
-        }
-
-        class TestEnumerable: IDisposable
-        {
-
-            Action? _pauseAction = null;
-            Int32 _pauseBefore = -1;
-            readonly ManualResetEventSlim _testEvent = new ManualResetEventSlim(false);
-            readonly ManualResetEventSlim _proceedEvent = new ManualResetEventSlim(false);
-            CancellationTokenSource? _cts = null;
-            readonly Action _defaultPauseAction;
-            readonly MockedLoggerFactory _loggerFactoryMock = new MockedLoggerFactory();
-
-            public TestEnumerable()
-            {
-                _defaultPauseAction = () => { _proceedEvent.Reset(); _testEvent.Set(); _proceedEvent.Wait(_cts?.Token ?? default); };
-                _loggerFactoryMock.MonitorLoggerCategory(Utilities.MakeClassCategoryName(typeof(EnumAdapterRunner<Int32>)));
-            }
-
-            public ILoggerFactory LoggerFactory { get => _loggerFactoryMock.LoggerFactory; }
-
-            public void AddFirstPause(Int32 PauseBefore, Action? PauseAction = null)
-            {
-                _pauseAction = PauseAction ?? _defaultPauseAction;
-                _pauseBefore = PauseBefore;
-            }
-
-            public void AddNextPause(Int32 Step, Action? PauseAction = null)
-            {
-                if(_pauseBefore < 0) throw new InvalidOperationException();
-                if(Step <= 0) throw new InvalidOperationException();
-                _pauseAction = PauseAction ?? _pauseAction;
-                _pauseBefore += Step;
-            }
-
-            public Boolean WaitForPause()
-            {
-                return _testEvent.Wait(5000);
-            }
-
-            public void Resume()
-            {
-                _testEvent.Reset();
-                _proceedEvent.Set();
-            }
-
-            public void CancelPause()
-            {
-                _cts?.Cancel();
-            }
-
-            public void ReleaseTestEnumerable()
-            {
-                CancelPause();
-                CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
-                cts?.Dispose();
-                _pauseAction = null;
-                _pauseBefore = -1;
-                _testEvent.Reset();
-                _proceedEvent.Set();
-            }
-
-            public async IAsyncEnumerable<Int32> GetTestEnumerable(Int32 Max, [EnumeratorCancellation]CancellationToken Token=default)
-            {
-                CancellationTokenSource cts = 
-                    Token.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(Token) : new CancellationTokenSource();
-                if(Interlocked.CompareExchange(ref _cts, cts, null) != null) {
-                    cts.Dispose();
-                    throw new InvalidOperationException();
-                }
-                for(Int32 i = 0; i < Max; i++) {
-                    if(i == _pauseBefore) await Task.Run(()=>_pauseAction?.Invoke()).WaitAsync(Token);
-                    yield return i;
-                }
-                _pauseAction = null;
-                _pauseBefore = -1;
-            }
-
-            public void Dispose()
-            {
-                ReleaseTestEnumerable();
-                _testEvent.Dispose();
-                _proceedEvent.Dispose();
-            }
-
-        }
 
         class TestAsyncEnumAdapterSetup : TestEnumerableSetupBase
         {
@@ -214,7 +155,8 @@ namespace ActiveSession.Tests
                     new AsyncEnumAdapterParams<Int32>()
                     {
                         Source=_testSequence.GetAsyncEnumerable(),
-                        EnumAheadLimit=EnumAheadLimit
+                        EnumAheadLimit=EnumAheadLimit,
+                        PassSourceOnership=true
                     }, default,
                     new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()),
                     LoggerFactory.CreateLogger<AsyncEnumAdapterRunner<Int32>>()

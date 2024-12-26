@@ -81,12 +81,62 @@ namespace ActiveSession.Tests
         }
 
         [Fact]
-        //Test group: Disposing (DisposeAsync and hence Dispose) tests
+        //Functional test: Normal flow
         public Task Func_NormalFlow()
         {
             return Func_NormalFlowImpl();
         }
 
+        [Fact]
+        //Functional test: complete enumeration with less data than GetRequiredAsync is awaiing for
+        public Task Func_CompleteWithLessData()
+        {
+            return Func_CompleteWithLessDataImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetAvailable
+        protected Task Func_BkgFailGetAvailable()
+        {
+            return Func_BkgFailGetAvailableImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetAvailable
+        protected Task Func_BkgFailGetRequiredSync()
+        {
+            return Func_BkgFailGetRequiredSyncImpl();
+        }
+
+        [Fact]
+        //Functional test:  Background fails scenario using GetRequiredAsync in asynchronous mode
+        public Task Func_BkgFailGetRequiredAsync()
+        {
+            return Func_BkgFailGetRequiredAsyncImpl();
+        }
+
+        [Fact]
+        //Functional test: Abort, no GetRequiredAsync awaiting
+        public Task Func_AbortNoAwait()
+        {
+            return Func_AbortNoAwaitImpl();
+        }
+
+        [Fact]
+        //Functional test: Abort, GetRequiredAsync awaiting
+        public Task Func_AbortAwait()
+        {
+            return Func_AbortAwaitImpl();
+        }
+
+        [Fact]
+        //Functional test: Dispose[Async]() while GetRequiredAsync is awaiting
+        public Task Func_DisposeAwait()
+        {
+            return Func_DisposeAwaitImpl();
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////
 
         class TestEnumAdapterSetup : TestEnumerableSetupBase
         {
@@ -97,7 +147,8 @@ namespace ActiveSession.Tests
                 return new EnumAdapterRunner<Int32>(
                     new EnumAdapterParams<Int32>() {
                         Source=_testSequence.GetEnumerable(),
-                        EnumAheadLimit=EnumAheadLimit
+                        EnumAheadLimit=EnumAheadLimit,
+                        PassSourceOnership=true
                     }, default, 
                     new ActiveSessionOptionsSnapshot(new ActiveSessionOptions()), 
                     LoggerFactory.CreateLogger<EnumAdapterRunner<Int32>>()

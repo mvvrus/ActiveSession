@@ -10,7 +10,6 @@ namespace ActiveSession.Tests
     public abstract class EnumerableRunnerTestsBase
     {
         protected const Int32 WAIT_TIMEOUT = 5000;
-        //protected const Int32 WAIT_TIMEOUT = -1; //TODO
         internal abstract TestEnumerableSetupBase CreateTestSetup();
         internal abstract String GetTestedTypeName();
         protected static Boolean CheckRange(IEnumerable<Int32> Range, Int32 Start, Int32 Length)
@@ -128,7 +127,6 @@ namespace ActiveSession.Tests
                 Assert.False(runner.QueueIsAddingCompleted);
                 Assert.Equal(end/2, runner.GetProgress().Progress);
                 runner.Abort();
-                //await CheckTimeoutAsync(step_task);
                 await CheckTimeoutAsync(runner.EnumTask);
                 Assert.True(runner.EnumTask.IsCompletedSuccessfully);
                 Assert.True(runner.QueueIsAddingCompleted);
@@ -171,7 +169,7 @@ namespace ActiveSession.Tests
                 await CheckTimeoutAsync(step_task);
                 Assert.False(runner.EnumTask.IsCompleted);
                 Assert.False(fetch_task.IsCompleted);
-                //for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
                 Assert.Equal(0, runner.QueueCount);
                 Assert.Equal(step2, result.Count);
                 CheckRange(result, 0, step2);
@@ -211,7 +209,7 @@ namespace ActiveSession.Tests
                 runner.FetchAvailable(advance, result);
                 fetch_task = runner.FetchRequiredAsync(advance, result, default, "<unknown>");
                 Assert.False(fetch_task.IsCompleted);
-                //for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
+                for(int i = 0; i < 1000 && runner.QueueCount > 0; i++) await Task.Yield();
                 Assert.Equal(step2-2*advance, result.Count);
                 CheckRange(result, 2*advance, step2-2*advance);
                 //Test case: await on the insufficiently filled queue, background fetch is complete
@@ -313,16 +311,18 @@ namespace ActiveSession.Tests
             int step1 = 0, advance, end = 18;
             CancellationTokenSource? fetch_cts = null;
             Task step_task = Task.FromException(new InvalidOperationException("Using uninitialized task"));
-            TestEnumerableSetupBase ts = CreateTestSetup();
+            TestEnumerableSetupBase ts;
             Task dispose_task = Task.CompletedTask;
 
             fetch_cts = new CancellationTokenSource();
 
             //Test case: dispose non-started runner
+            ts = CreateTestSetup();
             await PerformTest(() => Task.CompletedTask, async () => { await CheckTimeoutAsync(dispose_task); });
             //Test case: dispose runner with only a background processing started and not completed before disposing
             await PerformTest(
-                () => {
+                () =>
+                {
                     step1 = 5;
                     step_task = ts.ResumeEnumeration(step1);
                     return StartBkg();
@@ -391,10 +391,9 @@ namespace ActiveSession.Tests
                 });
 
             //Supplement local functions
+            ts = CreateTestSetup();
             async Task Finalization()
             {
-                step_task=ts.ResumeEnumeration(end-step1, TestSequence.StopAction.Complete);
-                await step_task;
                 ts.ReleaseEnumerable();
                 await CheckTimeoutAsync(dispose_task);
             }
@@ -428,10 +427,11 @@ namespace ActiveSession.Tests
                 }
             }
         }
+
         //Some functional tests that perform checks from the base class public interface perspective
         //Functional test scenarios.
 
-        //1. Normal flow
+        //Functional test: Normal flow
         protected async Task Func_NormalFlowImpl()
         {
             TestEnumerableSetupBase ts = CreateTestSetup();
@@ -446,7 +446,7 @@ namespace ActiveSession.Tests
                 result_task = runner.GetRequiredAsync(advance).AsTask();
                 await CheckTimeoutAsync(step_task);
                 Assert.False(result_task.IsCompleted);
-                // ...produce precize amount of data to complete await
+                // ...produce precise amount of data to complete await
                 prev_step=step;
                 step=advance;
                 step_task=ts.ResumeEnumeration(step-prev_step);
@@ -485,9 +485,9 @@ namespace ActiveSession.Tests
                 Int32 await_start = prev_step;
                 result_task = runner.GetRequiredAsync(advance).AsTask();
                 Assert.False(result_task.IsCompleted);
-                // ...produce less data than the rest to awaited for and complete
+                // ...produce same amount of data that is awaited for and complete
                 prev_step=step;
-                step=29;
+                step=30;
                 step_task=ts.ResumeEnumeration(step-prev_step,TestSequence.StopAction.Complete);
                 AssertResult((await_start, step-await_start, RunnerStatus.Completed, step, null), await CheckTimeoutAsync(result_task));
                 // - GetAvailble (check Status)
@@ -499,8 +499,256 @@ namespace ActiveSession.Tests
             }
         }
 
-        void AssertResult(
-            (Int32 Start, Int32 Length, RunnerStatus Status, Int32 Position, Type? ExceptionType) Expected, 
+        //Functional test: complete enumeration with less data than GetRequiredAsync is awaiing for
+        protected async Task Func_CompleteWithLessDataImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                Assert.False(result_task.IsCompleted);
+                // ...produce less data than awaited and complete
+                prev_step=step;
+                step=advance-2;
+                step_task=ts.ResumeEnumeration(step-prev_step,TestSequence.StopAction.Complete);
+                await CheckTimeoutAsync(step_task);
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Completed, step, null), await CheckTimeoutAsync(result_task));
+                // - GetRequiredAsync(return status)
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                AssertResult((step, 0, RunnerStatus.Completed, step, null), await CheckTimeoutAsync(result_task));
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+        }
+
+        //Functional test:  Background fails scenario using GetAvailable
+        protected async Task Func_BkgFailGetAvailableImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce more data than awaited for and fail
+                prev_step=step;
+                step=advance+13;
+                step_task=ts.ResumeEnumeration(step-prev_step, TestSequence.StopAction.Fail);
+                await CheckTimeoutAsync(step_task);
+                await CheckTimeoutAsync(result_task);
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(runner.EnumTask);
+                prev_step+=advance;
+                // - GetAvailable(part of)
+                AssertResult((prev_step, advance, RunnerStatus.Progressed, prev_step+advance, null), runner.GetAvailable(advance));
+                prev_step+=advance;
+                // - GetAvailable(rest of, check status and exception)
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Failed, step, typeof(TestSequence.TestException)), runner.GetAvailable());
+                // - GetAvailable(return status)
+                AssertResult((step, 0, RunnerStatus.Failed, step, typeof(TestSequence.TestException)), runner.GetAvailable());
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+        }
+
+        //Functional test:  Background fails scenario using GetRequiredAsync in synchronous mode
+        protected async Task Func_BkgFailGetRequiredSyncImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce more data than awaited for and fail
+                prev_step=step;
+                step=advance+13;
+                step_task=ts.ResumeEnumeration(step-prev_step, TestSequence.StopAction.Fail);
+                await CheckTimeoutAsync(step_task);
+                await CheckTimeoutAsync(result_task);
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(runner.EnumTask);
+                prev_step+=advance;
+                // - GetRequiredAsync(sync, part of)
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                AssertResult((prev_step, advance, RunnerStatus.Progressed, prev_step+advance, null), await CheckTimeoutAsync(result_task));
+                prev_step+=advance;
+                // - GetRequiredAsync(sync, rest of)
+                result_task = runner.GetRequiredAsync().AsTask();
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Failed, step, typeof(TestSequence.TestException)), await CheckTimeoutAsync(result_task));
+                // - GetRequiredAsync(return status)
+                result_task = runner.GetRequiredAsync().AsTask();
+                AssertResult((step, 0, RunnerStatus.Failed, step, typeof(TestSequence.TestException)), await CheckTimeoutAsync(result_task));
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+        }
+
+        //Functional test:  Background fails scenario using GetRequiredAsync in asynchronous mode
+        protected async Task Func_BkgFailGetRequiredAsyncImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce less data than awaited for and fail
+                prev_step=step;
+                step=advance-2;
+                step_task=ts.ResumeEnumeration(step-prev_step, TestSequence.StopAction.Fail);
+                await CheckTimeoutAsync(step_task);
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(runner.EnumTask);
+                AssertResult((prev_step, step-prev_step, RunnerStatus.Failed, step, typeof(TestSequence.TestException)), await CheckTimeoutAsync(result_task));
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+
+        }
+
+        //Functional test: Abort, no GetRequiredAsync awaiting
+        protected async Task Func_AbortNoAwaitImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce precise amount of data to complete await
+                prev_step=step;
+                step=advance;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                await CheckTimeoutAsync(result_task);
+                // - Abort()
+                Assert.Equal(RunnerStatus.Aborted, runner.Abort());
+                ts.ReleaseEnumerable();
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(runner.EnumTask);
+                // - GetAvailable()
+                IEnumerable<Int32> result;
+                RunnerStatus status;
+                (result,status,_,_)= runner.GetAvailable();
+                Assert.Equal(RunnerStatus.Aborted,status);
+                CheckRange(result, runner.Position, 0);
+                // - GetRequiredAsync()
+                (result, status, _, _) = await CheckTimeoutAsync(runner.GetRequiredAsync().AsTask());
+                Assert.Equal(RunnerStatus.Aborted, status);
+                CheckRange(result, runner.Position, 0);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+
+        }
+
+        //Functional test: Abort, GetRequiredAsync awaiting
+        protected async Task Func_AbortAwaitImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce less data than awaited for
+                prev_step=step;
+                step=advance-1;
+                RunnerStatus status;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+                // - Abort()
+                Assert.Equal(RunnerStatus.Aborted, runner.Abort());
+                (_, status, _, _) = await CheckTimeoutAsync(result_task);
+                Assert.Equal(RunnerStatus.Aborted, status);
+                Assert.NotNull(runner.EnumTask);
+                await CheckTimeoutAsync(runner.EnumTask);
+            }
+            finally {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+            }
+
+        }
+
+        //Functional test: Dispose[Async]() while GetRequiredAsync is awaiting
+        protected async Task Func_DisposeAwaitImpl()
+        {
+            TestEnumerableSetupBase ts = CreateTestSetup();
+            Task step_task;
+            int step = 0, prev_step = 0, advance;
+            RunnerCommonBase runner = ts.CreateRunner();
+            Task<RunnerResult<IEnumerable<Int32>>> result_task;
+            try {
+                // - GetRequiredAsync(start background, await on empty queue)
+                advance=5;
+                step_task=ts.ResumeEnumeration(step);
+                result_task = runner.GetRequiredAsync(advance).AsTask();
+                await CheckTimeoutAsync(step_task);
+                // ...produce more less than awaited for
+                prev_step=step;
+                step=advance-1;
+                step_task=ts.ResumeEnumeration(step-prev_step);
+            }
+            catch {
+                ts.ReleaseEnumerable();
+                runner.Dispose();
+                throw;
+            }            
+            // - DisposeAsync()
+            Task disposed_task = runner.DisposeAsync().AsTask();
+            try {
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => CheckTimeoutAsync(result_task));
+            }
+            finally {
+                ts.ReleaseEnumerable();
+            }
+            await CheckTimeoutAsync(disposed_task);
+        }
+
+        static void AssertResult(
+            (Int32 Start, Int32 Length, RunnerStatus Status, Int32 Position, Type? ExceptionType) Expected,
             RunnerResult<IEnumerable<Int32>> Actual)
         {
             (IEnumerable<Int32> result, RunnerStatus status, Int32 position, Exception? exception) =Actual;
@@ -513,65 +761,6 @@ namespace ActiveSession.Tests
                 Assert.IsAssignableFrom(Expected.ExceptionType, exception);
             }
         }
-
-        //2. Complete then awaited more data than than returned before completion
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce less data than awaited and complete
-        // - GetRequiredAsync(return status)
-
-        //3. Background fails, GetAvailable
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce more data than awaited for and fail
-        // - GetAvailable(part of)
-        // - GetAvailable(rest of, check status and exception)
-        // - GetAvailable(return status)
-
-        //4. Background fails, GetRequiredAsync(sync)
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce precize amount of data to complete await
-        // ...produce some data and fail
-        // - GetRequiredAsync(sync, part of)
-        // - GetRequiredAsync(sync, rest of)
-        // - GetRequiredAsync(return status)
-
-        //5. Background fails, GetRequiredAsync(awaiting)
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce less data than awaited for and fail
-
-        //6. Abort, no GetRequiredAsync awaiting
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce precize amount of data to complete await
-        // - Abort()
-        // - GetAvailable()
-        // - GetRequiredAsync()
-
-        //7. Abort, GetRequiredAsync awaiting
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce more data than awaited for
-        // - Abort()
-
-        //8. Dispose() while GetRequiredAsync is awaiting
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce more data than awaited for
-        // - Dispose()
-
-        //9. DisposeAsync() while GetRequiredAsync is awaiting
-        // - GetRequiredAsync(start background, await on empty queue)
-        // ...produce more data than awaited for
-        // - DisposeAsync()
-
-        //10. Method calls on disposed runner
-        // - Dispose()
-        // - GetAvailable()
-        // - GetRequiredAsync()
-        // - Abort()
-
-        //Dispose_Test(): Dispose while GetRequiredAsync is awaiting
-        //Dispose_Async_Test(): Dispose while GetRequiredAsync is awaiting
-        //GetRequiredAsync_AbortAsync
-        //GetRequiredAsync_CompletedAsync
-        //GetRequiredAsync_FailedAsync
-        //GetRequiredAsync_InProgresAsync
 
     }
 
