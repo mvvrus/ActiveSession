@@ -59,5 +59,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <returns>A record containing ActiveSession store usage statistics if it exists, otherwise <see langword="null"/></returns>
         public ActiveSessionStoreStats? GetCurrentStoreStatistics();
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
+        public ValueTask<Boolean> RefreshActiveSessionAsync(CancellationToken Token = default);
+
     }
 }

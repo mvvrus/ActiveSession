@@ -156,6 +156,19 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
         }
 
+        public async ValueTask<Boolean> RefreshActiveSessionAsync(CancellationToken Token = default)
+        {
+            if(_activeSession!=DummySession && _session!=null) {
+                IActiveSession old_active_session = _activeSession;
+                _activeSession = _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
+                if(old_active_session==_activeSession) return false;
+                _isLoaded=false;
+                await LoadAsync(Token);
+                return true;
+            }
+            else return false;
+        }
+
         //(future) Implement LocalSession
 
         static readonly internal NullActiveSession DummySession = new NullActiveSession();
