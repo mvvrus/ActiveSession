@@ -363,9 +363,136 @@ namespace ActiveSession.Tests
             Assert.Equal(MakeId(TEST_SUFFIX), active_session.Id);
         }
 
+        //Test group: RefreshActiveSessionAsync method
+        [Fact]
+        public async Task RefreshActiveSessionAsync()
+        {
+            int load_count;
+            Mock<IActiveSession> as_mock;
+            IActiveSessionFeature feature;
+            Boolean result;
+
+            //Test case: !ActiveSession.IsAvailable, also check making LoadAsync call
+            RefreshTestSetup ts =new RefreshTestSetup();
+            feature = ts.MakeFeature(MakeASMock(false));
+            load_count=0;
+            ts.SetLoadAsyncCallback((_) => { Interlocked.Increment(ref load_count); });
+            result=await feature.RefreshActiveSessionAsync();
+            Assert.False(result);
+            Assert.Equal(1,load_count);
+
+            //Test case: refreshed ActiveSession is the same
+            as_mock = MakeASMock(true);
+            feature = ts.MakeFeature(as_mock);
+            await feature.LoadAsync();
+            load_count=0;
+            result=await feature.RefreshActiveSessionAsync();
+            Assert.False(result);
+            Assert.Equal(0, load_count);
+            Assert.Equal(as_mock.Object, feature.ActiveSession);
+
+            //Test case: store returns null while refreshing
+            ts.SetActiveSessionMock(null);
+            load_count=0;
+            result=await feature.RefreshActiveSessionAsync();
+            Assert.True(result);
+            Assert.Equal(0, load_count);
+            Assert.False(feature.ActiveSession.IsAvailable);
+
+            //Test case: refreshed ActiveSession is not the same, LoadAsync succeded
+            feature = ts.MakeFeature(MakeASMock(true));
+            await feature.LoadAsync();
+            as_mock = MakeASMock(true);
+            ts.SetActiveSessionMock(as_mock);
+            load_count=0;
+            result=await feature.RefreshActiveSessionAsync();
+            Assert.True(result);
+            Assert.Equal(1, load_count);
+            Assert.Equal(as_mock.Object, feature.ActiveSession);
+            Assert.True(feature.ActiveSession.IsAvailable);
+
+            //Test case: refreshed ActiveSession is not the same, LoadAsync failed
+            feature = ts.MakeFeature(MakeASMock(true));
+            await feature.LoadAsync();
+            as_mock = MakeASMock(true);
+            ts.SetActiveSessionMock(as_mock);
+            ts.SetLoadAsyncCallback((_) => Task.FromException(new TestException()) );
+            result=await feature.RefreshActiveSessionAsync();
+            Assert.True(result);
+            Assert.False(feature.ActiveSession.IsAvailable);
+
+
+            //Test case: refreshed ActiveSession is not the same, LoadAsync canceled
+            ts.SetLoadAsyncCallback((Action<CancellationToken>?)null);
+            feature = ts.MakeFeature(MakeASMock(true));
+            await feature.LoadAsync();
+            as_mock = MakeASMock(true);
+            ts.SetActiveSessionMock(as_mock);
+            ts.SetLoadAsyncCallback(async (Token) => { await Task.Delay(5000,Token); Interlocked.Increment(ref load_count); });
+            using(CancellationTokenSource cts = new CancellationTokenSource()) {
+                load_count=0;
+                Task<Boolean> result_task = feature.RefreshActiveSessionAsync(cts.Token).AsTask();
+                await Task.Yield();
+                await Task.Delay(50);
+                Assert.False(result_task.IsCompleted);
+                cts.Cancel();
+                result=await result_task;
+                Assert.Equal(0, load_count);
+                Assert.True(result);
+                Assert.False(feature.ActiveSession.IsAvailable);
+            }
+
+            Mock<IActiveSession> MakeASMock(Boolean IsAvailable)
+            {
+                Mock<IActiveSession> result= new Mock<IActiveSession>();
+                result.SetupGet(s => s.IsAvailable).Returns(true);
+                return result;
+            }
+        }
+
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Auxilary classes
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        class RefreshTestSetup : ConstructorTestSetup
+        {
+            Action<CancellationToken>? _loadAsyncCallback=null;
+            Mock<IActiveSession>? _asMock = null;
+            static readonly Func<Task> s_defaultLoadAsyncResultTask= () => Task.CompletedTask;
+            Func<Task> _loadAsyncResultTask = s_defaultLoadAsyncResultTask;
+
+            public RefreshTestSetup() : base(SessionState.normal)
+            {
+                MockSession!.Setup(s => s.LoadAsync(It.IsAny<CancellationToken>()))
+                    .Callback((CancellationToken t) => { _loadAsyncCallback?.Invoke(t); t.ThrowIfCancellationRequested(); })
+                    .Returns(()=>_loadAsyncResultTask());
+                MockStore.Setup(s => s.FetchOrCreateSession(It.IsAny<ISession>(), It.IsAny<String?>(), It.IsAny<String?>()))
+                    .Returns(() => _asMock?.Object);
+            }
+
+            internal IActiveSessionFeature MakeFeature(Mock<IActiveSession>? ASMock)
+            {
+                SetActiveSessionMock(ASMock);
+                return new ActiveSessionFeature(this.MockStore.Object, this.MockSession!.Object, this.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
+            }
+
+            internal void SetActiveSessionMock(Mock<IActiveSession>? ASMock)
+            {
+                _asMock=ASMock;
+            }
+
+            internal void SetLoadAsyncCallback(Action<CancellationToken>? Callback)
+            {
+                _loadAsyncCallback=Callback;
+                _loadAsyncResultTask = s_defaultLoadAsyncResultTask;
+            }
+
+            internal void SetLoadAsyncCallback(Func<CancellationToken, Task> Callback)
+            {
+                _loadAsyncCallback=(CancellationToken token)=> { _loadAsyncResultTask = () => Callback(token); };
+            }
+        }
+
         static String MakeId(String? Suffix)
         {
             return TEST_SESSION_ID+(String.IsNullOrEmpty(Suffix) ? "" : "-"+Suffix);
@@ -396,7 +523,7 @@ namespace ActiveSession.Tests
         const String TEST_SESSION_ID = "TEST_SESSION_ID";
 
         enum ActiveSessionState { normal, isnull, throws};
-        
+
         class LoadTestSetup : ConstructorTestSetup
         {
             public readonly Mock<IActiveSession> StubActiveSession;

@@ -111,6 +111,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 catch(Exception exception)
                 {
                     _logger?.LogWarningActiveSessionLoad(exception, _traceIdentifier);
+                    _activeSession=DummySession;
                 }
                 finally
                 {
@@ -146,6 +147,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             catch(Exception exception)
             {
                 _logger?.LogWarningActiveSessionLoad(exception, _traceIdentifier);
+                _activeSession=DummySession;
             }
             finally
             {
@@ -158,12 +160,15 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public async ValueTask<Boolean> RefreshActiveSessionAsync(CancellationToken Token = default)
         {
-            if(_activeSession!=DummySession && _session!=null) {
+            if(!_isLoaded) await LoadAsync(Token);
+            if(_activeSession.IsAvailable) {
+                if(_session==null) 
+                    throw new InvalidOperationException("Internal error: null environment reference for an available active session.");
                 IActiveSession old_active_session = _activeSession;
                 _activeSession = _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
-                if(old_active_session==_activeSession) return false;
+                if(old_active_session==_activeSession) return false;  // (future) Unlock environment?
                 _isLoaded=false;
-                await LoadAsync(Token);
+                if (_activeSession!=DummySession) await LoadAsync(Token);
                 return true;
             }
             else return false;
