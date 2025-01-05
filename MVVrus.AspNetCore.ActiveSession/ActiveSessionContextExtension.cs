@@ -36,5 +36,17 @@ namespace MVVrus.AspNetCore.ActiveSession
             if(local_session!=null&&local_session.IsAvailable) return local_session;
             else return ActiveSessionFeature.DummySession;
         }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="Context"></param>
+        /// <param name="Token"></param>
+        /// <returns></returns>
+        public static async Task<Boolean> RefreshActiveSessionAsync(this HttpContext Context, CancellationToken Token=default)
+        {
+            IActiveSessionFeature? feature = Context.Features.Get<IActiveSessionFeature>();
+            return feature!=null?await feature!.RefreshActiveSessionAsync(Token):false;
+        }
     }
 }
