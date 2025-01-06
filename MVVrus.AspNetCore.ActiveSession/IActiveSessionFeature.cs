@@ -60,9 +60,10 @@ namespace MVVrus.AspNetCore.ActiveSession
         public ActiveSessionStoreStats? GetCurrentStoreStatistics();
 
         /// <summary>
-        /// TODO
+        /// Tries to update an active session object for this request if the previous one has been terminated.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="Token">A cancellation token that can be used to cancel this operation.</param>
+        /// <returns>A task result of which reflects was the active session object really changed for this request.</returns>
         public ValueTask<Boolean> RefreshActiveSessionAsync(CancellationToken Token = default);
 
     }

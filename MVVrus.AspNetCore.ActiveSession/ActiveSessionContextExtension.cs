@@ -12,7 +12,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
         /// <returns>
-        /// Reference of type <see cref="IActiveSession"/> to an active session associated with the request if available, 
+        /// Reference of type <see cref="IActiveSession"/> to an active session object associated with the request if available, 
         /// or to a dummy active session object which <see cref="ILocalSession.IsAvailable"/> property containing false
         /// </returns>
         public static IActiveSession GetActiveSession(this HttpContext Context)
@@ -27,7 +27,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
         /// <returns>
-        /// Reference of type <see cref="ILocalSession"/> to a local session associated with the request if available, 
+        /// Reference of type <see cref="ILocalSession"/> to a local session object associated with the request if available, 
         /// or to a dummy local session object which <see cref="ILocalSession.IsAvailable"/> property containing false.
         /// </returns>
         public static ILocalSession GetLocalSession(this HttpContext Context)
@@ -38,11 +38,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// TODO
+        /// Tries to update an active session object for this request if the previous one has been terminated.
         /// </summary>
-        /// <param name="Context"></param>
-        /// <param name="Token"></param>
-        /// <returns></returns>
+        /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
+        /// <param name="Token">A cancellation token that can be used to cancel this operation.</param>
+        /// <returns>A task result of which reflects was the active session object really changed for this request.</returns>
         public static async Task<Boolean> RefreshActiveSessionAsync(this HttpContext Context, CancellationToken Token=default)
         {
             IActiveSessionFeature? feature = Context.Features.Get<IActiveSessionFeature>();
