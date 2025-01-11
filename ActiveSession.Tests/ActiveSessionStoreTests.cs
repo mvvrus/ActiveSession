@@ -20,6 +20,8 @@ using Microsoft.Extensions.Internal;
 using System.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.AspNetCore.Session;
 
 namespace ActiveSession.Tests
 {
@@ -1342,6 +1344,139 @@ namespace ActiveSession.Tests
             //Test case: obtain the existing Id
             id2=supplier.GetBaseActiveSessionId(session_mock.Object);
             Assert.Equal(id1, id2);
+        }
+
+        //Functional test: name registration behaviour during life cycle of a runner between requests
+        [Fact]
+        public async Task RunnerNamesRegistrationTest()
+        {
+            //Set up the test intallation
+            ILoggerFactory loger_factory = new MockedLoggerFactory().LoggerFactory;
+            IOptions<ActiveSessionOptions> options = Options.Create(new ActiveSessionOptions { UseOwnCache=true });
+            IOptions<SessionOptions> sess_options = Options.Create(new SessionOptions {});
+            IRunnerManagerFactory rmf = new RunnerManagerFactory(options);
+            CancellationTokenSource lifetime_source=new CancellationTokenSource();
+            Mock<IHostApplicationLifetime> app_lifetime_stub = new();
+            IActiveSessionIdSupplier id_supplier = new ActiveSessionIdSupplier(options);
+            app_lifetime_stub.SetupGet(s => s.ApplicationStopping).Returns(default(CancellationToken));
+            Mock<IServiceProvider> sess_sp_dummy = new();
+            Mock<IServiceScope> scope_stub = new();
+            scope_stub.Setup(s => s.ServiceProvider).Returns(sess_sp_dummy.Object);
+            Mock<IServiceScopeFactory> scope_factory_stub = new();
+            scope_factory_stub.Setup(s => s.CreateScope()).Returns(scope_stub.Object);
+            Mock<IServiceProvider> sp_stub = new();
+            sp_stub.Setup(s => s.GetService(typeof(IServiceScopeFactory))).Returns(scope_factory_stub.Object);
+            IRunnerFactory<String, Int32> tf = new TestRunnerFactory();
+            sp_stub.Setup(s => s.GetService(typeof(IRunnerFactory<String, Int32>))).Returns(tf);
+            Mock<HttpContext> context_stub;
+
+            IOptions<MemoryDistributedCacheOptions> cache_options = Options.Create(new MemoryDistributedCacheOptions { });
+            IDistributedCache cache = new MemoryDistributedCache(cache_options);
+            ISession session;
+            String session_id = Guid.NewGuid().ToString();
+            TimeSpan INFINITE = TimeSpan.FromMilliseconds(Int32.MaxValue);
+
+            using(ActiveSessionStore store = new ActiveSessionStore(null, sp_stub.Object, rmf, options, sess_options,
+                app_lifetime_stub.Object, id_supplier)) {
+                IActiveSession active_session;
+                Int32 runner_number;
+                IRunner<Int32> runner;
+                String as_id = "";
+                //Create an ActiveSessionFeature for the first (simulated) request
+                session = new DistributedSession(cache, session_id, INFINITE, INFINITE, ()=>true, loger_factory, true);
+                context_stub=new Mock<HttpContext>();
+                context_stub.SetupGet(s => s.TraceIdentifier).Returns(UNKNOWN_TRACE_IDENTIFIER);
+                context_stub.SetupGet(s => s.Session).Returns(session);
+                IActiveSessionFeature feature = store.AcquireFeatureObject(session, null, null);
+                try {
+                    await feature.LoadAsync();
+                    //Create an ActiveSession in the first request 
+                    active_session=feature.ActiveSession;
+                    Assert.True(active_session.IsAvailable);
+                    as_id=active_session.Id;
+                    //Create a runner in the first request
+                    (runner, runner_number)=active_session.CreateRunner<String, Int32>("", context_stub.Object);
+                    //Start the (simulated) runner execution
+                    await runner.GetRequiredAsync();
+                }
+                finally {
+                    //Finish the first request
+                    await feature.CommitAsync();
+                    store.ReleaseFeatureObject(feature);
+                }
+                //Check registrations of the runner-associated names
+                String runner_key = $"{options.Value.Prefix}_{as_id}#{active_session.Generation}-{runner_number}";
+                session = new DistributedSession(cache, session_id, INFINITE, INFINITE, () => true, loger_factory, false);
+                Assert.Equal(options.Value.HostId, session.GetString(runner_key));
+                Assert.Equal(typeof(Int32).FullName!,session.GetString(runner_key+"_Type"));
+                //Terminate the runner and await for its eviction
+                TaskCompletionSource tcs = new TaskCompletionSource();
+                using(runner.CompletionToken.Register(() => tcs.TrySetResult())) {
+                    runner.Abort();
+                    await tcs.Task;
+                }
+                //Create an ActiveSessionFeature for the second (simulated) request
+                session = new DistributedSession(cache, session_id, INFINITE, INFINITE, () => true, loger_factory, false);
+                context_stub=new Mock<HttpContext>();
+                context_stub.SetupGet(s => s.TraceIdentifier).Returns(UNKNOWN_TRACE_IDENTIFIER);
+                context_stub.SetupGet(s => s.Session).Returns(session);
+                feature = store.AcquireFeatureObject(session, null, null);
+                try {
+                    await feature.LoadAsync();
+                    //Acquire the ActiveSession in the second (simulated) request 
+                    Assert.Same(active_session, feature.ActiveSession);
+                    active_session.CompletionToken.Register(() => tcs.SetResult());
+                    //Create a runner in the first request
+                    //Try to find the runner (and cannot find one)
+                    Assert.Null(active_session.GetNonTypedRunner(runner_number, context_stub.Object));
+                }
+                finally {
+                    //Finish the first request
+                    await feature.CommitAsync();
+                    store.ReleaseFeatureObject(feature);
+                }
+                //Check unregistrations of the runner-associated names
+                session = new DistributedSession(cache, session_id, INFINITE, INFINITE, () => true, loger_factory, false);
+                Assert.Null(session.GetString(runner_key));
+                Assert.Null(session.GetString(runner_key+"_Type"));
+            }
+            //Clean up the test installation
+        }
+
+        class TestRunnerFactory: DelegateRunnerFactory<String,Int32>
+        {
+            static Func<String, IServiceProvider, RunnerId, IRunner<Int32>> _factory = (_, _, _) => new TestRunner();
+            public TestRunnerFactory() : base(_factory) { }
+        }
+
+        class TestRunner : RunnerBase, IRunner<Int32>
+        {
+            public TestRunner() : base(null, true) { }
+
+            public override Boolean IsBackgroundExecutionCompleted => throw new NotImplementedException();
+
+            public RunnerResult<Int32> GetAvailable(Int32 Advance = int.MaxValue, Int32 StartPosition = -1, String? TraceIdentifier = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override RunnerBkgProgress GetProgress()
+            {
+                throw new NotImplementedException();
+            }
+
+            public ValueTask<RunnerResult<Int32>> GetRequiredAsync(Int32 Advance = 0, CancellationToken Token = default, Int32 StartPosition = -1, String? TraceIdentifier = null)
+            {
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
+                StartRunning();
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
+                return new ValueTask<RunnerResult<Int32>>(new RunnerResult<Int32>(0, Status, Position, Exception));
+            }
+
+            protected internal override void StartBackgroundExecution()
+            {
+                Position=0;
+            }
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////////
