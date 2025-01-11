@@ -1348,7 +1348,7 @@ namespace ActiveSession.Tests
 
         //Functional test: name registration behaviour during life cycle of a runner between requests
         [Fact]
-        public async Task RunnerNamesRegistrationTest()
+        public async Task Func_RunnerNamesRegistrationTest()
         {
             //Set up the test intallation
             ILoggerFactory loger_factory = new MockedLoggerFactory().LoggerFactory;
