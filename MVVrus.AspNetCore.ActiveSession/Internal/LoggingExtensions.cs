@@ -36,6 +36,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(W_NONRUNNERTYPE, Warning, "Something found in the local cache but but it is not a runner, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningNotRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
+        [LoggerMessage(W_ACTIVESESSIONDISPOSEEXCEPTION, Warning, "Exception occured while disposing an the active session object: ActiveSessionId={SessionId}.")]
+        public static partial void LogWarningExceptionWhileActiveSessionDispose(this ILogger Logger, Exception Exception, String SessionId);
+        
         [LoggerMessage(W_INCOMPATRUNNERTYPE, Warning, "The runner is found in the local cache but cannot be returned: the runner type is incompatible, RunnerId={RunnerId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogWarningNoExpectedRunnerInCache(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 

@@ -13,6 +13,7 @@
         public const Int32 W_STORERUNNERCREATIONFAIL = 1140;
         public const Int32 W_NONRUNNERTYPE = 1160;
         public const Int32 W_REMOTENOTIMPLMENTED = 1169;
+        public const Int32 W_ACTIVESESSIONDISPOSEEXCEPTION = 1240;
         public const Int32 W_INCOMPATRUNNERTYPE = 1220;
         public const Int32 W_ACTIVESESSIONFAIL = 1300;
         public const Int32 W_REGISTERDURINGCLEANUP = 1500;

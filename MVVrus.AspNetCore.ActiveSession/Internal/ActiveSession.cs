@@ -174,7 +174,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionDispose(_logSessionId);
             #endif
-            _cts.Cancel();
+            try {
+                _cts.Cancel();
+            }
+            catch(Exception e) 
+            {
+                _logger?.LogWarningExceptionWhileActiveSessionDispose(e, _logSessionId);
+            }
             _cts.Dispose();
             _properties.Dispose();
             foreach(SemaphoreSlim semaphore in _serviceLocks.Values)
