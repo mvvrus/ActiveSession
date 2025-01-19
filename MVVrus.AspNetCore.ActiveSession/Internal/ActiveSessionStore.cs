@@ -203,110 +203,170 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSession? result=null;
             String key = SessionKey(nogen_session_id);
             _logger?.LogTraceBaseActiveSessionKeyToUse(nogen_session_id, trace_identifier);
-            Int32 insession_generation = Session.GetInt32(key)??0;
-            Int32 new_generation= insession_generation<=0?-insession_generation+1:0;
-
-            if (_memoryCache.TryGetValue(key, out result)) FoundInCahe();
-            if(result==null) { //Not found or evicted due to bad generation
-                #if TRACE
-                _logger?.LogTraceAcquiringSessionCreationLock(nogen_session_id, trace_identifier);
-                #endif
-                Monitor.Enter(_creation_lock);
-                try {
+            EnvProviderItem? env_provider = null;
+            #if TRACE
+            _logger?.LogTraceAcquiringSessionCreationLock(nogen_session_id, trace_identifier);
+            #endif
+            Monitor.Enter(_creation_lock);
+            try {
+                //AddRef in GetEnvProvider
+                env_provider = GetEnvProvider(base_session_id);
+                Int32 insession_generation = Session.GetInt32(key)??0;
+                Int32 new_generation = insession_generation<=0 ? -insession_generation+1 : 0;
+                if(_memoryCache.TryGetValue(key, out result)) {
+                    session_id = result!.MakeSessionId();
+                    if(result!.Generation<new_generation) {
+                        //Should be evicted due to bad Generation
+                        #if TRACE
+                        _logger?.LogTraceFetchOrCreateOutdatedSessionFound(session_id, trace_identifier);
+                        #endif
+                        DoTerminateSession(result!, trace_identifier);
+                        result=null;
+                        _logger?.LogDebugFoundTerminatedActiveSession(session_id, trace_identifier);
+                    }
+                    else {
+                        #if TRACE
+                        _logger?.LogTraceFoundExistingActiveSession(session_id, trace_identifier);
+                        #endif
+                    }
+                }
+                if(result==null) { //Not found or has been evicted due to bad Generation the first time
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(nogen_session_id, trace_identifier);
                     #endif
                     if(_draining) return null;  //The store is stopping due to the application stopping cannot create more sessions
-                    if(_memoryCache.TryGetValue(key, out result)) FoundInCahe(); //Repeat check under the lock
-                    if(result==null) {  //The requested active session is not found or has been evicted due to bad Generation 
-                        session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
-                        _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
-                        try {
-                            _sessionKeys.Add(key);
-                            using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
-                                new_entry.SlidingExpiration=_sessionIdleTimeout;
-                                new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
-                                Int32 size = GetSessionSize();
-                                new_entry.Size=size;
-                                IServiceScope session_scope = _rootServiceProvider.CreateScope();
-                                IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
-                                    _loggerFactory?.CreateLogger(RUNNERMANAGER_CATEGORY_NAME),
-                                    session_scope.ServiceProvider
-                                    ); //(future) Set MinRunnerNumber & MaxRunnerNumber
-                                PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
-                                end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
-                                TaskCompletionSource cleanup_task_source = new TaskCompletionSource();
-                                end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager, cleanup_task_source);
-                                new_entry.PostEvictionCallbacks.Add(end_activesession);
-                                result=new ActiveSession(runner_manager,
-                                    session_scope, 
-                                    this, 
-                                    nogen_session_id, 
-                                    _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
-                                    new_generation,
-                                    cleanup_task_source.Task, 
-                                    trace_identifier,
-                                    base_session_id);
-                                try {
-                                    runner_manager.RegisterSession(result);
-                                    new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
-                                    //An assignment to Value property should be the last operation before new_entry.Dispose()
-                                    //to avoid adding bad entry to the cache by Dispose() 
-                                    new_entry.Value=result;
-                                    if(_trackStatistics) {
-                                        Interlocked.Increment(ref _currentSessionCount);
-                                        Interlocked.Add(ref _currentStoreSize, size);
-                                    }
+/*
+                if(_memoryCache.TryGetValue(key, out result)) FoundInCahe(); //Repeat check under the lock
+                if(result==null) {  //The requested active session is not found or has been evicted due to bad Generation 
+                    session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
+                    _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
+                    try {
+                        _sessionKeys.Add(key);
+                        using (ICacheEntry new_entry = _memoryCache.CreateEntry(key)) { 
+                            new_entry.SlidingExpiration=_sessionIdleTimeout;
+                            new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
+                            Int32 size = GetSessionSize();
+                            new_entry.Size=size;
+                            IServiceScope session_scope = _rootServiceProvider.CreateScope();
+                            IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
+                                _loggerFactory?.CreateLogger(RUNNERMANAGER_CATEGORY_NAME),
+                                session_scope.ServiceProvider
+                                ); //(future) Set MinRunnerNumber & MaxRunnerNumber
+                            PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
+                            end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
+                            TaskCompletionSource cleanup_task_source = new TaskCompletionSource();
+                            end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager, cleanup_task_source);
+                            new_entry.PostEvictionCallbacks.Add(end_activesession);
+                            result=new ActiveSession(runner_manager,
+                                session_scope, 
+                                this, 
+                                nogen_session_id, 
+                                _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
+                                new_generation,
+                                cleanup_task_source.Task, 
+                                trace_identifier,
+                                base_session_id);
+                            try {
+                                runner_manager.RegisterSession(result);
+                                new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
+                                //An assignment to Value property should be the last operation before new_entry.Dispose()
+                                //to avoid adding bad entry to the cache by Dispose() 
+                                new_entry.Value=result;
+                                if(_trackStatistics) {
+                                    Interlocked.Increment(ref _currentSessionCount);
+                                    Interlocked.Add(ref _currentStoreSize, size);
                                 }
-                                catch {
-                                    result.Dispose();
-                                    runner_manager.PerformRunnersCleanupAsync(result);
-                                    throw;
-                                }
-                                Session.SetInt32(key, new_generation);
-                            } //Commit the entry to the cache via implicit Dispose call 
-                        }
-                        catch (Exception exception) {
-                            _logger?.LogDebugFetchOrCreateExceptionalExit(exception, session_id, trace_identifier);
-                            _sessionKeys.Remove(key);
-                            throw;
-                        }
-                        CleanupOutdatedRunnerVars(Session, key, new_generation, nogen_session_id, trace_identifier);
+                            }
+                            catch {
+                                result.Dispose();
+                                runner_manager.PerformRunnersCleanupAsync(result);
+                                throw;
+                            }
+                            Session.SetInt32(key, new_generation);
+                        } //Commit the entry to the cache via implicit Dispose call 
                     }
-                    else  session_id = result.MakeSessionId();
+                    catch (Exception exception) {
+                        _logger?.LogDebugFetchOrCreateExceptionalExit(exception, session_id, trace_identifier);
+                        _sessionKeys.Remove(key);
+                        throw;
+                    }
+                    CleanupOutdatedRunnerVars(Session, key, new_generation, nogen_session_id, trace_identifier);
+*/
+                    session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
+                    _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
+                    IServiceScope session_scope = _rootServiceProvider.CreateScope();
+                    IRunnerManager runner_manager = _runnerManagerFactory.GetRunnerManager(
+                        _loggerFactory?.CreateLogger(RUNNERMANAGER_CATEGORY_NAME),
+                        session_scope.ServiceProvider
+                        ); //(future) Set MinRunnerNumber & MaxRunnerNumber
+                    _sessionKeys.Add(key);
+                    env_provider = null; // From this point RemoveSupplement is responsible for releasing its environment provider reference
+                    try {
+                        using(ICacheEntry new_entry = _memoryCache.CreateEntry(key)) {
+                            new_entry.SlidingExpiration=_sessionIdleTimeout;
+                            new_entry.AbsoluteExpirationRelativeToNow=_maxLifetime;
+                            Int32 size = GetSessionSize();
+                            new_entry.Size=size;
+                            PostEvictionCallbackRegistration end_activesession = new PostEvictionCallbackRegistration();
+                            end_activesession.EvictionCallback=ActiveSessionEvictionCallback;
+                            TaskCompletionSource cleanup_task_source = new TaskCompletionSource();
+                            end_activesession.State=new SessionPostEvictionInfo(session_id, session_scope, runner_manager, cleanup_task_source);
+                            new_entry.PostEvictionCallbacks.Add(end_activesession);
+                            result=new ActiveSession(runner_manager,
+                                session_scope,
+                                this,
+                                nogen_session_id,
+                                _loggerFactory?.CreateLogger(SESSION_CATEGORY_NAME),
+                                new_generation,
+                                cleanup_task_source.Task,
+                                trace_identifier,
+                                base_session_id);
+                            try {
+                                runner_manager.RegisterSession(result);
+                                new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
+                                //An assignment to Value property should be the last operation before new_entry.Dispose()
+                                //to avoid adding bad entry to the cache by Dispose() 
+                                new_entry.Value=result;
+                                if(_trackStatistics) {
+                                    Interlocked.Increment(ref _currentSessionCount);
+                                    Interlocked.Add(ref _currentStoreSize, size);
+                                }
+                            }
+                            catch {
+                                result.Dispose();
+                                _=runner_manager.PerformRunnersCleanupAsync(result); //Should be sync: no runners yet
+                                throw;
+                            }
+                            Session.SetInt32(key, new_generation);
+                        } //Commit the entry to the cache via implicit Dispose call 
+                    }
+                    catch(Exception exception) {
+                        _logger?.LogDebugFetchOrCreateExceptionalExit(exception, session_id, trace_identifier);
+                        _sessionKeys.Remove(key);
+                        session_scope.Dispose();
+                        throw;
+                    }
+                    CleanupOutdatedRunnerVars(Session, key, new_generation, nogen_session_id, trace_identifier);
                 }
-                finally {
-                    #if TRACE
-                    _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
-                    #endif
-                    Monitor.Exit(_creation_lock);
+                else {
+                    session_id = result.MakeSessionId();
                 }
             }
-
+            finally {
+                if(env_provider!=null) ReleaseEnvProvider(nogen_session_id);
+                #if TRACE
+                _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
+                #endif
+                Monitor.Exit(_creation_lock);
+            }
+            //TODO AddRef if result!=null instead of:
+            //     supplement.Environment.AttachProviderInstance(nogen_session_id, EnvProvider);
+            //     Should be reconsidered.
+            if(result!=null) env_provider?.AddRef();
             #if TRACE
             _logger?.LogTraceFetchOrCreateExit(session_id, trace_identifier);
             #endif
             return result;
-
-            void FoundInCahe()
-            {
-                String session_id=result!.MakeSessionId();
-                if (result!.Generation<new_generation) {
-                    #if TRACE
-                    _logger?.LogTraceFetchOrCreateOutdatedSessionFound(session_id, trace_identifier);
-                    #endif
-                    DoTerminateSession(result!, trace_identifier);
-                    result=null;
-                    _logger?.LogDebugFoundTerminatedActiveSession(session_id, trace_identifier);
-                }
-                else {
-                    #if TRACE
-                    _logger?.LogTraceFoundExistingActiveSession(session_id, trace_identifier);
-                    #endif
-                }
-
-            }
-
         }
 
         public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
@@ -488,7 +548,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceGetRunnerAsync(runner_id, trace_identifier);
             #endif
-            await Session.LoadAsync(Token);
             String runner_session_key = SessionKey(session_id);
             #if TRACE
             _logger?.LogTraceGetRunnerAsyncInfoRunner(runner_id, trace_identifier);
@@ -563,7 +622,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSessionFeature? feature = AnObject as ActiveSessionFeature;
             feature?.Clear();
         }
-
         #endregion
 
         #region PrivateMethods
@@ -623,10 +681,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _sessionKeys.Remove((String)Key);
             }
             finally {
+                Monitor.Exit(_creation_lock);
                 #if TRACE
                 _logger?.LogTraceSessionEvictionCallbackUnlocked(session_id);
                 #endif
-                Monitor.Exit(_creation_lock);
             }
             ActiveSession active_session = (ActiveSession)Value;
             if (_trackStatistics) {
@@ -902,6 +960,31 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             Object dummy;
             _memoryCache.TryGetValue("", out dummy);
+        }
+
+        EnvProviderItem GetEnvProvider(String BaseId)
+        {
+            //Should always be called with _creation_lock acquired
+            //TODO LogTrace
+            EnvProviderItem env_item;
+            if(!_environmentProviders.ContainsKey(BaseId)) {
+                env_item=new EnvProviderItem();
+            }
+            else env_item=_environmentProviders[BaseId];
+            env_item.AddRef();
+            return env_item;
+        }
+
+        Boolean ReleaseEnvProvider(String BaseId)
+        {
+            //Should always be called with _creation_lock acquired
+            //TODO LogTrace
+            EnvProviderItem env_item = _environmentProviders[BaseId];
+            Boolean result = env_item.Release();
+            if(result) {
+                _environmentProviders.Remove(BaseId);
+            }
+            return result;
         }
         #endregion
 
