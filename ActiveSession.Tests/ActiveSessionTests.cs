@@ -332,7 +332,7 @@ namespace ActiveSession.Tests
 
             //Test case: Terminate - call on disposed ActiveSession
             using (ConstructorTestSetup ts=new ConstructorTestSetup()) {
-                ts.MockStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
+                ts.MockStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
                     .Returns(Task.FromResult(true));
                 active_session=new Active_Session(ts.DummyRunnerManager.Object,
                     ts.MockServiceScope.Object,
@@ -525,20 +525,20 @@ namespace ActiveSession.Tests
             {
                 _createRunnerExpression=s => s.CreateRunner<Request1, Result1>(
                         StubSession.Object,
-                        It.IsAny<IActiveSession>(),
+                        It.IsAny<IStoreActiveSessionItem>(),
                         It.IsAny<IRunnerManager>(),
                         Request,
                         It.IsAny<String>()
                         );
                 MockStore.Setup(_createRunnerExpression)
-                    .Returns((ISession _, IActiveSession _, IRunnerManager _, Request1 r, String _) => new KeyedRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
-                MockStore.Setup(s => s.GetRunner(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
+                    .Returns((ISession _, IStoreActiveSessionItem _, IRunnerManager _, Request1 r, String _) => new KeyedRunner<Result1>(new SpyRunner1(r), TEST_RUNNER_NUMBER));
+                MockStore.Setup(s => s.GetRunner(StubSession.Object, It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>()))
                     .Returns((IRunner?)null);
-                _getRunnerExpression=s => s.GetRunner(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
+                _getRunnerExpression=s => s.GetRunner(StubSession.Object, It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>());
                 MockStore.Setup(_getRunnerExpression).Returns(ExistingRunner);
-                MockStore.Setup(s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
+                MockStore.Setup(s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), It.IsAny<Int32>(), It.IsAny<String>(),It.IsAny<CancellationToken>()))
                     .Returns(new ValueTask<IRunner?>((IRunner?)null));
-                _getRunnerExpressionAsync=s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
+                _getRunnerExpressionAsync=s => s.GetRunnerAsync(StubSession.Object, It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), TEST_RUNNER_NUMBER, It.IsAny<String>(), It.IsAny<CancellationToken>());
                 MockStore.Setup(_getRunnerExpressionAsync).Returns(new ValueTask<IRunner?>((IRunner?)ExistingRunner));
                 StubContext=new Mock<HttpContext>();
                 StubContext.SetupGet(s => s.Session).Returns(StubSession.Object);
@@ -557,9 +557,9 @@ namespace ActiveSession.Tests
                 StubContext = new Mock<HttpContext>();
                 StubContext.SetupGet(s => s.Session).Returns(StubSession.Object);
                 _tcs=new TaskCompletionSource();
-                MockStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IActiveSession>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
+                MockStore.Setup(s => s.TerminateSession(It.IsAny<ISession>(), It.IsAny<IStoreActiveSessionItem>(), It.IsAny<IRunnerManager>(), It.IsAny<String>()))
                     .Returns(Task.CompletedTask);
-                StoreTerminateExpression=s => s.TerminateSession(StubContext.Object.Session, It.IsAny<IActiveSession>(), DummyRunnerManager.Object, It.IsAny<String>());
+                StoreTerminateExpression=s => s.TerminateSession(StubContext.Object.Session, It.IsAny<IStoreActiveSessionItem>(), DummyRunnerManager.Object, It.IsAny<String>());
                 MockStore.Setup(StoreTerminateExpression).Returns(CleanupCompletionTask);
             }
 

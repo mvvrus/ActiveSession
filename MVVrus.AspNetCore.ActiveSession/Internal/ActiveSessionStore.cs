@@ -183,7 +183,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             GC.SuppressFinalize(this);
         }
 
-        public IActiveSession? FetchOrCreateSession(ISession Session, String? TraceIdentifier, String? Suffix)
+        public IStoreActiveSessionItem? FetchOrCreateSession(ISession Session, String? TraceIdentifier, String? Suffix)
         {
             CheckDisposed();
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
@@ -305,7 +305,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
-            IActiveSession ActiveSession,
+            IStoreActiveSessionItem ActiveSession,
             IRunnerManager RunnerManager,
             TRequest Request, 
             String? TraceIdentifier)
@@ -431,7 +431,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         }
 
         public IRunner? GetRunner(ISession Session,
-            IActiveSession ActiveSession,
+            IStoreActiveSessionItem ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, 
             String? TraceIdentifier)
@@ -469,7 +469,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public async ValueTask<IRunner?> GetRunnerAsync(
             ISession Session,
-            IActiveSession ActiveSession,
+            IStoreActiveSessionItem ActiveSession,
             IRunnerManager RunnerManager,
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         )
@@ -512,7 +512,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public Task TerminateSession(ISession Session, IActiveSession ActiveSession, IRunnerManager RunnerManager, String? TraceIdentifier)
+        public Task TerminateSession(ISession Session, IStoreActiveSessionItem ActiveSession, IRunnerManager RunnerManager, String? TraceIdentifier)
         {
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
             #if TRACE
@@ -523,6 +523,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if(insession_generation!=-ActiveSession.Generation) {
                 if(insession_generation==ActiveSession.Generation)
                     Session.SetInt32(SessionKey(ActiveSession.Id), -ActiveSession.Generation);
+
                 else
                     _logger?.LogInfoInconsistentSessionTermination(ActiveSession.Generation, insession_generation, ActiveSession.Id, trace_identifier);
                 DoTerminateSession(ActiveSession, trace_identifier);
@@ -557,6 +558,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSessionFeature? feature = AnObject as ActiveSessionFeature;
             feature?.Clear();
         }
+
         #endregion
 
         #region PrivateMethods

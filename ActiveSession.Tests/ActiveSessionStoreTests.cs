@@ -296,8 +296,8 @@ namespace ActiveSession.Tests
             //Test case: race condition in FetchOrCreateSession method
             CreateFetchTestSetup ts;
             ActiveSessionStore store;
-            IActiveSession? session1, session2;
-            Task<IActiveSession> task1, task2;
+            IStoreActiveSessionItem? session1, session2;
+            Task<IStoreActiveSessionItem> task1, task2;
             ManualResetEvent proceed_event = null!, event1 = null!, event2 = null!;
             Int32 pause_count = 0;
             Action pause = () => { proceed_event.WaitOne(); Interlocked.Increment(ref pause_count); };
@@ -770,7 +770,7 @@ namespace ActiveSession.Tests
             //Arrange
             using (CreateFetchTestSetup ts = new CreateFetchTestSetup()) {
                 using (ActiveSessionStore store = ts.CreateStore()) {
-                    IActiveSession session = store.FetchOrCreateSession(ts.MockSession.Object, null, null)!;
+                    IStoreActiveSessionItem session = store.FetchOrCreateSession(ts.MockSession.Object, null, null)!;
                     Task cleanup_task = session.CleanupCompletionTask;
                     //Act
                     Task terminate_task=store.TerminateSession(ts.MockSession.Object,session, ts.MockRunnerManager.Object, null);
@@ -864,7 +864,7 @@ namespace ActiveSession.Tests
         public void OwnCacheExpirations()
         {
             Task session_cleanup_task;
-            IActiveSession session;
+            IStoreActiveSessionItem session;
             const string ID1 = "Id1";
             ActiveSessionStoreStats stat;
             //Arrange common stuff
@@ -978,7 +978,7 @@ namespace ActiveSession.Tests
         public void CreateRunner_Race()
         {
             Task session_cleanup_task;
-            IActiveSession session;
+            IStoreActiveSessionItem session;
             const string ID1 = "Id1";
             const string ID2 = "Id2";
             ManualResetEvent evt1=new ManualResetEvent(false), evt2=new ManualResetEvent(false);
@@ -1132,7 +1132,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void ApplicationStopping() 
         {
-            IActiveSession? session;
+            IStoreActiveSessionItem? session;
             using(ApplicationStoppingTestSetup ts = new ApplicationStoppingTestSetup()) {
                 using(ActiveSessionStore store = ts.CreateStore()) {
                     //Termination of existing sessions
@@ -1177,6 +1177,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void Dispose_Store()
         {
+            //(future) Work on this test stability
             const Int32 TIMEOUT = 8000;
             const Int32 SMALL_TIMEOUT = 400;
             OwnCacheTestSetup ts = new OwnCacheTestSetup();
@@ -1246,6 +1247,7 @@ namespace ActiveSession.Tests
                 if(Infinite) {
                     Assert.True(dispose_task.Wait(ActiveSessionStore.DISPOSE_TIMEOUT+TIMEOUT));
                     Assert.False(store._disposeNoTimedOut);
+                    Task.Yield().GetAwaiter().GetResult();
                     Assert.True(cleanup_task1.IsCompleted);
                     Assert.False(cleanup_task2.IsCompleted);
                     Assert.Equal(3, dispose_count);
@@ -1902,7 +1904,7 @@ namespace ActiveSession.Tests
 
         class RunnerTestSetup : CachedSessionAndRunnerBaseTestSetup, IDisposable
         {
-            public readonly Mock<IActiveSession> StubActiveSession;
+            public readonly Mock<IStoreActiveSessionItem> StubActiveSession;
             readonly Object? _lockObject = null;
             readonly CancellationTokenSource _cts;
 
@@ -1927,7 +1929,7 @@ namespace ActiveSession.Tests
                         if (_session_values.ContainsKey(key)) _session_values[key] = value; 
                         else _session_values.Add(key, value); 
                     });
-                StubActiveSession=new Mock<IActiveSession>();
+                StubActiveSession=new Mock<IStoreActiveSessionItem>();
                 _cts=new CancellationTokenSource();
                 StubActiveSession.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
                 StubActiveSession.SetupGet(s => s.Id).Returns(TEST_ACTIVESESSION_ID);

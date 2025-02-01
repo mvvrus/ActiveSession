@@ -15,17 +15,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly String _baseId;
         Int32 _disposed = 0;
         bool _isFresh = true;
-        readonly IRunnerManager _runnerManager;
         readonly CancellationTokenSource _cts;
         readonly ConcurentSortedDictionary<String, Object> _properties;
         readonly ConcurrentDictionary<Type, SemaphoreSlim> _serviceLocks = new ConcurrentDictionary<Type, SemaphoreSlim>();
 
-
-        //Properties used in tests
-        internal IRunnerManager RunnerManager { get { return _runnerManager; } }
-
-        public ActiveSession(
-            IRunnerManager RunnerManager
+        public ActiveSession(IRunnerManager RunnerManager
             , IServiceScope SessionScope
             , IActiveSessionStore Store
             , String SessionId
@@ -37,6 +31,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         )
         {
             ArgumentNullException.ThrowIfNull(SessionId, nameof(SessionId));
+            ArgumentNullException.ThrowIfNull(RunnerManager, nameof(RunnerManager));
             _logger=Logger;
             _baseId=BaseId??SessionId;
             _sessionId=SessionId;
@@ -47,12 +42,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _logger?.LogTraceActiveSessionConstructor(_logSessionId, trace_identifier);
             #endif
             _scope=SessionScope??throw new ArgumentNullException(nameof(SessionScope));
-            _runnerManager=RunnerManager??throw new ArgumentNullException(nameof(RunnerManager));
             _store=Store??throw new ArgumentNullException(nameof(Store));
             _cts=new CancellationTokenSource();
             CompletionToken=_cts.Token;
             this.CleanupCompletionTask=CleanupCompletionTask??Task.CompletedTask;
             _properties= new ConcurentSortedDictionary<String, Object>();
+            this.RunnerManager=RunnerManager;
             #if TRACE
             _logger?.LogTraceActiveSessionConstructorExit(_logSessionId, trace_identifier);
             #endif
@@ -67,7 +62,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             KeyedRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
                 this,
-                _runnerManager,
+                RunnerManager,
                 Request,
                 trace_identifier);
             _isFresh=false;
@@ -118,7 +113,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunner(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? fetched = _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
+            IRunner? fetched = _store.GetRunner(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerExit(_logSessionId, RunnerNumber, trace_identifier);
@@ -133,8 +128,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerAsync(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier, Token);
-            _store.GetRunner(Context.Session, this, _runnerManager, RunnerNumber, trace_identifier);
+            IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier, Token);
+            _store.GetRunner(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
@@ -167,6 +162,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IDictionary<String, Object> Properties { get=>_properties; }
 
+        public IRunnerManager RunnerManager { get; init; }
 
         public void Dispose()
         {
@@ -203,7 +199,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Task? TrackRunnerCleanup(Int32 RunnerNumber)
         {
-            return _runnerManager.GetRunnerCleanupTrackingTask(this, RunnerNumber);
+            return RunnerManager.GetRunnerCleanupTrackingTask(this, RunnerNumber);
         }
 
         public async Task<Boolean> WaitForServiceAsync(Type ServiceType, TimeSpan Timeout, CancellationToken Token)

@@ -367,7 +367,7 @@ namespace ActiveSession.Tests
         [Fact]
         public void RefreshActiveSession()
         {
-            Mock<IActiveSession> as_mock;
+            Mock<IStoreActiveSessionItem> as_mock;
             IActiveSessionFeature feature;
             Boolean result;
             IActiveSession dummy;
@@ -410,9 +410,9 @@ namespace ActiveSession.Tests
             Assert.Equal(as_mock.Object, feature.ActiveSession);
             Assert.True(feature.ActiveSession.IsAvailable);
 
-            Mock<IActiveSession> MakeASMock(Boolean IsAvailable)
+            Mock<IStoreActiveSessionItem> MakeASMock(Boolean IsAvailable)
             {
-                Mock<IActiveSession> result= new Mock<IActiveSession>();
+                Mock<IStoreActiveSessionItem> result= new Mock<IStoreActiveSessionItem>();
                 result.SetupGet(s => s.IsAvailable).Returns(true);
                 return result;
             }
@@ -425,7 +425,7 @@ namespace ActiveSession.Tests
         class RefreshTestSetup : ConstructorTestSetup
         {
             Action<CancellationToken>? _loadAsyncCallback=null;
-            Mock<IActiveSession>? _asMock = null;
+            Mock<IStoreActiveSessionItem>? _asMock = null;
             static readonly Func<Task> s_defaultLoadAsyncResultTask= () => Task.CompletedTask;
             Func<Task> _loadAsyncResultTask = s_defaultLoadAsyncResultTask;
 
@@ -438,13 +438,13 @@ namespace ActiveSession.Tests
                     .Returns(() => _asMock?.Object);
             }
 
-            internal IActiveSessionFeature MakeFeature(Mock<IActiveSession>? ASMock)
+            internal IActiveSessionFeature MakeFeature(Mock<IStoreActiveSessionItem>? ASMock)
             {
                 SetActiveSessionMock(ASMock);
                 return new ActiveSessionFeature(this.MockStore.Object, this.MockSession!.Object, this.StubLogger.Logger, TEST_TRACE_IDENTIFIER, null);
             }
 
-            internal void SetActiveSessionMock(Mock<IActiveSession>? ASMock)
+            internal void SetActiveSessionMock(Mock<IStoreActiveSessionItem>? ASMock)
             {
                 _asMock=ASMock;
             }
@@ -494,7 +494,7 @@ namespace ActiveSession.Tests
 
         class LoadTestSetup : ConstructorTestSetup
         {
-            public readonly Mock<IActiveSession> StubActiveSession;
+            public readonly Mock<IStoreActiveSessionItem> StubActiveSession;
             public readonly Expression<Func<IActiveSessionStore, IActiveSession?>> ActiveSessionStoreFetchExpression;
 
             public LoadTestSetup(ActiveSessionState ASState) : this(SessionState.normal, ASState) { }
@@ -507,7 +507,7 @@ namespace ActiveSession.Tests
 
             protected LoadTestSetup(SessionState State, ActiveSessionState ASState) : base(State)
             {
-                StubActiveSession=new Mock<IActiveSession>();
+                StubActiveSession=new Mock<IStoreActiveSessionItem>();
                 StubActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
                 ActiveSessionStoreFetchExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>(),It.IsAny<String?>());
                 switch(ASState) {

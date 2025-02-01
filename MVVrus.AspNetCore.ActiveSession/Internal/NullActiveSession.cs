@@ -1,7 +1,7 @@
 ﻿
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class NullActiveSession : NullLocalSession, IActiveSession
+    internal class NullActiveSession : NullLocalSession, IStoreActiveSessionItem
     {
         public bool IsFresh => true;
 
@@ -12,6 +12,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
         public Int32 Generation => throw new InvalidOperationException(MESSAGE);
+
+        public IRunnerManager RunnerManager => throw new NotImplementedException();
 
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
@@ -51,6 +53,21 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public ValueTask<IRunner?> GetNonTypedRunnerAsync(Int32 RunnerNumber, HttpContext Context, CancellationToken CancellationToken = default)
         {
             throw new InvalidOperationException(MESSAGE);
+        }
+
+        public Task<Boolean> WaitForServiceAsync(Type ServiceType, TimeSpan Timeout, CancellationToken Token)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ReleaseService(Type ServiceType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }
