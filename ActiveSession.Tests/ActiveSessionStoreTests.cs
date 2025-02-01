@@ -119,7 +119,7 @@ namespace ActiveSession.Tests
                     Assert.NotNull(manager.RunnerCreationLock);
                     ts.MockRunnerManager.Verify(ts.RegisterSessionExpression, Times.Once);
                     //Assess a cache entry
-                    ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));//2-nd time - after obtainning lock. Fragile!!! 
+                    ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(1));
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                     Assert.True(ts.Cache.IsEntryStored);
                     Assert.Equal(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID, ts.Cache.Key);
@@ -136,7 +136,7 @@ namespace ActiveSession.Tests
 
                     //Test case: fetch ActiveSession from cache
                     IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, null);
-                    ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(3));
+                    ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                     Assert.True(Object.ReferenceEquals(session, session2));
                     //Test case: disposing ActiveSession while in a cache object w/o runners associated

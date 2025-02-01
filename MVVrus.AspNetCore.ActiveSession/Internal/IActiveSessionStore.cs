@@ -3,6 +3,7 @@
     internal interface IActiveSessionStore 
     {
         public IStoreActiveSessionItem? FetchOrCreateSession(ISession Session, String? TraceIdentifier, String? Suffix);
+        public void DetachSession(ISession Session, IStoreActiveSessionItem ActiveSessionItem, String? TraceIdentifier);
         public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
             IStoreActiveSessionItem ActiveSessionItem,
             IRunnerManager RunnerManager,
