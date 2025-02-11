@@ -363,84 +363,52 @@ namespace ActiveSession.Tests
             Assert.Equal(MakeId(TEST_SUFFIX), active_session.Id);
         }
 
-        //Test group: RefreshActiveSessionAsync method
+        //Test group: RefreshActiveSession method
         [Fact]
-        public async Task RefreshActiveSessionAsync()
+        public void RefreshActiveSession()
         {
-            int load_count;
             Mock<IActiveSession> as_mock;
             IActiveSessionFeature feature;
             Boolean result;
+            IActiveSession dummy;
+            RefreshTestSetup ts;
 
-            //Test case: !ActiveSession.IsAvailable, also check making LoadAsync call
-            RefreshTestSetup ts =new RefreshTestSetup();
-            feature = ts.MakeFeature(MakeASMock(false));
-            load_count=0;
-            ts.SetLoadAsyncCallback((_) => { Interlocked.Increment(ref load_count); });
-            result=await feature.RefreshActiveSessionAsync();
+            //Test case: !ActiveSession.IsLoaded 
+            ts =new RefreshTestSetup();
+            feature = ts.MakeFeature(MakeASMock(true));
+            result=feature.RefreshActiveSession();
             Assert.False(result);
-            Assert.Equal(1,load_count);
+
+            //Test case: !ActiveSession.IsAvalable
+            ts = new RefreshTestSetup();
+            feature = ts.MakeFeature(MakeASMock(false));
+            dummy=feature.ActiveSession;
+            result=feature.RefreshActiveSession();
+            Assert.False(result);
 
             //Test case: refreshed ActiveSession is the same
             as_mock = MakeASMock(true);
             feature = ts.MakeFeature(as_mock);
-            await feature.LoadAsync();
-            load_count=0;
-            result=await feature.RefreshActiveSessionAsync();
+            dummy=feature.ActiveSession;
+            result=feature.RefreshActiveSession();
             Assert.False(result);
-            Assert.Equal(0, load_count);
             Assert.Equal(as_mock.Object, feature.ActiveSession);
 
             //Test case: store returns null while refreshing
             ts.SetActiveSessionMock(null);
-            load_count=0;
-            result=await feature.RefreshActiveSessionAsync();
+            result=feature.RefreshActiveSession();
             Assert.True(result);
-            Assert.Equal(0, load_count);
             Assert.False(feature.ActiveSession.IsAvailable);
 
             //Test case: refreshed ActiveSession is not the same, LoadAsync succeded
             feature = ts.MakeFeature(MakeASMock(true));
-            await feature.LoadAsync();
+            dummy = feature.ActiveSession;
             as_mock = MakeASMock(true);
             ts.SetActiveSessionMock(as_mock);
-            load_count=0;
-            result=await feature.RefreshActiveSessionAsync();
+            result=feature.RefreshActiveSession();
             Assert.True(result);
-            Assert.Equal(1, load_count);
             Assert.Equal(as_mock.Object, feature.ActiveSession);
             Assert.True(feature.ActiveSession.IsAvailable);
-
-            //Test case: refreshed ActiveSession is not the same, LoadAsync failed
-            feature = ts.MakeFeature(MakeASMock(true));
-            await feature.LoadAsync();
-            as_mock = MakeASMock(true);
-            ts.SetActiveSessionMock(as_mock);
-            ts.SetLoadAsyncCallback((_) => Task.FromException(new TestException()) );
-            result=await feature.RefreshActiveSessionAsync();
-            Assert.True(result);
-            Assert.False(feature.ActiveSession.IsAvailable);
-
-
-            //Test case: refreshed ActiveSession is not the same, LoadAsync canceled
-            ts.SetLoadAsyncCallback((Action<CancellationToken>?)null);
-            feature = ts.MakeFeature(MakeASMock(true));
-            await feature.LoadAsync();
-            as_mock = MakeASMock(true);
-            ts.SetActiveSessionMock(as_mock);
-            ts.SetLoadAsyncCallback(async (Token) => { await Task.Delay(5000,Token); Interlocked.Increment(ref load_count); });
-            using(CancellationTokenSource cts = new CancellationTokenSource()) {
-                load_count=0;
-                Task<Boolean> result_task = feature.RefreshActiveSessionAsync(cts.Token).AsTask();
-                await Task.Yield();
-                await Task.Delay(50);
-                Assert.False(result_task.IsCompleted);
-                cts.Cancel();
-                result=await result_task;
-                Assert.Equal(0, load_count);
-                Assert.True(result);
-                Assert.False(feature.ActiveSession.IsAvailable);
-            }
 
             Mock<IActiveSession> MakeASMock(Boolean IsAvailable)
             {

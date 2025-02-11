@@ -63,9 +63,9 @@ namespace ActiveSession.Tests
             Assert.Equal(stub_session.Object, stub_context.Object.GetActiveSession());
         }
 
-        //Test case: no ActiveSessionFeature in the context
+        //Test case: refresh, no ActiveSessionFeature in the context
         [Fact]
-        public async Task RefreshActiveSession_NoFeature()
+        public void RefreshActiveSession_NoFeature()
         {
             //Arrange
             Mock<IFeatureCollection> stub_feature_col = new Mock<IFeatureCollection>();
@@ -73,51 +73,45 @@ namespace ActiveSession.Tests
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s => s.Features).Returns(stub_feature_col.Object);
             //Act 
-            Boolean result = await stub_context.Object.RefreshActiveSessionAsync();
+            Boolean result = stub_context.Object.RefreshActiveSession();
             //Assess
             Assert.False(result);
         }
 
-        //Test case: ActiveSession was not changed
+        //Test case: refresh, ActiveSession was not changed
         [Fact]
-        public async Task RefreshActiveSession_NoChange()
+        public void RefreshActiveSession_NoChange()
         {
-            CancellationToken token = default;
             //Arrange
             Mock<IActiveSessionFeature> stub_feature = new Mock<IActiveSessionFeature>();
-            stub_feature.Setup(s => s.RefreshActiveSessionAsync(It.IsAny<CancellationToken>()))
-                .Callback((CancellationToken Token) => { token=Token; })
-                .Returns(ValueTask.FromResult(false));
+            stub_feature.Setup(s => s.RefreshActiveSession())
+                .Returns(false);
             Mock<IFeatureCollection> stub_feature_col = new Mock<IFeatureCollection>();
             stub_feature_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns(stub_feature.Object);
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s => s.Features).Returns(stub_feature_col.Object);
             //Act 
-            Boolean result = await stub_context.Object.RefreshActiveSessionAsync(new CancellationToken(true));
+            Boolean result = stub_context.Object.RefreshActiveSession();
             //Assess
             Assert.False(result);
-            Assert.True(token.IsCancellationRequested);
         }
 
-        //Test case: ActiveSession was not changed
+        //Test case: refresh, ActiveSession was changed
         [Fact]
-        public async Task RefreshActiveSession_Changed()
+        public void RefreshActiveSession_Changed()
         {
-            CancellationToken token = default;
             //Arrange
             Mock<IActiveSessionFeature> stub_feature = new Mock<IActiveSessionFeature>();
-            stub_feature.Setup(s => s.RefreshActiveSessionAsync(It.IsAny<CancellationToken>()))
-                .Callback((CancellationToken Token) => { token=Token; })
-                .Returns(ValueTask.FromResult(true));
+            stub_feature.Setup(s => s.RefreshActiveSession())
+                .Returns(true);
             Mock<IFeatureCollection> stub_feature_col = new Mock<IFeatureCollection>();
             stub_feature_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns(stub_feature.Object);
             Mock<HttpContext> stub_context = new Mock<HttpContext>();
             stub_context.SetupGet(s => s.Features).Returns(stub_feature_col.Object);
             //Act 
-            Boolean result = await stub_context.Object.RefreshActiveSessionAsync(new CancellationToken(true));
+            Boolean result = stub_context.Object.RefreshActiveSession();
             //Assess
             Assert.True(result);
-            Assert.True(token.IsCancellationRequested);
         }
 
     }

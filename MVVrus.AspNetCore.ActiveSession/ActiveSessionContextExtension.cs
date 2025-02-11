@@ -41,12 +41,11 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// Tries to update an active session object for this request if the previous one has been terminated.
         /// </summary>
         /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
-        /// <param name="Token">A cancellation token that can be used to cancel this operation.</param>
-        /// <returns>A task result of which reflects was the active session object really changed for this request.</returns>
-        public static async Task<Boolean> RefreshActiveSessionAsync(this HttpContext Context, CancellationToken Token=default)
+        /// <returns>A boolean value indicating was the active session object really changed for this request.</returns>
+        public static Boolean RefreshActiveSession(this HttpContext Context)
         {
             IActiveSessionFeature? feature = Context.Features.Get<IActiveSessionFeature>();
-            return feature!=null?await feature!.RefreshActiveSessionAsync(Token):false;
+            return feature!=null?feature!.RefreshActiveSession():false;
         }
     }
 }

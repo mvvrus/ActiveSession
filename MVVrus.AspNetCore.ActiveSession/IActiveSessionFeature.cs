@@ -62,9 +62,8 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>
         /// Tries to update an active session object for this request if the previous one has been terminated.
         /// </summary>
-        /// <param name="Token">A cancellation token that can be used to cancel this operation.</param>
-        /// <returns>A task result of which reflects was the active session object really changed for this request.</returns>
-        public ValueTask<Boolean> RefreshActiveSessionAsync(CancellationToken Token = default);
+        /// <returns>A boolean value indicating was the active session object really changed for this request.</returns>
+        public Boolean RefreshActiveSession();
 
     }
 }
