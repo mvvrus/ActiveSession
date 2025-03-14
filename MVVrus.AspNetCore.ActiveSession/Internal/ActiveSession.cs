@@ -5,7 +5,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSession : IActiveSession, IActiveSessionInternal, IDisposable
+    internal class ActiveSession : IStoreActiveSessionItem
     {
         readonly IActiveSessionStore _store;
         readonly IServiceScope _scope;

@@ -2,10 +2,10 @@
 {
     internal class LockedSessionService<TService> : ILockedSessionService<TService>
     {
-        readonly IActiveSessionInternal? _activeSession;
+        readonly IActiveSessionServicesHelper? _activeSession;
         Int32 _disposed = 0;
 
-        internal LockedSessionService(IActiveSessionInternal? ActiveSession, TService? Service)
+        internal LockedSessionService(IActiveSessionServicesHelper? ActiveSession, TService? Service)
         {
             _activeSession = ActiveSession;
             this.Service=Service;

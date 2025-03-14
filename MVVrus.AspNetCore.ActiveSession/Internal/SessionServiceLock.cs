@@ -13,7 +13,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public async Task<ILockedSessionService<TService>?> AcquireAsync(TimeSpan Timeout, CancellationToken Token)
         {
             if(_activeSessionRef.IsFromSession) {
-                IActiveSessionInternal locker = _activeSessionRef.ActiveSessionInternal 
+                IActiveSessionServicesHelper locker = _activeSessionRef.ActiveSessionInternal 
                     ?? throw new NotImplementedException("Service locking is not implemented.");
                 if(await locker!.WaitForServiceAsync(typeof(TService), Timeout, Token))
                     return new LockedSessionService<TService>(locker, _activeSessionRef.Services.GetService<TService>());
