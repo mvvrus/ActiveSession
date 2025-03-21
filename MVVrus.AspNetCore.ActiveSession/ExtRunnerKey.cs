@@ -8,7 +8,7 @@ namespace MVVrus.AspNetCore.ActiveSession
     /// </summary>
     /// <param name="RunnerNumber">A number assigned to the runner within the Active Session it belongs to.</param>
     /// <param name="ActiveSessionId">
-    /// An identifier (<see cref="IActiveSession.Id">Id</see> property value) of the Active Session the runner belongs to.
+    /// An identifier (<see cref="ILocalSession.Id">Id</see> property value) of the Active Session the runner belongs to.
     /// </param>
     /// <param name="Generation">
     /// The <see cref="IActiveSession.Generation">Generation</see> property value of the ActiveSession the runner belongs to.

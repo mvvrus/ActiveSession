@@ -23,7 +23,7 @@
         ///   <see cref="Boolean"/> WasMapped - is the request accepted by the filter;
         /// </item>
         /// <item>
-        ///   <see cref="String"/> SessionSuffix - the suffix to be added to the <see cref="IActiveSession.Id"/> property 
+        ///   <see cref="String"/> SessionSuffix - the suffix to be added to the <see cref="ILocalSession.Id"/> property 
         ///   of an active session to which the request will be assigned;
         /// </item>
         /// <item>

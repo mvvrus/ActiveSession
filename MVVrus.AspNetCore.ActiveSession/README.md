@@ -894,7 +894,10 @@ Second, tasks created using delegates can either return a result of type TResult
 ## Release Notes
 
 current - Make minor improvements to the EnumAdapterRunner and AsyncEnumAdapterrunner classes implememntations. Add end-to-end tests for these classes.
-   Add IActiveSessionFeature.RefreshActiveSession method that allow to work with a new active session after terminating the current one.
+
+ Add IActiveSessionFeature.RefreshActiveSession method that allow to work with a new active session after terminating the current one.
+
+ Semi-breaking change: move the property Id into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces togather, no code using the library should be broken.
 
 1.1.1 - Set correct release notes in the package description.
 

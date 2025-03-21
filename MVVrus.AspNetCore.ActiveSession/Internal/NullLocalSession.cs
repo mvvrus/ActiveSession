@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     {
         protected const String MESSAGE = "Invalid operation: a LocalSession or ActiveSession is not available";
 
-        public String BaseId =>  "<null session Id>";
+        public String Id =>  "<null session Id>";
 
         public bool IsAvailable => false;
 

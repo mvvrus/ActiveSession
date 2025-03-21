@@ -21,7 +21,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Filter">
         /// A reference to an object instance implementing the <see cref="IMiddlewareFilterSource"/> interface
         /// that is used to filter requests for which an active session feature will be available 
-        /// and specify the suffix to be added to an <see cref="IActiveSession.Id">Id</see> property 
+        /// and specify the suffix to be added to an <see cref="ILocalSession.Id">Id</see> property 
         /// of active sessions assigned to requests that falls into the scope of the filter set by this method.
         /// Defaults to null that means the feature will be available for all requests.
         /// </param>
@@ -116,7 +116,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </param>
         /// <param name="Filter">
         /// A delegate that is used to filter requests for which an active session feature will be available 
-        /// and to assign them suffix a to be added to an <see cref="IActiveSession.Id">Id</see> property of their active session object.
+        /// and to assign them suffix a to be added to an <see cref="ILocalSession.Id">Id</see> property of their active session object.
         /// </param>
         /// <returns> <inheritdoc cref = "UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/returns' /> </returns>
         /// <remarks>
@@ -124,7 +124,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <para>
         /// This UseActiveSessions method overload uses a delegate returning a <see langword="bool"/> result 
         /// consisting of <see langword="bool"/> value used decide whever a request falls into the scope of the delegate as a filter
-        /// and a value of the suffix to be assigned to an <see cref="IActiveSession.Id">Id</see> property. 
+        /// and a value of the suffix to be assigned to an <see cref="ILocalSession.Id">Id</see> property. 
         /// </para>
         /// Introduced in v.1.1
         /// </remarks>
@@ -198,7 +198,7 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <param name="Filter">
         /// <inheritdoc cref="UseActiveSessions(IApplicationBuilder, Func{HttpContext,Boolean})" path='/param[@name="Filter"]' />
         /// </param>
-        /// <param name="Suffix">The suffix to be added to an <see cref="IActiveSession.Id">Id</see> property 
+        /// <param name="Suffix">The suffix to be added to an <see cref="ILocalSession.Id">Id</see> property 
         /// of active sessions assigned to requests that falls into the scope of the filter set by this method.</param>
         /// <returns> <inheritdoc cref = "UseActiveSessions(IApplicationBuilder, IMiddlewareFilterSource?)" path='/returns' /> </returns>
         /// <remarks>

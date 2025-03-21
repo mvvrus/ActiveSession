@@ -82,8 +82,13 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// <summary>Indicator that the Active Session object was just created an is still empty.</summary>
         Boolean IsFresh { get; }
 
-        /// <summary>The ActiveSession identifier.</summary>
-        String Id { get; }
+        /// <summary>The identifier of the base local session for this active session.</summary>
+        /// <remarks>
+        /// A base local session is an object that contains common properties of all active sessions
+        /// associated with the same name provider. 
+        /// (future) Currently the name provider may only be of ISession type (IASP.NET Core session). This is subject to change in future versions
+        /// </remarks>
+        String BaseId { get; }
 
         /// <summary>
         /// A generation number of this ActiveSession within the containing <see cref="ISession">ASP.NET Core session/</see>

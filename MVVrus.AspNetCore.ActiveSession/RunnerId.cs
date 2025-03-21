@@ -5,7 +5,7 @@
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The runner identifier consists of two parts: <see cref="IActiveSession.Id"/> of the active session 
+    /// The runner identifier consists of two parts: <see cref="ILocalSession.Id"/> of the active session 
     /// to which the runner belongs and  the number assigned to the runner within the session. 
     /// </para>
     /// <para>
@@ -22,7 +22,7 @@
     {
 
         /// <summary>
-        /// <see cref="IActiveSession.Id"/> of the active session to which the runner belongs.
+        /// <see cref="ILocalSession.Id"/> of the active session to which the runner belongs.
         /// </summary>
         public String SessionId { get; init; }
         /// <summary>
@@ -37,7 +37,7 @@
         /// <summary>
         /// Constructor that initializes RunnerId instance value.
         /// </summary>
-        /// <param name="SessionId"><see cref="IActiveSession.Id"/> of the active session to which the runner belongs.</param>
+        /// <param name="SessionId"><see cref="ILocalSession.Id"/> of the active session to which the runner belongs.</param>
         /// <param name="RunnerNumber">A number assigned to the runner within the session.</param>
         /// <param name="Generation">An <see cref="IActiveSession.Generation"/> value of the active session to which the runner belongs.</param>
         public RunnerId(String SessionId, Int32 RunnerNumber, Int32 Generation)

@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     {
         public bool IsFresh => true;
 
-        public String Id => "<null session Id>";
+        public String BaseId => "<null session BaseId>";
 
         public CancellationToken CompletionToken => CancellationToken.None;
 

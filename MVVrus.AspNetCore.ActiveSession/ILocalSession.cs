@@ -9,9 +9,9 @@
     public interface ILocalSession
     {
         /// <summary>
-        /// <see cref="ISession.Id"/> of ASP.NET Core session associated with this LocalSession
+        /// An identifier of this instance 
         /// </summary>
-        String BaseId { get; }
+        String Id { get; }
 
         /// <summary>Indicator showing that this session object is properly initialized and may be used.</summary>
         Boolean IsAvailable { get; }
