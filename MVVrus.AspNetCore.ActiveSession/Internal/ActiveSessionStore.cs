@@ -43,6 +43,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         private readonly Task _storeTask;
         internal Task? _cleanupLoggingTask;  //For unit tests only, no need to take into account any parallelism
         readonly SortedSet<String> _sessionKeys;
+        //(future)Change the name after merging with the "environment" feature branch
+        //The name of this field is rather confusing but it is diliberately chosen to coinside with the name
+        //in the branch from wich it was imported.
+        readonly IDictionary<String, EnvProviderItem> _environmentProviders;
         readonly TaskCompletionSource _shutdownTcs;
         CancellationTokenRegistration _shutdownCallback;
         volatile Boolean _draining = false;
@@ -74,6 +78,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (SessionOptions is null)
                 throw new ArgumentNullException(nameof(SessionOptions));
             _sessionKeys=new SortedSet<String>();
+            _environmentProviders = new Dictionary<String, EnvProviderItem>();
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _shutdownTcs=new TaskCompletionSource();
@@ -898,7 +903,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Object dummy;
             _memoryCache.TryGetValue("", out dummy);
         }
-#endregion
+        #endregion
 
         #region AuxilaryTypes
         readonly record struct FactoryKey(Type TRequest, Type TResult);
@@ -932,6 +937,35 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IRunnerManager RunnerManager, 
             TaskCompletionSource CompletionTaskSource
             );
+
+        //(future)Change the name after merging with the "environment" feature branch
+        //The name of this type is rather confusing but it is diliberately chosen to coinside with the name
+        //in the branch from wich it was imported.
+        class EnvProviderItem
+        {
+            Int32 _refCount;
+            
+            public EnvProviderItem()
+            {
+                _refCount = 0;
+            }
+
+            public void AddRef()
+            //Should always be called with _creation_lock acquired
+            {
+                _refCount++;
+            }
+
+            public Boolean Release() //Returns true if the item is not referenced by any ActiveSessionStoreItem
+                              //and should be removed from the list
+            {
+                //Should always be called with _creation_lock acquired
+                _refCount--;
+                if(_refCount<0) throw new InvalidOperationException("Environment provider  reference count become negative");
+                return _refCount==0;
+            }
+
+        }
         #endregion
     }
 }
