@@ -333,7 +333,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
             IStoreActiveSessionItem ActiveSessionItem,
-            IRunnerManager RunnerManager, //Currently not used anymore
             TRequest Request, 
             String? TraceIdentifier)
         {
@@ -460,7 +459,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IRunner? GetRunner(ISession Session,
             IStoreActiveSessionItem ActiveSessionItem,
-            IRunnerManager RunnerManager, //Currently not used anymore
             Int32 RunnerNumber, 
             String? TraceIdentifier)
         {
@@ -484,11 +482,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogTraceGetLocalRunnerFromCache(runner_id, trace_identifier);
-                result=ExtractRunnerFromCache(Session, RunnerManager, ActiveSessionItem, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache(Session, runner_manager, ActiveSessionItem, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(runner_id, host_id, trace_identifier);
-                result=MakeRemoteRunnerAsync(RunnerManager, host_id, ActiveSessionItem, RunnerNumber, trace_identifier).GetAwaiter().GetResult();
+                result=MakeRemoteRunnerAsync(runner_manager, host_id, ActiveSessionItem, RunnerNumber, trace_identifier).GetAwaiter().GetResult();
             }
             #if TRACE
             _logger?.LogTraceGetRunnerExit(runner_id, result!=null,trace_identifier);
@@ -499,7 +497,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public async ValueTask<IRunner?> GetRunnerAsync(
             ISession Session,
             IStoreActiveSessionItem ActiveSessionItem,
-            IRunnerManager RunnerManager, //Currently not used anymore
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         )
         {
@@ -526,14 +523,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             }
             else if (host_id==_hostId) {
                 _logger?.LogTraceGetLocalRunnerFromCache(runner_id, trace_identifier);
-                result=ExtractRunnerFromCache(Session, RunnerManager, ActiveSessionItem, RunnerNumber, trace_identifier);
+                result=ExtractRunnerFromCache(Session, runner_manager, ActiveSessionItem, RunnerNumber, trace_identifier);
             }
             else {
                 _logger?.LogDebugProcessRemoteRunner(runner_id, host_id, trace_identifier);
                 #if TRACE
                 _logger?.LogTraceAwaitForProxyCreation(runner_id, trace_identifier);
                 #endif
-                result= await MakeRemoteRunnerAsync(RunnerManager, host_id, ActiveSessionItem, RunnerNumber, trace_identifier, Token);
+                result= await MakeRemoteRunnerAsync(runner_manager, host_id, ActiveSessionItem, RunnerNumber, trace_identifier, Token);
             }
             #if TRACE
             _logger?.LogTraceGetRunnerAsyncExit(runner_id, result!=null, trace_identifier);
@@ -541,7 +538,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        public Task TerminateSession(ISession Session, IStoreActiveSessionItem ActiveSessionItem, IRunnerManager RunnerManager, String? TraceIdentifier)
+        public Task TerminateSession(ISession Session, IStoreActiveSessionItem ActiveSessionItem, String? TraceIdentifier)
         {
             IRunnerManager runner_manager = ActiveSessionItem.RunnerManager;
             String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;

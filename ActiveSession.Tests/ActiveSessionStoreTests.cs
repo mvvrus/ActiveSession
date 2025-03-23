@@ -367,7 +367,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             request,
                             null);
                         //Assess
@@ -420,7 +419,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             request,
                             null);
                         //Assess
@@ -441,7 +439,6 @@ namespace ActiveSession.Tests
                     {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                         ts.StubActiveSession.Object,
-                        ts.MockRunnerManager.Object,
                         request,
                         null);
                     }
@@ -482,7 +479,6 @@ namespace ActiveSession.Tests
                         Assert.Throws<TestException1>(
                             () => store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
                                 request,
                             null)
                         );
@@ -493,7 +489,6 @@ namespace ActiveSession.Tests
                         Assert.Throws<TestException2>(
                             () => store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
                                 request,
                             null)
                         );
@@ -505,7 +500,6 @@ namespace ActiveSession.Tests
                         Assert.Throws<TestException3>(
                             () => store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
                                 request,
                             null)
                         );
@@ -518,7 +512,6 @@ namespace ActiveSession.Tests
                         Assert.Throws<TestException4>(
                             () => store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
                                 request,
                             null)
                         );
@@ -567,7 +560,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             request,
                             null);
                         //Assess
@@ -624,13 +616,11 @@ namespace ActiveSession.Tests
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             request,
                             null);
                         //Act
                         runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null);
                         //Assess
@@ -640,7 +630,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber+1,
                             null);
                         //Assess
@@ -652,7 +641,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner=store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null);
                         //Assess
@@ -669,7 +657,6 @@ namespace ActiveSession.Tests
                     () => {
                         store.GetRunner(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null
                         );
@@ -704,13 +691,11 @@ namespace ActiveSession.Tests
                     using (cts=new CancellationTokenSource()) {
                         runner_and_key=store.CreateRunner<Request1, Result1>(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             request,
                             null);
                         //Act
                         runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null,
                             CancellationToken.None).GetAwaiter().GetResult();
@@ -721,7 +706,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber+1,
                             null,
                             CancellationToken.None).GetAwaiter().GetResult();
@@ -734,7 +718,6 @@ namespace ActiveSession.Tests
                         //Act
                         runner=store.GetRunnerAsync(ts.MockSession.Object,
                             ts.StubActiveSession.Object,
-                            ts.MockRunnerManager.Object,
                             runner_and_key.RunnerNumber,
                             null,
                             CancellationToken.None).GetAwaiter().GetResult();
@@ -753,7 +736,6 @@ namespace ActiveSession.Tests
                         {
                             store.GetRunnerAsync(ts.MockSession.Object,
                                 ts.StubActiveSession.Object,
-                                ts.MockRunnerManager.Object,
                                 runner_and_key.RunnerNumber,
                                 null,
                                 CancellationToken.None).GetAwaiter().GetResult();
@@ -773,7 +755,7 @@ namespace ActiveSession.Tests
                     IStoreActiveSessionItem session = store.FetchOrCreateSession(ts.MockSession.Object, null, null)!;
                     Task cleanup_task = session.CleanupCompletionTask;
                     //Act
-                    Task terminate_task=store.TerminateSession(ts.MockSession.Object,session, ts.MockRunnerManager.Object, null);
+                    Task terminate_task=store.TerminateSession(ts.MockSession.Object,session, null);
                     //Assess
                     Assert.True(ReferenceEquals(cleanup_task, terminate_task));
                     terminate_task.GetAwaiter().GetResult();
@@ -894,7 +876,6 @@ namespace ActiveSession.Tests
                 KeyedRunner<Result1> keyed_runner = store.CreateRunner<String, Result1>(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     ID1,
                     null);
                 Assert.Equal(1, store.GetCurrentStatistics()!.RunnerCount);
@@ -912,7 +893,6 @@ namespace ActiveSession.Tests
                 Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     keyed_runner.RunnerNumber,
                     null));
                 ts.Clock.Reset();
@@ -929,7 +909,6 @@ namespace ActiveSession.Tests
                 KeyedRunner<Result1> keyed_runner = store.CreateRunner<String, Result1>(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     ID1,
                     null);
                 Assert.Equal(1, store.GetCurrentStatistics()!.RunnerCount);
@@ -938,7 +917,6 @@ namespace ActiveSession.Tests
                 KeyedRunner<Result1> keyed_runner2 = store.CreateRunner<String, Result1>(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     ID1,
                     null);
                 Assert.Equal(2, store.GetCurrentStatistics()!.RunnerCount);
@@ -958,14 +936,12 @@ namespace ActiveSession.Tests
                 Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     keyed_runner.RunnerNumber,
                     null));
                 Assert.True(runner2.Disposed);
                 Assert.Null(store.GetRunner(
                     ts.MockSession.Object,
                     session,
-                    (session as Active_Session)!.RunnerManager,
                     keyed_runner2.RunnerNumber,
                     null));
                 ts.Clock.Reset();
@@ -1017,7 +993,6 @@ namespace ActiveSession.Tests
                             keyed_runner1 = store.CreateRunner<String, Result1>(
                             ts.MockSession.Object,
                             session,
-                            (session as Active_Session)!.RunnerManager,
                             ID1,
                             null);
                         }
@@ -1029,7 +1004,6 @@ namespace ActiveSession.Tests
                             keyed_runner2=store.CreateRunner<String, Result1>(
                                 ts.MockSession.Object,
                                 session,
-                                (session as Active_Session)!.RunnerManager,
                                 ID2,
                                 null);
                         }
@@ -1083,7 +1057,6 @@ namespace ActiveSession.Tests
                             keyed_runner1=store.CreateRunner<String, Result1>(
                             ts.MockSession.Object,
                             session,
-                            ts.MockRunnerManager.Object,
                             ID1,
                             null);
                         }
@@ -1095,7 +1068,6 @@ namespace ActiveSession.Tests
                         keyed_runner2=store.CreateRunner<String, Result1>(
                             ts.MockSession.Object,
                             session,
-                            ts.MockRunnerManager.Object,
                             ID2,
                             null);
                     }
@@ -1145,13 +1117,11 @@ namespace ActiveSession.Tests
                     store.CreateRunner<String, Result1>(
                             ts.MockSession.Object,
                             session,
-                            ((MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession)session).RunnerManager,
                             "Runner1",
                             null);
                     store.CreateRunner<String, Result1>(
                             ts.MockSession.Object,
                             session,
-                            ((MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession)session).RunnerManager,
                             "Runner2",
                             null);
                     //Act
@@ -1196,7 +1166,7 @@ namespace ActiveSession.Tests
             Action pause_disposal = () => { pause_event.Wait(); dispose_count++; };
             Action instant_disposal = () => dispose_count++;
             Task dispose_task;
-            MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession? as1, as2;
+            IStoreActiveSessionItem? as1, as2;
             Task cleanup_task1, cleanup_task2;
             //Test case: disposing in the case some sessions and runners haven't been completed within timeout
             //Arrange
@@ -1226,17 +1196,17 @@ namespace ActiveSession.Tests
                 Assert.NotNull(as1);
                 cleanup_task1=as1.CleanupCompletionTask;
                 ts.DisposeSpyAction = delay_disposal;
-                store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager,"Runner1a", null);
+                store.CreateRunner<String, Result1>(session1_mock.Object, as1, "Runner1a", null);
                 ts.DisposeSpyAction = instant_disposal;
-                store.CreateRunner<String, Result1>(session1_mock.Object, as1, as1.RunnerManager, "Runner1b", null);
+                store.CreateRunner<String, Result1>(session1_mock.Object, as1, "Runner1b", null);
                 as2=store.FetchOrCreateSession(session2_mock.Object, null, null) as MVVrus.AspNetCore.ActiveSession.Internal.ActiveSession;
                 Assert.NotNull(as2);
                 cleanup_task2=as2.CleanupCompletionTask;
                 ts.DisposeSpyAction = delay_disposal;
-                store.CreateRunner<String, Result1>(session2_mock.Object, as2, as2.RunnerManager, "Runner2a", null);
+                store.CreateRunner<String, Result1>(session2_mock.Object, as2, "Runner2a", null);
                 ts.DisposeSpyAction = instant_disposal;
                 if(Infinite) ts.DisposeSpyAction = pause_disposal;
-                store.CreateRunner<String, Result1>(session2_mock.Object, as2, as2.RunnerManager, "Runner1b", null);
+                store.CreateRunner<String, Result1>(session2_mock.Object, as2, "Runner1b", null);
             }
 
             void Assess(Boolean Infinite)
@@ -1269,7 +1239,7 @@ namespace ActiveSession.Tests
         public void OutDatedRunnerSessionCleanup()
         {
             int number, gen;
-            Active_Session session;
+            IStoreActiveSessionItem session;
             String key90, key91, key10, key11;
 
             OwnCacheTestSetup ts = new OwnCacheTestSetup();
@@ -1281,17 +1251,17 @@ namespace ActiveSession.Tests
                 sess_mock.Object.SetInt32(SessionKey(),-(gen-1));
                 session=(Active_Session?)store.FetchOrCreateSession(sess_mock.Object, null, null)??throw new Exception("Cannot create ActiveSession");
                 Assert.Equal(gen, session.Generation);
-                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, session.RunnerManager, "", null );
+                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, "", null );
                 Assert.Equal(0, number);
                 key90 = RunnerKey(number, gen);
                 Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key90));
                 Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key90+"_Type"));
-                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, session.RunnerManager, "", null);
+                (_, number)=store.CreateRunner<String, Result1>(sess_mock.Object, session, "", null);
                 Assert.Equal(1, number);
                 key91 = RunnerKey(number, gen);
                 Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key91));
                 Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key91+"_Type"));
-                Assert.True(store.TerminateSession(sess_mock.Object, session, ts.MockRunnerManager.Object, null).Wait(5000));
+                Assert.True(store.TerminateSession(sess_mock.Object, session, null).Wait(5000));
                 Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key90));
                 Assert.Equal(typeof(Result1).FullName, sess_mock.Object.GetString(key90+"_Type"));
                 Assert.Equal(DEFAULT_HOST_NAME, sess_mock.Object.GetString(key91));

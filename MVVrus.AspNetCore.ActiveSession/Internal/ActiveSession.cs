@@ -62,7 +62,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             KeyedRunner<TResult> created = _store.CreateRunner<TRequest, TResult>(Context.Session,
                 this,
-                RunnerManager,
                 Request,
                 trace_identifier);
             _isFresh=false;
@@ -113,7 +112,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunner(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? fetched = _store.GetRunner(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier);
+            IRunner? fetched = _store.GetRunner(Context.Session, this, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerExit(_logSessionId, RunnerNumber, trace_identifier);
@@ -128,8 +127,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerAsync(_logSessionId, RunnerNumber, trace_identifier);
             #endif
-            IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier, Token);
-            _store.GetRunner(Context.Session, this, RunnerManager, RunnerNumber, trace_identifier);
+            IRunner? fetched =  await _store.GetRunnerAsync(Context.Session, this, RunnerNumber, trace_identifier, Token);
+            _store.GetRunner(Context.Session, this, RunnerNumber, trace_identifier);
             if(fetched!=null) _isFresh=false;
             #if TRACE
             _logger?.LogTraceActiveSessionGetNonTypedRunnerAsyncExit(_logSessionId, RunnerNumber, trace_identifier);
@@ -143,7 +142,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceActiveSessionTerminateCalled(_logSessionId, trace_identifier);
             #endif
-            return _store.TerminateSession(Context.Session, this, RunnerManager, trace_identifier);
+            return _store.TerminateSession(Context.Session, this, trace_identifier);
         }
 
         public bool IsAvailable { get { return true; } }
