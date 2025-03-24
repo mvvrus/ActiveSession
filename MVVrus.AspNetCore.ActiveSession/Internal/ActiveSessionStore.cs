@@ -300,7 +300,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
             }
             finally {
-                if(release_env_provider) ReleaseEnvProvider(nogen_session_id);
+                if(release_env_provider) ReleaseEnvProvider(base_session_id);
                 #if TRACE
                 _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
                 #endif
@@ -549,7 +549,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Int32 insession_generation = Session.GetInt32(SessionKey(ActiveSessionItem.Id))??0;
             if(insession_generation!=-ActiveSessionItem.Generation) {
                 if(insession_generation==ActiveSessionItem.Generation)
-                    Session.SetInt32(ActiveSessionItem.Id, -ActiveSessionItem.Generation);
+                    Session.SetInt32(SessionKey(ActiveSessionItem.Id), -ActiveSessionItem.Generation);
                 else
                     _logger?.LogInfoInconsistentSessionTermination(ActiveSessionItem.Generation, insession_generation, ActiveSessionItem.Id, trace_identifier);
                 DoTerminateSession(ActiveSessionItem, trace_identifier);
