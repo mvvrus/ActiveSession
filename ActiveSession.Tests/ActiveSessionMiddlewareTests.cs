@@ -397,17 +397,17 @@ namespace ActiveSession.Tests
         class MiddlewareInvokeTestSetup : MiddlewareCreateTestSetup
         {
             public Mock<IActiveSession> FakeActiveSession { get; init; }
-            public Mock<IActiveSessionFeature> MockFeature { get; init; }
+            public Mock<IActiveSessionFeatureImpl> MockFeature { get; init; }
 
             public Mock<ISession> StubSession { get; init; }
             public readonly Expression<Func<RequestDelegate,Task>> NextCallExpression= 
                 x => x.Invoke(It.IsAny<HttpContext>());
-            public readonly Expression<Func<IActiveSessionFeature, Task>> LoadAsyncCallExpression = 
+            public readonly Expression<Func<IActiveSessionFeatureImpl, Task>> LoadAsyncCallExpression = 
                 s => s.LoadAsync(It.IsAny<CancellationToken>());
-            public readonly Expression<Func<IActiveSessionFeature, Task>> CommitAsyncCallExpression =
+            public readonly Expression<Func<IActiveSessionFeatureImpl, Task>> CommitAsyncCallExpression =
                 s => s.CommitAsync(It.IsAny<CancellationToken>());
             public readonly Expression<Action<IActiveSessionStore>> ClearCallExpression = 
-                s => s.ReleaseFeatureObject(It.IsAny<IActiveSessionFeature>());
+                s => s.ReleaseFeatureObject(It.IsAny<IActiveSessionFeatureImpl>());
 
             Mock<IServiceProvider> _stubSessionServices { get; init; }
             protected RequestDelegate? _spyDelegate;
@@ -430,7 +430,7 @@ namespace ActiveSession.Tests
                 FakeActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
                 FakeActiveSession.SetupGet(s => s.SessionServices).Returns(_stubSessionServices.Object);
 
-                MockFeature=new Mock<IActiveSessionFeature>();
+                MockFeature=new Mock<IActiveSessionFeatureImpl>();
                 MockFeature.Setup(LoadAsyncCallExpression).Returns(Task.CompletedTask);
                 MockFeature.Setup(s => s.IsLoaded).Returns(true);
                 MockFeature.SetupGet(s => s.ActiveSession).Returns(FakeActiveSession.Object);

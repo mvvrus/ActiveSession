@@ -55,8 +55,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceInvokeActiveSessionMiddleware(Context.TraceIdentifier);
             #endif
-            IServiceProvider request_services = Context.RequestServices;
-            IActiveSessionFeature? feature = null;
+            IServiceProvider saved_request_services = Context.RequestServices;
+            IActiveSessionFeatureImpl? feature = null;
             try {
                 (Boolean pass, String? suffix)=_mapper.MapContext(Context);
                 if (pass) {
@@ -107,7 +107,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             finally {
                 Context.Features.Set((IActiveSessionFeature?)null);
                 if(feature!=null) _store.ReleaseFeatureObject(feature);
-                Context.RequestServices=request_services;
+                Context.RequestServices=saved_request_services;
                 #if TRACE
                 _logger?.LogTraceActiveSessionMiddlewareExit(Context.TraceIdentifier);
                 #endif

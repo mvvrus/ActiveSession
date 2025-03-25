@@ -860,22 +860,46 @@ namespace ActiveSession.Tests
             Mock<ISession> dummy_session = new Mock<ISession>();
             MockedCache cache_mock = new MockedCache();
             ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
-            ActiveSessionFeature feature_impl;
             //Test case: no suffix
             using (ActiveSessionStore store=ts.CreateStore()) {
                 //Act
-                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object,null,null);
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, null);
                 //Assess
-                feature_impl=Assert.IsType<ActiveSessionFeature>(feature);
-                Assert.Null(feature_impl.Suffix);
+                Assert.IsType<ActiveSessionFeature>(feature);
+                Assert.Null(feature.Suffix);
             }
             //Test case: specify suffix
             using(ActiveSessionStore store = ts.CreateStore()) {
                 //Act
-                IActiveSessionFeature feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX);
+                //TODO Add Suffix property to the IActiveSessionFeatureImpl
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX);
                 //Assess
-                feature_impl=Assert.IsType<ActiveSessionFeature>(feature);
-                Assert.Equal(TEST_SUFFIX,feature_impl.Suffix);
+                Assert.IsType<ActiveSessionFeature>(feature);
+                Assert.Equal(TEST_SUFFIX,feature.Suffix);
+            }
+        }
+
+        //Test group: call ReleaseFeatureObject method
+        [Fact]
+        public void ReleaseFeatureObject()
+        {
+            Boolean is_loaded=false;
+            Mock<IActiveSessionFeatureImpl> mock_feature = new Mock<IActiveSessionFeatureImpl>();
+            Expression<Action<IActiveSessionFeatureImpl>> clear_expression = s => s.Clear();
+            mock_feature.Setup(clear_expression);
+            mock_feature.SetupGet(s => s.IsLoaded).Returns(() => is_loaded);
+            Mock<IMemoryCache> dummy_cache = new Mock<IMemoryCache>();
+            ConstructorTestSetup ts = new ConstructorTestSetup(dummy_cache);
+            //Test case: release unloaded feature
+            using(ActiveSessionStore store = ts.CreateStore()!) {
+                store.ReleaseFeatureObject(mock_feature.Object);
+                mock_feature.Verify(clear_expression, Times.Never);
+            }
+            //Test case: release loaded feature
+            is_loaded=true;
+            using(ActiveSessionStore store = ts.CreateStore()!) {
+                store.ReleaseFeatureObject(mock_feature.Object);
+                mock_feature.Verify(clear_expression, Times.Once);
             }
         }
 
@@ -1410,7 +1434,7 @@ namespace ActiveSession.Tests
                 context_stub=new Mock<HttpContext>();
                 context_stub.SetupGet(s => s.TraceIdentifier).Returns(UNKNOWN_TRACE_IDENTIFIER);
                 context_stub.SetupGet(s => s.Session).Returns(session);
-                IActiveSessionFeature feature = store.AcquireFeatureObject(session, null, null);
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(session, null, null);
                 try {
                     await feature.LoadAsync();
                     //Create an ActiveSession in the first request 

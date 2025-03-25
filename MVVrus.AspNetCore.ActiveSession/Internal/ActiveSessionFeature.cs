@@ -3,7 +3,7 @@ using static MVVrus.AspNetCore.ActiveSession.Internal.ActiveSessionConstants;
 
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSessionFeature : IActiveSessionFeature
+    internal class ActiveSessionFeature : IActiveSessionFeatureImpl
     {
         //These properties with internal access specifier are just for tetsting purposes
         internal IActiveSessionStore Store { get { return _store; } }
@@ -11,7 +11,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal ILogger? Logger { get { return _logger; } }
         internal String TraceIdentifier { get { return _traceIdentifier; } }
         internal IActiveSession RawActiveSession { get { return _activeSession; } }
-        internal String? Suffix { get { return _suffix; } }
+
+        public String? Suffix { get { return _suffix; } } //Currently is used for tests only
 
         readonly IActiveSessionStore _store;
         ISession? _session;
@@ -169,7 +170,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 IStoreActiveSessionItem old_active_session = _activeSession;
                 _activeSession = _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
                 _store.DetachSession(_session, old_active_session, _traceIdentifier);
-                if(old_active_session==_activeSession) return false;  // (future) Unlock environment?
+                if(old_active_session==_activeSession) return false;
                 return true;
             }
             else return false;
