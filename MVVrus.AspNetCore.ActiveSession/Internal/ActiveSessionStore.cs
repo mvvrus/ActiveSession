@@ -29,7 +29,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILoggerFactory? _loggerFactory;
         readonly IActiveSessionIdSupplier _idSupplier;
         readonly Dictionary<FactoryKey, object> _factoryCache = new Dictionary<FactoryKey, object>();
-        readonly Object _creation_lock = new Object();
+        readonly Object _creationLock = new Object();
         ILogger? _logger;
         internal Boolean _disposeNoTimedOut;
         bool _disposed = false;
@@ -47,7 +47,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         //(future)Change the name after merging with the "environment" feature branch
         //The name of this field is rather confusing but it is diliberately chosen to coinside with the name
         //in the branch from wich it was imported.
-        readonly IDictionary<String, EnvProviderItem> _environmentProviders;
+        internal /*Just for testing*/ readonly IDictionary<String, EnvProviderItem> _environmentProviders;
         readonly TaskCompletionSource _shutdownTcs;
         CancellationTokenRegistration _shutdownCallback;
         volatile Boolean _draining = false;
@@ -150,7 +150,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             while(completed!=_shutdownTcs.Task);
             //Come here if the application is stopping
             List<Task> session_completion_tasks=new List<Task>();
-            lock(_creation_lock) {
+            lock(_creationLock) {
                 _draining=true;
                 List<String> session_keys = _sessionKeys.ToList(); //Make a stable copy to iterate through
                 foreach(String key in session_keys) {
@@ -209,7 +209,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #if TRACE
             _logger?.LogTraceAcquiringSessionCreationLock(nogen_session_id, trace_identifier);
             #endif
-            Monitor.Enter(_creation_lock);
+            Monitor.Enter(_creationLock);
             try {
                 //AddRef is in GetEnvProvider
                 env_provider = GetEnvProvider(base_session_id);
@@ -237,7 +237,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     #if TRACE
                     _logger?.LogTraceAcquiredSessionCreationLock(nogen_session_id, trace_identifier);
                     #endif
-                    if(_draining) return null;  //The store is stopping due to the application stopping cannot create more sessions
+                    if(_draining) {
+                        ReleaseEnvProvider(base_session_id);
+                        return null;  //The store is stopping due to the application stopping cannot create more sessions
+                    }
                     session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
                     _logger?.LogDebugCreateNewActiveSession(session_id, trace_identifier);
                     IServiceScope session_scope = _rootServiceProvider.CreateScope();
@@ -298,18 +301,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 else {
                     session_id = result.MakeSessionId();
                 }
+                //TODO AddRef if result!=null instead of:
+                //     supplement.Environment.AttachProviderInstance(nogen_session_id, EnvProvider);
+                //     Should be reconsidered.
+                if(result!=null) GetEnvProvider(base_session_id);
             }
             finally {
                 if(release_env_provider) ReleaseEnvProvider(base_session_id);
                 #if TRACE
                 _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
                 #endif
-                Monitor.Exit(_creation_lock);
+                Monitor.Exit(_creationLock);
             }
-            //TODO AddRef if result!=null instead of:
-            //     supplement.Environment.AttachProviderInstance(nogen_session_id, EnvProvider);
-            //     Should be reconsidered.
-            if(result!=null) env_provider.AddRef();
             #if TRACE
             _logger?.LogTraceFetchOrCreateExit(session_id, trace_identifier);
             #endif
@@ -319,15 +322,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public void DetachSession(ISession Session, IStoreActiveSessionItem ActiveSessionItem, String? TraceIdentifier)
         {
             //TODO LogTrace
-            lock(_creation_lock) {
-                IStoreActiveSessionItem cache_item;
-                if(_memoryCache.TryGetValue(SessionKey(ActiveSessionItem.Id), out cache_item)) {
-                    //TODO LogTrace
-                    String base_key = ActiveSessionItem.BaseId;
-                    EnvProviderItem? env_provider = _environmentProviders.ContainsKey(base_key) ? _environmentProviders[base_key] : null;
-                    env_provider?.Release();
-                }
-            }
+            lock(_creationLock) {
+                //TODO LogTrace
+                //Decrement EnvProviderItem reference count and release if if the count reaches 0
+                ReleaseEnvProvider(ActiveSessionItem.BaseId);
+            }            
             //TODO LogTrace
         }
 
@@ -350,7 +349,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             Int32 generation;
             if (runner_lock==null) {
                 _logger?.LogTraceFallbackToStoreGlobalLock(session_id, trace_identifier);
-                runner_lock=_creation_lock;
+                runner_lock=_creationLock;
                 use_session_lock=false;
             }
             #if TRACE
@@ -596,7 +595,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             String key= SessionKey(ActiveSession.Id);
             String session_id = ActiveSession.MakeSessionId();
             Boolean removed = false;
-            Monitor.Enter(_creation_lock);
+            Monitor.Enter(_creationLock);
             try {
                 #if TRACE
                 _logger?.LogTraceSessionDoTerminateLockAcquired(session_id, TraceIdentifier);
@@ -614,7 +613,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceSessionDoTerminateLockReleased(session_id, TraceIdentifier);
                 #endif
-                Monitor.Exit(_creation_lock);
+                Monitor.Exit(_creationLock);
             }
             if(!removed) {
                 //Already have been evicted from cache. Nothing to do.
@@ -631,24 +630,26 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             SessionPostEvictionInfo session_info = (SessionPostEvictionInfo)State;
             String session_id = session_info.SessionId??UNKNOWN_SESSION_ID;
+            IStoreActiveSessionItem active_session = (IStoreActiveSessionItem)Value;
             #if TRACE
             _logger?.LogTraceSessionEvictionCallback(session_id);
             #endif
             _logger?.LogDebugSessionEvicted(session_id);
-            Monitor.Enter(_creation_lock);
+            Monitor.Enter(_creationLock);
             try {
                 #if TRACE
                 _logger?.LogTraceSessionEvictionCallbackLocked(session_id);
                 #endif
                 _sessionKeys.Remove((String)Key);
+                ReleaseEnvProvider(active_session.BaseId);
+
             }
             finally {
-                Monitor.Exit(_creation_lock);
+                Monitor.Exit(_creationLock);
                 #if TRACE
                 _logger?.LogTraceSessionEvictionCallbackUnlocked(session_id);
                 #endif
             }
-            ActiveSession active_session = (ActiveSession)Value;
             if (_trackStatistics) {
                 Interlocked.Decrement(ref _currentSessionCount);
                 Interlocked.Add(ref _currentStoreSize, -GetSessionSize());
@@ -926,8 +927,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         EnvProviderItem GetEnvProvider(String BaseId)
         {
-            //Should always be called with _creation_lock acquired
-            Debug.Assert(Monitor.IsEntered(_creation_lock));
+            //Should always be called with _creationLock acquired
+            Debug.Assert(Monitor.IsEntered(_creationLock));
             //TODO LogTrace
             EnvProviderItem env_item;
             if(!_environmentProviders.ContainsKey(BaseId)) {
@@ -941,13 +942,13 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         Boolean ReleaseEnvProvider(String BaseId)
         {
-            //Should always be called with _creation_lock acquired
-            Debug.Assert(Monitor.IsEntered(_creation_lock));
+            //Should always be called with _creationLock acquired
+            Debug.Assert(Monitor.IsEntered(_creationLock));
             //TODO LogTrace
-            EnvProviderItem env_item = _environmentProviders[BaseId];
-            Boolean result = env_item.Release();
+            EnvProviderItem? env_item = BaseId!=null && _environmentProviders.ContainsKey(BaseId) ?_environmentProviders[BaseId]:null;
+            Boolean result = env_item?.Release()??false;
             if(result) {
-                _environmentProviders.Remove(BaseId);
+                _environmentProviders.Remove(BaseId!);
             }
             return result;
         }
@@ -986,28 +987,37 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             TaskCompletionSource CompletionTaskSource
             );
 
-        //(future)Change the name after merging with the "environment" feature branch
-        //The name of this type is rather confusing but it is diliberately chosen to coinside with the name
-        //in the branch from wich it was imported.
-        class EnvProviderItem
+        //TODO Change the type of this base object placeholder with reference count functionality.
+        //No the name of this type is rather confusing but it is diliberately chosen to coinside with the name
+        //in the 'environment' branch from wich a wast number of peaces of code are imported ('cherry-picked').
+        internal /*Just for testing*/ class EnvProviderItem
         {
-            Int32 _refCount;
-            
+            /*References are counted as follows:
+             * - one reference for each IStoreActiveSessionItem object in the cache; 
+             *   this count is incremented by the FetchOrCreateSession method after the object has been added into the cache
+             *   and decremented by cache eviction callback method ActiveSessionEvictionCallback;
+             * - one reference for each active session object accessible via the IActiveSessionFeature.ActiveSession property
+             *   when the IActiveSessionFeature.ActiveSession becomes loaded and the object ;
+             *   this count is incremented by the FetchOrCreateSession method when it returns valid reference on an active session object
+             *   and decremented by *** method called from within ActiveSessionFeature code.
+            */
+            internal /*Just for testing*/ Int32 _refCount;
+
             public EnvProviderItem()
             {
                 _refCount = 0;
             }
 
             public void AddRef()
-            //Should always be called with _creation_lock acquired
             {
+                //Should always be called with _creationLock acquired
                 _refCount++;
             }
 
             public Boolean Release() //Returns true if the item is not referenced by any ActiveSessionStoreItem
                               //and should be removed from the list
             {
-                //Should always be called with _creation_lock acquired
+                //Should always be called with _creationLock acquired
                 _refCount--;
                 if(_refCount<0) throw new InvalidOperationException("Environment provider  reference count become negative");
                 return _refCount==0;

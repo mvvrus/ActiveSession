@@ -92,6 +92,8 @@ namespace ActiveSession.Tests
             }
         }
 
+        //Test group: check CreateOrFetchSession, DetachSession and active session eviction callback
+        //in simpliest plots with only one active session at a time involved.
         [Fact]
         public void CreateOrFetchSession()
         {
@@ -133,11 +135,22 @@ namespace ActiveSession.Tests
                     Assert.False(ts.Cache.ExpirationTokens[0].HasChanged);
                     Assert.Equal(1, ts.Cache.PostEvictionCallbacks.Count);
                     Assert.Equal(CreateFetchTestSetup.TEST_ACTIVESESSION_ID, session.BaseId);
+                    //Assess store._environmentProviders
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
+                    store.DetachSession(ts.MockSession.Object, session, null);
+                    Assert.Equal(1, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
 
-                    IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, null);
+                    IStoreActiveSessionItem? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, null);
                     ts.Cache.CacheMock.Verify(MockedCache.TryGetValueExpression, Times.Exactly(2));
                     ts.Cache.CacheMock.Verify(MockedCache.CreateEntryEnpression, Times.Once);
                     Assert.True(Object.ReferenceEquals(session, session2));
+                    //Assess store._environmentProviders
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
+                    store.DetachSession(ts.MockSession.Object, session2, null);
+                    Assert.Equal(1, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
+
                     //Test case: disposing ActiveSession while in a cache object w/o runners associated
                     //Arrange more
                     IServiceProvider session_sp = session.SessionServices;
@@ -210,6 +223,7 @@ namespace ActiveSession.Tests
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT/2); });
                 using (store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
+                    store.DetachSession(ts.MockSession.Object, session!, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
@@ -225,12 +239,15 @@ namespace ActiveSession.Tests
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
                 using (store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
+                    store.DetachSession(ts.MockSession.Object, session!, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
                     store._cleanupLoggingTask?.GetAwaiter().GetResult();
                     //Assess
                     Assert.Equal(false, in_time);
+                    //Check store._environmentProviders
+                    Assert.False(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
                 }
 
                 //Test case: logging active session runners cleanup - no timeout set
@@ -242,12 +259,15 @@ namespace ActiveSession.Tests
                 ts.SetCleanupCallback(() => { Thread.Sleep(CLEANUP_TIMEOUT*3/2); });
                 using(store=ts.CreateStore()) {
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
+                    store.DetachSession(ts.MockSession.Object, session!, null);
                     //Act
                     ts.Cache.CacheMock.Object.Remove(PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID);
                     session!.CleanupCompletionTask.GetAwaiter().GetResult();
                     store._cleanupLoggingTask?.GetAwaiter().GetResult();
                     //Assess
                     Assert.Equal(true, in_time);
+                    //Check store._environmentProviders
+                    Assert.False(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
                 }
             }
         }
@@ -258,7 +278,7 @@ namespace ActiveSession.Tests
         {
             CreateFetchTestSetup ts;
             ActiveSessionStore store;
-            IActiveSession? session;
+            IStoreActiveSessionItem? session;
 
             const String SUFFIX = "Test";
 
@@ -279,12 +299,18 @@ namespace ActiveSession.Tests
                     Assert.True(ts.Cache.IsEntryStored);
                     Assert.Equal(DEFAULT_SESSION_KEY_PREFIX+"_"+id_to_be, ts.Cache.Key);
                     Assert.True(ReferenceEquals(session, ts.Cache.Value));
+                    //Assess IStoreEnvironmentProvider
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
+                    store.DetachSession(ts.MockSession.Object, session, null);
+                    Assert.Equal(1, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
 
                     //Test case: fetch ActiveSession from cache
                     //Act
                     IActiveSession? session2 = store.FetchOrCreateSession(ts.MockSession.Object, null, SUFFIX);
                     //Assess
                     Assert.Same(session, session2);
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
                 }
             }
         }
@@ -322,6 +348,8 @@ namespace ActiveSession.Tests
                         proceed_event.Set();
                         session1=task1.GetAwaiter().GetResult();
                         session2=task2.GetAwaiter().GetResult();
+                        Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                        Assert.Equal(3, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
                         //Assess
                         Assert.NotNull(task1);
                         Assert.True(ReferenceEquals(session1, session2));
@@ -763,6 +791,11 @@ namespace ActiveSession.Tests
                     Assert.False(ts.Cache.IsEntryStored);
                     Assert.Equal(1, ts.Cache.CalledCallbacksCount);
                     Assert.True((session as Active_Session)!.Disposed);
+                    //Assess store._environmentProviders
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(1, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
+                    store.DetachSession(ts.MockSession.Object, session!, null);
+                    Assert.False(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
                 }
             }
         }
@@ -773,7 +806,7 @@ namespace ActiveSession.Tests
         {
             CreateFetchTestSetup ts;
             ActiveSessionStore store;
-            IActiveSession? session;
+            IStoreActiveSessionItem? session;
 
             //Test case: fetch ActiveSession from cache after the termination in the IStoreInvironmentProvider has been marked
             //Arrange
@@ -784,6 +817,8 @@ namespace ActiveSession.Tests
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.Never);
                     IActiveSession old_session = session;
                     Task cleanup_task = session.CleanupCompletionTask;
+                    store.DetachSession(ts.MockSession.Object, session, null);
+                    Assert.Equal(1, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
                     ts.MockSession.Object.SetInt32(DEFAULT_SESSION_KEY_PREFIX+"_"+CreateFetchTestSetup.TEST_ACTIVESESSION_ID, -1);
                     //Act
                     session=store.FetchOrCreateSession(ts.MockSession.Object, null, null);
@@ -797,6 +832,8 @@ namespace ActiveSession.Tests
                     ts.MockRunnerManager.Verify(ts.AbortAllExpression, Times.AtLeastOnce);
                     ts.MockRunnerManager.Verify(ts.PerformRunnersCleanupExpression, Times.Once);
                     Assert.Equal(1, ts.ScopeDisposeCount);
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
                 }
 
                 //Create brand new ActiveSession after the termination var in the IStoreInvironmentProvider has been marked
@@ -808,6 +845,8 @@ namespace ActiveSession.Tests
                     //Assess
                     Assert.NotNull(session);
                     Assert.Equal(2, session.Generation);
+                    Assert.True(store._environmentProviders.ContainsKey(CreateFetchTestSetup.TEST_ACTIVESESSION_ID));
+                    Assert.Equal(2, store._environmentProviders[CreateFetchTestSetup.TEST_ACTIVESESSION_ID]._refCount);
                 }
             }
         }
@@ -1160,7 +1199,6 @@ namespace ActiveSession.Tests
         [Fact]
         public void Dispose_Store()
         {
-            //(future) Work on this test stability
             const Int32 TIMEOUT = 8000;
             const Int32 SMALL_TIMEOUT = 400;
             OwnCacheTestSetup ts = new OwnCacheTestSetup();
@@ -1912,13 +1950,14 @@ namespace ActiveSession.Tests
                         if (_session_values.ContainsKey(key)) _session_values[key] = value; 
                         else _session_values.Add(key, value); 
                     });
-                StubActiveSession=new Mock<IStoreActiveSessionItem>();
+                StubActiveSession=new Mock<IStoreActiveSessionItem>(MockBehavior.Strict);
                 _cts=new CancellationTokenSource();
                 StubActiveSession.SetupGet(s => s.CompletionToken).Returns(_cts.Token);
                 StubActiveSession.SetupGet(s => s.Id).Returns(TEST_ACTIVESESSION_ID);
                 StubActiveSession.SetupGet(s => s.Generation).Returns(TEST_GENERATION);
-                StubActiveSession.SetupGet(s => s.RunnerManager).Returns(() => MockRunnerManager.Object);
-                if (PerSessionLock) _lockObject=new Object();
+                StubActiveSession.SetupGet(s => s.RunnerManager).Returns(MockRunnerManager.Object);
+                StubActiveSession.SetupGet(s => s.SessionServices).Returns((IServiceProvider)null!);
+                if(PerSessionLock) _lockObject=new Object();
                 GetRunnerNumberExpression=(s => s.GetNewRunnerNumber(StubActiveSession.Object, It.IsAny<String>()));
                 ReturnRunnerNumberExpression=(s => s.ReturnRunnerNumber(StubActiveSession.Object, It.IsAny<Int32>()));
                 RegisterRunnerExpression=(s => s.RegisterRunner(StubActiveSession.Object, It.IsAny<Int32>(), It.IsAny<IRunner>(),It.IsAny<Type>(),It.IsAny<String>()));

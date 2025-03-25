@@ -17,7 +17,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         ISession? _session;
         readonly ILogger? _logger;
         String _traceIdentifier;
-        IActiveSession _activeSession;
+        IStoreActiveSessionItem _activeSession;
         bool _isLoaded;
         String? _suffix;
 
@@ -68,6 +68,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 #if TRACE
                 _logger?.LogTraceActiveSessionFeaturePerformClear(_traceIdentifier);
                 #endif
+                if(_activeSession.IsAvailable) _store.DetachSession(_session!, _activeSession, _traceIdentifier);
                 _activeSession= DummySession;
                 _isLoaded = false;
             }
@@ -160,12 +161,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Boolean RefreshActiveSession()
         {
+            //TODO Add LogTrace
             if(!_isLoaded) return false;
             if(_activeSession.IsAvailable) {
                 if(_session==null) 
                     throw new InvalidOperationException("Internal error: null environment reference for an available active session.");
-                IActiveSession old_active_session = _activeSession;
+                IStoreActiveSessionItem old_active_session = _activeSession;
                 _activeSession = _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
+                _store.DetachSession(_session, old_active_session, _traceIdentifier);
                 if(old_active_session==_activeSession) return false;  // (future) Unlock environment?
                 return true;
             }
