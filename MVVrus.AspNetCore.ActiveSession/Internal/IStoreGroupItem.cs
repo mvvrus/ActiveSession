@@ -1,6 +1,6 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal interface IStoreGroupActiveSessionItem: ILocalSession,IRefDisposable
+    internal interface IStoreGroupItem: ILocalSession,IRefDisposable
     {
     }
 }

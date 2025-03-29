@@ -1,7 +1,7 @@
 ﻿
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class ActiveSessionGroup : RefDisposable, IStoreGroupActiveSessionItem
+    internal class ActiveSessionGroup : RefDisposable, IStoreGroupItem
     {
         String _id;
         IServiceScope _scope;
