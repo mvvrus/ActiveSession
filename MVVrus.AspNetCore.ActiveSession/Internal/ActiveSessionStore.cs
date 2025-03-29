@@ -44,10 +44,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         internal Task? _cleanupLoggingTask;  //For unit tests only, no need to take into account any parallelism
         //This set is maintained separately because IMemoryCache does not support a list of keys
         readonly SortedSet<String> _sessionKeys;
-        //(future)Change the name after merging with the "environment" feature branch
-        //The name of this field is rather confusing but it is diliberately chosen to coinside with the name
-        //in the branch from wich it was imported.
-        internal /*Just for testing*/ readonly IDictionary<String, EnvProviderItem> _environmentProviders;
+        internal /*Just for testing*/ readonly IDictionary<String, IStoreGroupItem> _sessionGroups;
         readonly TaskCompletionSource _shutdownTcs;
         CancellationTokenRegistration _shutdownCallback;
         volatile Boolean _draining = false;
@@ -79,7 +76,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             if (SessionOptions is null)
                 throw new ArgumentNullException(nameof(SessionOptions));
             _sessionKeys=new SortedSet<String>();
-            _environmentProviders = new Dictionary<String, EnvProviderItem>();
+            _sessionGroups = new Dictionary<String, IStoreGroupItem>();
             _rootServiceProvider= RootServiceProvider??throw new ArgumentNullException(nameof(RootServiceProvider));
             _runnerManagerFactory = RunnerManagerFactory??throw new ArgumentNullException(nameof(RunnerManagerFactory));
             _shutdownTcs=new TaskCompletionSource();
@@ -204,16 +201,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             ActiveSession? result=null;
             String key = SessionKey(nogen_session_id);
             _logger?.LogTraceBaseActiveSessionKeyToUse(nogen_session_id, trace_identifier);
-            Boolean release_env_provider=false;
-            EnvProviderItem  env_provider; ;
+            Boolean release_session_group_here=false;
+            IStoreGroupItem  session_group;
             #if TRACE
             _logger?.LogTraceAcquiringSessionCreationLock(nogen_session_id, trace_identifier);
             #endif
             Monitor.Enter(_creationLock);
             try {
-                //AddRef is in GetEnvProvider
-                env_provider = GetEnvProvider(base_session_id);
-                release_env_provider=true;
+                //AddRef is implicitle called from ObtainSessionGroup
+                session_group = ObtainSessionGroup(base_session_id);
+                release_session_group_here=true;
                 Int32 insession_generation = Session.GetInt32(key)??0;
                 Int32 new_generation = insession_generation<=0 ? -insession_generation+1 : 0;
                 if(_memoryCache.TryGetValue(key, out result)) {
@@ -238,7 +235,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceAcquiredSessionCreationLock(nogen_session_id, trace_identifier);
                     #endif
                     if(_draining) {
-                        ReleaseEnvProvider(base_session_id);
+                        ReleaseSessionGroup(base_session_id);
                         return null;  //The store is stopping due to the application stopping cannot create more sessions
                     }
                     session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
@@ -269,7 +266,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 cleanup_task_source.Task,
                                 trace_identifier,
                                 base_session_id);
-                            release_env_provider = false; // From this point an eviction callback is responsible for releasing the active session group reference
+                            release_session_group_here = false; // From this point an eviction callback is responsible for releasing the active session group reference
                             try {
                                 runner_manager.RegisterSession(result);
                                 new_entry.ExpirationTokens.Add(new CancellationChangeToken(result.CompletionToken));
@@ -283,7 +280,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             }
                             catch {
                                 result.Dispose();
-                                release_env_provider = true; //Failure to add the item to the cache so releasing environment provider is back in our responsibility
+                                release_session_group_here = true; //Failure to add the item to the cache so releasing environment provider is back in our responsibility
                                 _=runner_manager.PerformRunnersCleanupAsync(result); //Should be sync: no runners yet
                                 throw;
                             }
@@ -304,10 +301,10 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 //TODO AddRef if result!=null instead of:
                 //     supplement.Environment.AttachProviderInstance(nogen_session_id, EnvProvider);
                 //     Should be reconsidered.
-                if(result!=null) GetEnvProvider(base_session_id);
+                if(result!=null) ObtainSessionGroup(base_session_id);
             }
             finally {
-                if(release_env_provider) ReleaseEnvProvider(base_session_id);
+                if(release_session_group_here) ReleaseSessionGroup(base_session_id);
                 #if TRACE
                 _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
                 #endif
@@ -325,7 +322,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             lock(_creationLock) {
                 //TODO LogTrace
                 //Decrement EnvProviderItem reference count and release if if the count reaches 0
-                ReleaseEnvProvider(ActiveSessionItem.BaseId);
+                ReleaseSessionGroup(ActiveSessionItem.BaseId);
             }            
             //TODO LogTrace
         }
@@ -640,7 +637,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceSessionEvictionCallbackLocked(session_id);
                 #endif
                 _sessionKeys.Remove((String)Key);
-                ReleaseEnvProvider(active_session.BaseId);
+                ReleaseSessionGroup(active_session.BaseId);
 
             }
             finally {
@@ -924,30 +921,31 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _memoryCache.TryGetValue("", out dummy);
         }
 
-        EnvProviderItem GetEnvProvider(String BaseId)
+        IStoreGroupItem ObtainSessionGroup(String BaseId)
         {
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
             //TODO LogTrace
-            EnvProviderItem env_item;
-            if(!_environmentProviders.ContainsKey(BaseId)) {
-                env_item=new EnvProviderItem();
-                _environmentProviders.Add(BaseId, env_item);
+            IStoreGroupItem session_group;
+            if(!_sessionGroups.ContainsKey(BaseId)) {
+                session_group=new ActiveSessionGroup(BaseId,_rootServiceProvider);
+                _sessionGroups.Add(BaseId, session_group);
             }
-            else env_item=_environmentProviders[BaseId];
-            env_item.AddRef();
-            return env_item;
+            else session_group=_sessionGroups[BaseId];
+            session_group.AddRef();
+            return session_group;
         }
 
-        Boolean ReleaseEnvProvider(String BaseId)
+        Boolean ReleaseSessionGroup(String BaseId)
         {
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
             //TODO LogTrace
-            EnvProviderItem? env_item = BaseId!=null && _environmentProviders.ContainsKey(BaseId) ?_environmentProviders[BaseId]:null;
-            Boolean result = env_item?.Release()??false;
+            IStoreGroupItem? session_group = BaseId!=null && _sessionGroups.ContainsKey(BaseId) ?_sessionGroups[BaseId]:null;
+            Boolean result = session_group?.Release()??false;
             if(result) {
-                _environmentProviders.Remove(BaseId!);
+                session_group?.Dispose();
+                _sessionGroups.Remove(BaseId!);
             }
             return result;
         }
@@ -986,12 +984,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             TaskCompletionSource CompletionTaskSource
             );
 
-        //TODO Change the type of this base object placeholder with reference count functionality.
-        //No the name of this type is rather confusing but it is diliberately chosen to coinside with the name
-        //in the 'environment' branch from wich a wast number of peaces of code are imported ('cherry-picked').
-        internal /*Just for testing*/ class EnvProviderItem
-        {
-            /*References are counted as follows:
+            /*References to a session group are counted as follows:
              * - one reference for each IStoreActiveSessionItem object in the cache; 
              *   this count is incremented by the FetchOrCreateSession method after the object has been added into the cache
              *   and decremented by cache eviction callback method ActiveSessionEvictionCallback;
@@ -1000,29 +993,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
              *   this count is incremented by the FetchOrCreateSession method when it returns valid reference on an active session object
              *   and decremented by *** method called from within ActiveSessionFeature code.
             */
-            internal /*Just for testing*/ Int32 _refCount;
 
-            public EnvProviderItem()
-            {
-                _refCount = 0;
-            }
-
-            public void AddRef()
-            {
-                //Should always be called with _creationLock acquired
-                _refCount++;
-            }
-
-            public Boolean Release() //Returns true if the item is not referenced by any ActiveSessionStoreItem
-                              //and should be removed from the list
-            {
-                //Should always be called with _creationLock acquired
-                _refCount--;
-                if(_refCount<0) throw new InvalidOperationException("Environment provider  reference count become negative");
-                return _refCount==0;
-            }
-
-        }
         #endregion
     }
 }

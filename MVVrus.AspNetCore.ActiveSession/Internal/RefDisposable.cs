@@ -1,12 +1,12 @@
 ﻿namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
-    internal class RefDisposable:IRefDisposable
+    internal class RefDisposable: IRefDisposable
     {
         Int32 _disposedValue = 0;
         Int32 _refCount = 0;
 
         public Int32 RefCount => Volatile.Read(ref _refCount);
-        //protected Boolean Disposed => Volatile.Read(ref _disposedValue)!=0;
+        public Boolean IsDisposed => Volatile.Read(ref _disposedValue)!=0;
 
         public void AddRef()
         {

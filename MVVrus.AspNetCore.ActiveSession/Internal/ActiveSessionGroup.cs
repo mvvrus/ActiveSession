@@ -15,11 +15,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IDictionary<String, Object> Properties => _properties;
 
-        public ActiveSessionGroup(String Id, IServiceScope Scope)
+        public ActiveSessionGroup(String Id, IServiceProvider RootSP)
         {
             _id = Id;
             _properties = new Dictionary<String, Object>();
-            _scope=Scope;
+            _scope=RootSP.CreateScope();
         }
 
         protected override void Dispose(Boolean Disposing)
