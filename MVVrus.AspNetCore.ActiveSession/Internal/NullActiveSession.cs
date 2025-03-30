@@ -11,7 +11,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
-        public Int32 Generation => throw new InvalidOperationException(MESSAGE);
+        public Int32 Generation => -1;
 
         public IRunnerManager RunnerManager => throw new NotImplementedException();
 

@@ -110,6 +110,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(D_STORERUNNERPROXY, Debug, "Trying to make a proxy for the remote runner, RunnerId={RunnerId}, HostId={HostId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogDebugProcessRemoteRunner(this ILogger Logger, RunnerId RunnerId, String HostId, String TraceIdentifier);
 
+        [LoggerMessage(D_FEATURELOADED, Debug, "ActiveSessionFeature, the active session feature loaded, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogDebugActiveSessionFeatureLoaded(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(D_FEATUREREFRESHED, Debug, "ActiveSessionFeature, the active session changed, old ActiveSessionId={OldSessionId}, new ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogDebugActiveSessionFeatureChanged(this ILogger Logger, String OldSessionId, String SessionId, String TraceIdentifier);
+
         [LoggerMessage(D_MANAGERRUNNERREGISTERED, Debug, "The runner is registered and available for execution, RunnerId={RunnerId}, , TraceIdentifier={TraceIdentifier}.")]
         public static partial void  LogDebugNewRunnerAvailable(this ILogger Logger, RunnerId RunnerId, String TraceIdentifier);
 
@@ -387,6 +393,33 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STOREDOTERMINATEEXIT, Trace, "Exit ActiveSessionStore.DoTerminateSession, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}. ")]
         public static partial void LogTraceSessionDoTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
 
+        [LoggerMessage(T_STOREENVLINKPROVIDERS, Trace, "Linking environment provider for the active session created/found, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceStoreSessionLinkProvider(this ILogger Logger, String SessionId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVGETSTOREPROVIDERADDREF, Trace, "Referencing a store environment provider, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceGetEnvProviderAddRef(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVCREATESTOREPROVIDER, Trace, "No provider for the BaseId exist yet, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceCreateStoreProvider(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVGETSTOREPROVIDERADDREFEXIT, Trace, "Referencing a store environment provider - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceGetEnvProviderAddRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVRELEASESTOREPROVIDERREF, Trace, "Uneferencing a store environment provider, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceReleaseEnvProviderRef(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVRELEASESESSIONPROVIDERREFEXIT, Trace, "Uneferencing a store environment provider - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceReleaseEnvProviderRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVUNLINKSESSIONPROVIDER, Trace, "Detaching active session from the environment store provider - acquiring lock, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceStoreDetachSession(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVUNLINKSTOREPROVIDER, Trace, "Detaching active session from the environment store provider - lock acquired, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceStoreDetachSessionLockAcqired(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREENVUNLINKSESSIONPROVIDEREXIT, Trace, "Detaching active session from the environment store provider - lock released, exit, ActiveSessionId={SessionId},BaseId={BaseId},  TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceStoreDetachSessionExit(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
+
         [LoggerMessage(T_SESSIONCONS, Trace, "Enter ActiveSession Constructor, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionConstructor(this ILogger Logger, String SessionId, String TraceIdentifier);
 
@@ -488,6 +521,12 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         [LoggerMessage(T_FEATURELOADEXIT, Trace, "Exit ActiveSessionFeature.Load, TraceIdentifier={TraceIdentifier}.")]
         public static partial void LogTraceActiveSessionFeatureLoadExit(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_FEATUREREFRESH, Trace, "Enter ActiveSessionFeature.RefreshActiveSession, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionFeatureRefresh(this ILogger Logger, String TraceIdentifier);
+
+        [LoggerMessage(T_FEATUREREFRESHEXIT, Trace, "Exit ActiveSessionFeature.RefreshActiveSession, TraceIdentifier={TraceIdentifier}.")]
+        public static partial void LogTraceActiveSessionFeatureRefreshExit(this ILogger Logger, String TraceIdentifier);
 
         [LoggerMessage(T_DLGTFACTORYCONS, Trace, "Creating delegate runner factory to implement IRunnerFactory<{TRequest}, {TResult}>.")]
         public static partial void LogTraceConstructDelegateFactory(this ILogger Logger, String TRequest, String TResult);

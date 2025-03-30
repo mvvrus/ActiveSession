@@ -109,6 +109,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                             _logger?.LogTraceActiveSessionFeatureLoadAsyncGetActiveSession(_traceIdentifier);
                             #endif
                             _activeSession=_store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
+                            _logger?.LogDebugActiveSessionFeatureLoaded(LoggingExtensions.MakeSessionId(_activeSession), _traceIdentifier);
                         }
                     }
                 }
@@ -146,6 +147,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceActiveSessionFeatureLoadGetActiveSession(_traceIdentifier);
                     #endif
                     _activeSession= _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
+                    _logger?.LogDebugActiveSessionFeatureLoaded(LoggingExtensions.MakeSessionId(_activeSession), _traceIdentifier);
                 }
             }
             catch(Exception exception)
@@ -164,18 +166,27 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public Boolean RefreshActiveSession()
         {
-            //TODO Add LogTrace
-            if(!_isLoaded) return false;
-            if(_activeSession.IsAvailable) {
+            #if TRACE
+            _logger?.LogTraceActiveSessionFeatureRefresh(_traceIdentifier);
+            #endif
+            Boolean result = false;
+            if(_isLoaded && _activeSession.IsAvailable) {
                 if(_session==null) 
                     throw new InvalidOperationException("Internal error: null environment reference for an available active session.");
                 IStoreActiveSessionItem old_active_session = _activeSession;
                 _activeSession = _store.FetchOrCreateSession(_session, _traceIdentifier, _suffix)??DummySession;
                 _store.DetachSession(_session, old_active_session, _traceIdentifier);
-                if(old_active_session==_activeSession) return false;
-                return true;
+                if(old_active_session!=_activeSession) {
+                    _logger?.LogDebugActiveSessionFeatureChanged(_traceIdentifier,
+                        LoggingExtensions.MakeSessionId(old_active_session),
+                        LoggingExtensions.MakeSessionId(_activeSession) );
+                    result=true; 
+                }
             }
-            else return false;
+            #if TRACE
+            _logger?.LogTraceActiveSessionFeatureRefreshExit(_traceIdentifier);
+            #endif
+            return result;
         }
 
         //(future) Implement LocalSession

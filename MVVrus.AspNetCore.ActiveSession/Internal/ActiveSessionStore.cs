@@ -208,8 +208,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             #endif
             Monitor.Enter(_creationLock);
             try {
-                //AddRef is implicitle called from ObtainSessionGroup
-                session_group = ObtainSessionGroup(base_session_id);
+                session_group = ObtainSessionGroupAddRef(base_session_id, trace_identifier);
                 release_session_group_here=true;
                 Int32 insession_generation = Session.GetInt32(key)??0;
                 Int32 new_generation = insession_generation<=0 ? -insession_generation+1 : 0;
@@ -235,7 +234,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceAcquiredSessionCreationLock(nogen_session_id, trace_identifier);
                     #endif
                     if(_draining) {
-                        ReleaseSessionGroup(base_session_id);
+                        ReleaseSessionGroup(base_session_id, trace_identifier);
                         return null;  //The store is stopping due to the application stopping cannot create more sessions
                     }
                     session_id = LoggingExtensions.MakeSessionId(nogen_session_id, new_generation);
@@ -298,13 +297,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 else {
                     session_id = result.MakeSessionId();
                 }
-                //TODO AddRef if result!=null instead of:
-                //     supplement.Environment.AttachProviderInstance(nogen_session_id, EnvProvider);
-                //     Should be reconsidered.
-                if(result!=null) ObtainSessionGroup(base_session_id);
+                if(result!=null) {
+                    #if TRACE
+                    _logger?.LogTraceStoreSessionLinkProvider(result.MakeSessionId(), trace_identifier);
+                    #endif
+                    //Account for a reference from the active session object to be returned
+                    ObtainSessionGroupAddRef(base_session_id, trace_identifier);
+                }
             }
             finally {
-                if(release_session_group_here) ReleaseSessionGroup(base_session_id);
+                if(release_session_group_here) ReleaseSessionGroup(base_session_id, trace_identifier);
                 #if TRACE
                 _logger?.LogTraceReleasedSessionCreationLock(session_id, trace_identifier);
                 #endif
@@ -318,13 +320,19 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public void DetachSession(ISession Session, IStoreActiveSessionItem ActiveSessionItem, String? TraceIdentifier)
         {
-            //TODO LogTrace
+            String trace_identifier = TraceIdentifier??UNKNOWN_TRACE_IDENTIFIER;
+            #if TRACE
+            _logger?.LogTraceStoreDetachSession(ActiveSessionItem.MakeSessionId(), ActiveSessionItem.BaseId, trace_identifier);
+            #endif
             lock(_creationLock) {
-                //TODO LogTrace
-                //Decrement EnvProviderItem reference count and release if if the count reaches 0
-                ReleaseSessionGroup(ActiveSessionItem.BaseId);
-            }            
-            //TODO LogTrace
+                #if TRACE
+                 _logger?.LogTraceStoreDetachSessionLockAcqired(ActiveSessionItem.MakeSessionId(), ActiveSessionItem.BaseId, trace_identifier);
+                #endif
+                ReleaseSessionGroup(ActiveSessionItem.BaseId, trace_identifier);
+            }
+            #if TRACE
+            _logger?.LogTraceStoreDetachSessionExit(ActiveSessionItem.MakeSessionId(), ActiveSessionItem.BaseId, trace_identifier);
+            #endif
         }
 
         public KeyedRunner<TResult> CreateRunner<TRequest, TResult>(ISession Session,
@@ -637,7 +645,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 _logger?.LogTraceSessionEvictionCallbackLocked(session_id);
                 #endif
                 _sessionKeys.Remove((String)Key);
-                ReleaseSessionGroup(active_session.BaseId);
+                ReleaseSessionGroup(active_session.BaseId, UNKNOWN_TRACE_IDENTIFIER);
 
             }
             finally {
@@ -921,32 +929,45 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _memoryCache.TryGetValue("", out dummy);
         }
 
-        IStoreGroupItem ObtainSessionGroup(String BaseId)
+        IStoreGroupItem ObtainSessionGroupAddRef(String BaseId, String TraceIdentifier)
         {
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
-            //TODO LogTrace
+            #if TRACE
+            _logger?.LogTraceGetEnvProviderAddRef(BaseId, TraceIdentifier);
+            #endif
             IStoreGroupItem session_group;
             if(!_sessionGroups.ContainsKey(BaseId)) {
-                session_group=new ActiveSessionGroup(BaseId,_rootServiceProvider);
+                session_group=new ActiveSessionGroup(BaseId, _rootServiceProvider);
                 _sessionGroups.Add(BaseId, session_group);
+                #if TRACE
+                _logger?.LogTraceCreateStoreProvider(BaseId, TraceIdentifier);
+                #endif
             }
             else session_group=_sessionGroups[BaseId];
             session_group.AddRef();
+            #if TRACE
+            _logger?.LogTraceGetEnvProviderAddRefExit(BaseId, TraceIdentifier);
+            #endif
             return session_group;
         }
 
-        Boolean ReleaseSessionGroup(String BaseId)
+        Boolean ReleaseSessionGroup(String BaseId, String TraceIdentifier)
         {
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
-            //TODO LogTrace
-            IStoreGroupItem? session_group = BaseId!=null && _sessionGroups.ContainsKey(BaseId) ?_sessionGroups[BaseId]:null;
+            #if TRACE
+            _logger?.LogTraceReleaseEnvProviderRef(BaseId, TraceIdentifier);
+            #endif
+            IStoreGroupItem? session_group = BaseId!=null && _sessionGroups.ContainsKey(BaseId) ? _sessionGroups[BaseId] : null;
             Boolean result = session_group?.Release()??false;
             if(result) {
                 session_group?.Dispose();
                 _sessionGroups.Remove(BaseId!);
             }
+            #if TRACE
+            _logger?.LogTraceReleaseEnvProviderRefExit(BaseId??UNKNOWN_SESSION_ID, TraceIdentifier);
+            #endif
             return result;
         }
         #endregion

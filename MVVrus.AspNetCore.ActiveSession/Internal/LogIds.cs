@@ -38,6 +38,8 @@
         public const Int32 D_STORESESSIONEVICTED = 3124;
         public const Int32 D_STORERUNNERCLEANUPRESULT = 3155;
         public const Int32 D_STORERUNNERPROXY = 3161;
+        public const Int32 D_FEATURELOADED = 3341;
+        public const Int32 D_FEATUREREFRESHED = 3351;
         public const Int32 D_MANAGERRUNNERREGISTERED = 3500;
         public const Int32 D_MANAGERRUNNERNOTREGISTERED = 3510;
         public const Int32 D_MANAGERRUNNERRUNEGISTERED = 3511;
@@ -131,6 +133,16 @@
         public const Int32 T_STOREDOTERMINATEUNLOCKED = 4186;
         public const Int32 T_STOREDOTERMINATEVIADISPOSE = 4187;
         public const Int32 T_STOREDOTERMINATEEXIT = 4188;
+        public const Int32 T_STOREENVLINKPROVIDERS = 4190;
+        public const Int32 T_STOREENVGETSTOREPROVIDERADDREF = 4191;
+        public const Int32 T_STOREENVCREATESTOREPROVIDER = 4192;
+        public const Int32 T_STOREENVGETSTOREPROVIDERADDREFEXIT = 4193;
+        public const Int32 T_STOREENVRELEASESTOREPROVIDERREF = 4194;
+        public const Int32 T_STOREENVRELEASESTOREPROVIDER = 4195;
+        public const Int32 T_STOREENVRELEASESESSIONPROVIDERREFEXIT = 4196;
+        public const Int32 T_STOREENVUNLINKSESSIONPROVIDER = 4197;
+        public const Int32 T_STOREENVUNLINKSTOREPROVIDER = 4198;
+        public const Int32 T_STOREENVUNLINKSESSIONPROVIDEREXIT = 4199;
         public const Int32 T_SESSIONCONS = 4200;
         public const Int32 T_SESSIONCONSEXIT = 4201;
         public const Int32 T_SESSIONNEWRUNNER = 4210;
@@ -165,6 +177,8 @@
         public const Int32 T_FEATURELOAD = 4340;
         public const Int32 T_FEATURELOADSESSION = 4341;
         public const Int32 T_FEATURELOADEXIT = 4342;
+        public const Int32 T_FEATUREREFRESH = 4350;
+        public const Int32 T_FEATUREREFRESHEXIT = 4351;
         public const Int32 T_DLGTFACTORYCONS = 4400;
         public const Int32 T_DLGTFACTORYINVOKE = 4401;
         public const Int32 T_TYPEFACTORCONS = 4410;
