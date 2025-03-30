@@ -60,7 +60,7 @@ namespace ActiveSession.Tests
             active_session=(IStoreActiveSessionItem)feature.ActiveSession;
             //Assess
             Assert.False(active_session.IsAvailable);
-            Assert.Equal(0, test_setup.EnvProviderRefCount);
+            Assert.False(feature.LocalSession.IsAvailable);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
 
@@ -115,6 +115,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.True(feature.ActiveSession.IsAvailable);
+            Assert.True(feature.LocalSession.IsAvailable);
             Assert.Equal(2, test_setup.EnvProviderRefCount);
 
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
@@ -141,6 +142,7 @@ namespace ActiveSession.Tests
             Assert.True(feature.IsLoaded);
             Assert.NotNull(feature.ActiveSession);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -158,6 +160,7 @@ namespace ActiveSession.Tests
             Assert.Null(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -175,6 +178,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -191,6 +195,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -209,6 +214,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.True(feature.ActiveSession.IsAvailable);
+            Assert.True(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
             Assert.Equal(2, test_setup.EnvProviderRefCount);
 
@@ -233,6 +239,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -250,6 +257,7 @@ namespace ActiveSession.Tests
             Assert.Null(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Never);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -267,6 +275,7 @@ namespace ActiveSession.Tests
             Assert.NotNull(feature.Session);
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -283,6 +292,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.True(feature.IsLoaded);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             test_setup.MockStore.Verify(test_setup.ActiveSessionStoreFetchExpression, Times.Once);
             Assert.Equal(0, test_setup.EnvProviderRefCount);
         }
@@ -386,7 +396,9 @@ namespace ActiveSession.Tests
             active_session=(IStoreActiveSessionItem)feature.ActiveSession;
             //Assess
             Assert.True(active_session.IsAvailable);
+            Assert.True(feature.LocalSession.IsAvailable);
             Assert.Equal(MakeId(TEST_SUFFIX), active_session.Id);
+            Assert.Equal(TEST_SESSION_ID, feature.LocalSession.Id);
             Assert.Equal(2, test_setup.EnvProviderRefCount);
             test_setup.ResetEnvProviderRefCount();
         }
@@ -434,6 +446,7 @@ namespace ActiveSession.Tests
             result=feature.RefreshActiveSession();
             Assert.True(result);
             Assert.False(feature.ActiveSession.IsAvailable);
+            Assert.False(feature.LocalSession.IsAvailable);
             ts.MockStore.Verify(ts.ActiveSessionStoreFetchExpression, Times.Exactly(2));
             Assert.Equal(1, ts.EnvProviderRefCount); 
 
@@ -446,9 +459,9 @@ namespace ActiveSession.Tests
             Assert.True(result);
             Assert.NotSame(old_as, feature.ActiveSession);
             Assert.True(feature.ActiveSession.IsAvailable);
+            Assert.True(feature.LocalSession.IsAvailable);
             ts.MockStore.Verify(ts.ActiveSessionStoreFetchExpression, Times.Exactly(2));
             Assert.Equal(2, ts.EnvProviderRefCount);
-
         }
 
 
@@ -484,6 +497,7 @@ namespace ActiveSession.Tests
         class ActiveSessionTestSetup: ConstructorTestSetup
         {
             public readonly Mock<IStoreActiveSessionItem> StubActiveSession;
+            public readonly Mock<IStoreGroupItem> StubBaseGroup;
             Int32 _envProviderRefCount = 0;
             protected IStoreActiveSessionItem? _activeSessionItemToReturn = null;
             Boolean _inCache = false;
@@ -503,9 +517,13 @@ namespace ActiveSession.Tests
             {
                 ActiveSessionStoreFetchExpression=s => s.FetchOrCreateSession(SessionObject!, It.IsAny<string>(), It.IsAny<String?>());
                 ActiveSesionStoreDetachExpression = s => s.DetachSession(It.IsAny<ISession>(), It.IsAny<IStoreActiveSessionItem>(), It.IsAny<String?>());
+                StubBaseGroup = new Mock<IStoreGroupItem>();
+                StubBaseGroup.SetupGet(s => s.IsAvailable).Returns(true);
+                StubBaseGroup.SetupGet(s => s.Id).Returns(TEST_SESSION_ID);
                 StubActiveSession =new Mock<IStoreActiveSessionItem>();
                 StubActiveSession.SetupGet(s => s.IsAvailable).Returns(true);
                 StubActiveSession.SetupGet(s => s.Id).Returns(GetId);
+                StubActiveSession.SetupGet(s => s.BaseGroup).Returns(StubBaseGroup.Object);
                 MockStore.Setup(ActiveSessionStoreFetchExpression)
                     .Callback(FetchOrCreateSessionCallback)
                     .Returns(FetchOrCreateSessionResults);
@@ -580,6 +598,7 @@ namespace ActiveSession.Tests
                 _asMock = new Mock<IStoreActiveSessionItem>();
                 _asMock.SetupGet(s => s.IsAvailable).Returns(true);
                 _asMock.SetupGet(s => s.Id).Returns(GetId);
+                _asMock.SetupGet(s => s.BaseGroup).Returns(StubBaseGroup.Object);
                 MockSession!.Setup(s => s.LoadAsync(It.IsAny<CancellationToken>()))
                     .Callback((CancellationToken t) => { _loadAsyncCallback?.Invoke(t); t.ThrowIfCancellationRequested(); })
                     .Returns(() => _loadAsyncResultTask());

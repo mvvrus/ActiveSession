@@ -15,6 +15,8 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IRunnerManager RunnerManager => throw new NotImplementedException();
 
+        public IStoreGroupItem? BaseGroup => null;
+
         public Task CommitAsync(String? TraceIdentifier, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

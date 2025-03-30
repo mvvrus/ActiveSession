@@ -12,7 +12,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         readonly ILogger? _logger;
         readonly String _sessionId;
         readonly String _logSessionId;
-        readonly String _baseId;
         Int32 _disposed = 0;
         bool _isFresh = true;
         readonly CancellationTokenSource _cts;
@@ -26,14 +25,14 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , ILogger? Logger
             , Int32 Generation
             , Task? CleanupCompletionTask
-            , String? TraceIdentifier 
-            , String? BaseId
+            , String? TraceIdentifier
+            , IStoreGroupItem? BaseGroup
         )
         {
             ArgumentNullException.ThrowIfNull(SessionId, nameof(SessionId));
             ArgumentNullException.ThrowIfNull(RunnerManager, nameof(RunnerManager));
             _logger=Logger;
-            _baseId=BaseId??SessionId;
+            this.BaseGroup= BaseGroup;
             _sessionId=SessionId;
             this.Generation=Generation;
             _logSessionId=LoggingExtensions.MakeSessionId(_sessionId,Generation);
@@ -153,7 +152,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public String Id { get => _sessionId; }
 
-        public String BaseId { get => _baseId; }
+        public IStoreGroupItem? BaseGroup { get; init; }
+
+        public String BaseId { get => BaseGroup?.Id??_sessionId; }
 
         public CancellationToken CompletionToken { get; private set; }
 

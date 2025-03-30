@@ -265,7 +265,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                                 new_generation,
                                 cleanup_task_source.Task,
                                 trace_identifier,
-                                base_session_id);
+                                session_group);
                             release_session_group_here = false; // From this point an eviction callback is responsible for releasing the active session group reference
                             try {
                                 runner_manager.RegisterSession(result);

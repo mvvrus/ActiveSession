@@ -23,6 +23,7 @@ namespace ActiveSession.Tests
         {
             ConstructorTestSetup test_setup;
             Active_Session active_session;
+            Mock<IStoreGroupItem>? base_group=null;
 
             using (test_setup=new ConstructorTestSetup()) {
                 //Test case: normal creation w/o specific cleanup completion task
@@ -44,6 +45,8 @@ namespace ActiveSession.Tests
                 Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.BaseId);
 
                 //Test case: normal creation with specific base name
+                base_group=new Mock<IStoreGroupItem>();
+                base_group.SetupGet(s=>s.Id).Returns(ConstructorTestSetup.TEST_SESSION_ID+"-SUFFIX");
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object,
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
@@ -51,7 +54,7 @@ namespace ActiveSession.Tests
                     test_setup.Logger, RunnerTestSetup.TEST_GENERATION,
                     null, 
                     null,
-                    ConstructorTestSetup.TEST_SESSION_ID+"-SUFFIX");
+                    base_group.Object);
 
                 Assert.True(active_session.IsAvailable);
                 Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
