@@ -510,27 +510,21 @@ namespace ActiveSession.Tests
         class FakeHttpContext
         {
             public Mock<HttpContext> MockContext { get; init; }
-            public IActiveSessionFeature? ShadowActiveSessionFeature { get { return _shadowActiveSessionFeature; } }
+            public IActiveSessionFeature? ShadowActiveSessionFeature { get { return _featureCollection[typeof(IActiveSessionFeature)] as IActiveSessionFeature; } }
             public Mock<IServiceProvider> StubRequestServices { get; init; }
-            Mock<IFeatureCollection> _fakeFeatureCollection { get; init; }
-            IActiveSessionFeature? _shadowActiveSessionFeature;
+            readonly IFeatureCollection _featureCollection;
             String? _path = null;
 
             public FakeHttpContext(ISession Session)
             {
-                _fakeFeatureCollection=new Mock<IFeatureCollection>();
-                _fakeFeatureCollection.Setup(x => x.Get<IActiveSessionFeature>()).Returns(()=> _shadowActiveSessionFeature);
-                _fakeFeatureCollection.Setup(x => x.Set(It.IsAny<IActiveSessionFeature>()))
-                    .Callback((IActiveSessionFeature s) => { _shadowActiveSessionFeature=s; });
-
                 StubRequestServices=new Mock<IServiceProvider>();
                 StubRequestServices.Setup(s => s.GetService(typeof(ServiceProviderIdent)))
                     .Returns(new ServiceProviderIdent(REQUEST_SERVICES_IDENT));
-
-                MockContext=new Mock<HttpContext>();
+                _featureCollection=new FeatureCollection();
+                MockContext =new Mock<HttpContext>();
                 MockContext.SetupProperty(x => x.RequestServices, StubRequestServices.Object);
                 MockContext.SetupGet(x => x.TraceIdentifier).Returns(FAKE_TRACE_ID);
-                MockContext.SetupGet(x => x.Features).Returns(_fakeFeatureCollection.Object);
+                MockContext.SetupGet(x => x.Features).Returns(_featureCollection);
                 MockContext.SetupGet(x => x.Session).Returns(Session);
                 MockContext.SetupGet(s => s.Request.Path).Returns(()=>_path);
             }

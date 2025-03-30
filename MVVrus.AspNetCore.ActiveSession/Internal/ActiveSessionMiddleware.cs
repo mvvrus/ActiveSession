@@ -64,7 +64,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                     _logger?.LogTraceActiveSessionMiddlewareAssignFeature(suffix??NO_SUFFIX, Context.TraceIdentifier);
                     #endif
                     feature=_store.AcquireFeatureObject(Context.Session, Context.TraceIdentifier, suffix);
-                    Context.Features.Set(feature);
+                    Context.Features.Set<IActiveSessionFeature>(feature);
                     _logger?.LogDebugActiveSessionFeatureActivated(suffix??NO_SUFFIX, Context.TraceIdentifier);
                     if (_preloadActiveSession||_useSessionServicesAsRequestServices) {
                         #if TRACE
