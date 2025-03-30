@@ -30,7 +30,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger,RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger,RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 Assert.True(active_session.IsAvailable);
                 Assert.Equal(ConstructorTestSetup.TEST_SESSION_ID, active_session.Id);
@@ -72,7 +72,7 @@ namespace ActiveSession.Tests
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
                     test_setup.Logger,RunnerTestSetup.TEST_GENERATION,
-                    dummy_completion_task);
+                    dummy_completion_task, null, null);
 
                 Assert.True(ReferenceEquals(dummy_completion_task, active_session.CleanupCompletionTask));
 
@@ -82,7 +82,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         test_setup.MockStore.Object,
                         test_setup.StubSession.Object.Id,
-                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION)
+                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION, null, null, null)
                     );
 
                 //Test case: null SessionScope constructor parameter
@@ -91,7 +91,7 @@ namespace ActiveSession.Tests
                         null!,
                         test_setup.MockStore.Object,
                         test_setup.StubSession.Object.Id,
-                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION)
+                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION, null, null, null)
                     );
 
                 //Test case: null Store constructor parameter
@@ -100,7 +100,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         null!,
                         test_setup.StubSession.Object.Id,
-                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION)
+                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION, null, null, null)
                     );
 
                 //Test case: null Session constructor parameter
@@ -109,7 +109,7 @@ namespace ActiveSession.Tests
                         test_setup.MockServiceScope.Object,
                         test_setup.MockStore.Object,
                         null!,
-                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION)
+                        test_setup.Logger,RunnerTestSetup.TEST_GENERATION, null, null, null)
                     );
             }
 
@@ -125,7 +125,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 (var runner, var key)=active_session.CreateRunner<Request1, Result1>(test_setup.Request, test_setup.StubContext.Object);
 
@@ -150,7 +150,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 var unknown_runner = active_session.GetRunner<Result1>(
                     RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
@@ -185,7 +185,7 @@ namespace ActiveSession.Tests
                 test_setup.MockServiceScope.Object,
                 test_setup.MockStore.Object,
                 test_setup.StubSession.Object.Id,
-                test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 var unknown_runner = active_session.GetRunnerAsync<Result1>(
                     RunnerTestSetup.TEST_RUNNER_NUMBER - 1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
@@ -218,7 +218,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 IRunner? unknown_runner = active_session.GetNonTypedRunner(
                     RunnerTestSetup.TEST_RUNNER_NUMBER-1, test_setup.StubContext.Object);
@@ -248,7 +248,7 @@ namespace ActiveSession.Tests
                 test_setup.MockServiceScope.Object,
                 test_setup.MockStore.Object,
                 test_setup.StubSession.Object.Id,
-                test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 IRunner? unknown_runner = active_session.GetNonTypedRunnerAsync(
                     RunnerTestSetup.TEST_RUNNER_NUMBER - 1, test_setup.StubContext.Object, default).GetAwaiter().GetResult();
@@ -278,7 +278,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
                 Boolean called_back = false;
                 active_session.CompletionToken.Register(() => { if(!called_back) called_back=true; });
 
@@ -297,7 +297,7 @@ namespace ActiveSession.Tests
                 active_session=new Active_Session(test_setup.DummyRunnerManager.Object, test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
 
                 active_session.SetDisposedForTests();
                 active_session.Dispose();
@@ -320,7 +320,7 @@ namespace ActiveSession.Tests
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
                     test_setup.Logger, RunnerTestSetup.TEST_GENERATION,
-                    test_setup.CleanupCompletionTask);
+                    test_setup.CleanupCompletionTask, null, null);
 
                 task=active_session.Terminate(test_setup.StubContext.Object);
 
@@ -338,7 +338,7 @@ namespace ActiveSession.Tests
                     ts.MockServiceScope.Object,
                     ts.MockStore.Object,
                     ts.StubSession.Object.Id,
-                    null, RunnerTestSetup.TEST_GENERATION);
+                    null, RunnerTestSetup.TEST_GENERATION, null, null, null);
                 active_session.SetDisposedForTests();
 
                 task=active_session.Terminate(test_setup.StubContext.Object);
@@ -364,7 +364,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
                 active_session.Properties[KEY1]=value1;
                 active_session.Properties[KEY2]=value2;
                 Assert.Equal(2, active_session.Properties.Count);
@@ -396,7 +396,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION)) 
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null)) 
                 {
                     Assert.Equal(Task.CompletedTask, active_session.TrackRunnerCleanup(RUNNER_NO));
                     Assert.Null(active_session.TrackRunnerCleanup(RUNNER_NO+1));
@@ -418,7 +418,7 @@ namespace ActiveSession.Tests
                     test_setup.MockServiceScope.Object,
                     test_setup.MockStore.Object,
                     test_setup.StubSession.Object.Id,
-                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION);
+                    test_setup.Logger, RunnerTestSetup.TEST_GENERATION, null, null, null);
                 //Test case: lock a new service
                 task=active_session.WaitForServiceAsync(typeof(ITest), Timeout.InfiniteTimeSpan, default);
                 Assert.True(task.Wait(TIMEOUT));

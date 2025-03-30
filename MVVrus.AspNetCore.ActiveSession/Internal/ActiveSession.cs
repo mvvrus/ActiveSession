@@ -25,9 +25,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             , String SessionId
             , ILogger? Logger
             , Int32 Generation
-            , Task? CleanupCompletionTask = null
-            , String? TraceIdentifier = null
-            , String? BaseId=null
+            , Task? CleanupCompletionTask
+            , String? TraceIdentifier 
+            , String? BaseId
         )
         {
             ArgumentNullException.ThrowIfNull(SessionId, nameof(SessionId));
