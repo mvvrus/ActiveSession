@@ -95,9 +95,6 @@ namespace MVVrus.AspNetCore.ActiveSession
         /// </summary>
         Int32 Generation {  get; }
 
-        /// <summary>Cancellation token that will be fired after the active session completion (eviction/disposal) at start of cleanup/</summary>
-        CancellationToken CompletionToken { get;}
-
         /// <summary>Task that performs asynchronous cleanup of this active session (waits for all runners completion etc).</summary>
         /// <remarks>
         /// The result of the task is false if cleanup of any runner has been not finished within a timeout, 

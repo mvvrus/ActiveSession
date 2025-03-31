@@ -897,7 +897,7 @@ current - Make minor improvements to the EnumAdapterRunner and AsyncEnumAdapterr
 
  Add IActiveSessionFeature.RefreshActiveSession method that allow to work with a new active session after terminating the current one.
 
- Semi-breaking change: move the property Id into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces togather, no code using the library should be broken.
+ Semi-breaking change: move the properties Id and CompletionToken into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces togather, no code using the library should be broken.
 
 1.1.1 - Set correct release notes in the package description.
 

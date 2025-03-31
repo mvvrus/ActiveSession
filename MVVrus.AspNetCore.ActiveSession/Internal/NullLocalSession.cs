@@ -1,4 +1,5 @@
 ﻿
+
 namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class NullLocalSession : ILocalSession
@@ -13,5 +14,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IDictionary<String, Object> Properties => throw new NotImplementedException();
 
+        public CancellationToken CompletionToken => throw new NotImplementedException();
     }
 }

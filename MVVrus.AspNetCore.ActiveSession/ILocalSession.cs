@@ -19,6 +19,9 @@
         /// <summary>The service (DI) container for the scope attached to this sesession</summary>
         IServiceProvider SessionServices { get; }
 
+        /// <summary>Cancellation token that will be fired after the active session completion (eviction/disposal) at start of cleanup/</summary>
+        CancellationToken CompletionToken { get; }
+
         /// <summary>
         /// A set of arbitrary objects associated with this session that are accessible via their string keys.
         /// </summary>
