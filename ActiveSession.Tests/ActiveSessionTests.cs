@@ -380,7 +380,8 @@ namespace ActiveSession.Tests
                 Assert.Throws<KeyNotFoundException>(()=> active_session.Properties[KEY3]);
                 //Test case: access properties after dispose
                 active_session.Dispose();
-                Assert.Throws<ObjectDisposedException>(() => active_session.Properties[KEY1]);
+                Assert.Same(value1, active_session.Properties[KEY1]);
+                Assert.Throws<ObjectDisposedException>(() => { active_session.Properties[KEY1]=value1; });
             }
         }
 

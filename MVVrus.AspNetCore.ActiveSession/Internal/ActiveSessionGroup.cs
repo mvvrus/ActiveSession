@@ -5,7 +5,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
     {
         String _id;
         IServiceScope _scope;
-        IDictionary<String,Object> _properties;
+        ConcurentSortedDictionary<String,Object> _properties;
         CancellationToken _token;
         CancellationTokenSource _cts;
 
@@ -22,7 +22,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         public ActiveSessionGroup(String Id, IServiceProvider RootSP)
         {
             _id = Id;
-            _properties = new Dictionary<String, Object>();
+            _properties = new ConcurentSortedDictionary<String, Object>();
             _scope=RootSP.CreateScope();
             _cts = new CancellationTokenSource();
             _token = _cts.Token;
@@ -32,6 +32,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         {
             if(Disposing) {
                 _scope.Dispose();
+                _properties.Dispose();
                 _cts.Cancel();
                 _cts.Dispose();
             }

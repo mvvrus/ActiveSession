@@ -115,6 +115,7 @@ namespace ActiveSession.Tests
             //Test case: access properties after dispose
             group.Dispose();
             Assert.Same(value1, group.Properties[KEY1]);
+            Assert.Throws<ObjectDisposedException>(() => { group.Properties[KEY1]=value1; });
         }
 
 
