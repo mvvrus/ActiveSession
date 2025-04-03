@@ -6,6 +6,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         String _id;
         IServiceScope _scope;
         IDictionary<String,Object> _properties;
+        CancellationToken _token;
         CancellationTokenSource _cts;
 
         public String Id => _id;
@@ -14,9 +15,9 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public IServiceProvider SessionServices => _scope.ServiceProvider;
 
-        public CancellationToken CompletionToken => _cts.Token;
+        public CancellationToken CompletionToken => _token;
 
-        public IDictionary<String, Object> Properties => _properties;
+        public IDictionary<String, Object> Properties => _properties; //TODO Implement with concurent access
 
         public ActiveSessionGroup(String Id, IServiceProvider RootSP)
         {
@@ -24,6 +25,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             _properties = new Dictionary<String, Object>();
             _scope=RootSP.CreateScope();
             _cts = new CancellationTokenSource();
+            _token = _cts.Token;
         }
 
         protected override void Dispose(Boolean Disposing)

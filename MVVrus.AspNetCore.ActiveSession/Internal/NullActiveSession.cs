@@ -7,8 +7,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public String BaseId => "<null session BaseId>";
 
-        public CancellationToken CompletionToken => CancellationToken.None;
-
         public Task CleanupCompletionTask => throw new InvalidOperationException(MESSAGE);
 
         public Int32 Generation => -1;
