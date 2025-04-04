@@ -172,9 +172,9 @@ An example of using the IActiveSession.Terminate method in an action method of a
 ````
 #### Associate data with the active session and track the active session completion and cleanup.
 
-The Properties property of the active session interface IActiveSession allows to associate arbitrary objects with the active session. This property is a dictionary with a string as a key and an arbitrary object as a value. Objects can be added with their corresponding keys and retrieved by those keys.
+The Properties property of the active session interface IActiveSession allows to associate arbitrary objects with the active session. This property is a dictionary with a string as a key and an arbitrary object as a value. Objects can be added with their corresponding keys and retrieved by those keys. Concurent access to the Properties dictionary is allowed. If an active session object is disposable (i.e. implement the IDisposable and/or IAsyncDisposable interfaces),  then disposing it switches Properties to read-only mode: all existing objects at the corresponding keys will remain accessible, but no more objects can be added, and no existing objects can be removed from the Properties dictionary.
 
-If the objects added to Properties are disposable (i.e. implement the IDisposable and/or IAsyncDisposable interfaces), one should monitor the completion and cleanup of the active session to perform proper cleanup of these associated objects. There are two events in the lifecycle of an active session that you can monitor. First, the IActiveSession interface contains a CompletedToken property of type CancellationToken that will be canceled when the active session is completed and ready to be cleaned up. Second, CleanupCompletionTask contains a task that completes when the active session is finished cleaning up.
+If the objects added to Properties are disposable, one should monitor the completion and cleanup of the active session to perform proper cleanup of these associated objects. There are two events in the lifecycle of an active session that you can monitor. First, the IActiveSession interface contains a CompletedToken property of type CancellationToken that will be canceled when the active session is completed and ready to be cleaned up. Second, CleanupCompletionTask contains a task that completes when the active session is finished cleaning up.
 
 The following example shows how one can associate objects with an active session and track the session completion and cleanup. The example associates a RunnerRegistry object (whose functionality is beyond the scope of the example) with an active session, retrieves the associated object and cleans it up after the active session is finished cleaning up:
 
@@ -895,9 +895,11 @@ Second, tasks created using delegates can either return a result of type TResult
 
 current - Make minor improvements to the EnumAdapterRunner and AsyncEnumAdapterrunner classes implememntations. Add end-to-end tests for these classes.
 
- Add IActiveSessionFeature.RefreshActiveSession method that allow to work with a new active session after terminating the current one.
+ Add IActiveSessionFeature.RefreshActiveSession method that allows obtaining a new active session after terminating the current one within the same request handler. Also add a new extension method with the same name to HttpContext class to use this feature.
 
- Semi-breaking change: move the properties Id and CompletionToken into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces togather, no code using the library should be broken.
+ Semi-breaking change: move the properties - Id and CompletionToken - into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces together, no code using the library is expected to be broken, so I decide that this change does not deserve the new major version.
+
+ Allow read-only access to the Properties dictionary of an active session object after the object is disposed.
 
 1.1.1 - Set correct release notes in the package description.
 
