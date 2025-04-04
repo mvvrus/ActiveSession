@@ -5,41 +5,47 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 {
     internal class ConcurentSortedDictionary<TKey, TValue> : IDisposable, IDictionary<TKey, TValue> where TKey : notnull
     {
-        const Int32 DISPOSE_WAIT_MSECS = 100;
+        const Int32 DISPOSE_WAIT_MSECS = 500;
 
         ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         SortedDictionary<TKey, TValue> _base = new SortedDictionary<TKey, TValue>();
-        Int32 _disposed_status = 0, _dispose_deffered = 1;
+        internal /*Just for tests*/ Int32 _disposed_status = 0, _can_call_exit = 1;
+        internal /*Just for tests*/ Int32 _dispose_timeout = DISPOSE_WAIT_MSECS;
 
         public void Dispose()
         {
             Int32 disposed_status = Interlocked.Exchange(ref _disposed_status, 1);
             if(disposed_status == 0) {
-                if (_lock.TryEnterWriteLock(DISPOSE_WAIT_MSECS)) _lock.ExitWriteLock();
-                Volatile.Write(ref _dispose_deffered, 0);
+                if (_lock.TryEnterWriteLock(_dispose_timeout)) _lock.ExitWriteLock();
+                Volatile.Write(ref _can_call_exit, 0);
                 _lock.Dispose();
             }
         }
 
-        void EnterReadLock()
+        void PerformDispose()
+        {
+
+        }
+
+        internal /*Just for tests*/ void EnterReadLock()
         {
             if(Volatile.Read(ref _disposed_status)==0) _lock.EnterReadLock();
         }
 
-        void ExitReadLock()
+        internal /*Just for tests*/ void ExitReadLock()
         {
-            if(Volatile.Read(ref _dispose_deffered)!=0) _lock.ExitReadLock();
+            if(Volatile.Read(ref _can_call_exit)!=0) _lock.ExitReadLock();
         }
 
-        void EnterWriteLock()
+        internal /*Just for tests*/ void EnterWriteLock()
         {
             if(Volatile.Read(ref _disposed_status)==0) _lock.EnterWriteLock();
             else throw new ObjectDisposedException(nameof(ConcurentSortedDictionary<TKey,TValue>), "Write access is prohibited.");
         }
 
-        void ExitWriteLock()
+        internal /*Just for tests*/ void ExitWriteLock()
         {
-            if(Volatile.Read(ref _dispose_deffered)!=0) _lock.ExitWriteLock();
+            if(Volatile.Read(ref _can_call_exit)!=0) _lock.ExitWriteLock();
         }
 
         public TValue this[TKey key]
