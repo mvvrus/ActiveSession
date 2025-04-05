@@ -17,7 +17,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         public CancellationToken CompletionToken => _token;
 
-        public IDictionary<String, Object> Properties => _properties; //TODO Implement with concurent access
+        public IDictionary<String, Object> Properties => _properties; 
 
         public ActiveSessionGroup(String Id, IServiceProvider RootSP)
         {

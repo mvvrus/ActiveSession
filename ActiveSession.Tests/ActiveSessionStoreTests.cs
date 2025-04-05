@@ -881,7 +881,6 @@ namespace ActiveSession.Tests
             //Test case: specify suffix
             using(ActiveSessionStore store = ts.CreateStore()) {
                 //Act
-                //TODO Add Suffix property to the IActiveSessionFeatureImpl
                 IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX);
                 //Assess
                 Assert.IsType<ActiveSessionFeature>(feature);

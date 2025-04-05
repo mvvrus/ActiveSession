@@ -118,6 +118,32 @@ namespace ActiveSession.Tests
             Assert.Throws<ObjectDisposedException>(() => { group.Properties[KEY1]=value1; });
         }
 
+        //Test case: reference counting
+        [Fact]
+        public void ReferenceCount()
+        {
+            TestSetup ts=new TestSetup();
+            ActiveSessionGroup group = new ActiveSessionGroup(TEST_ID, ts.RootServiceProviderMock.Object);
+            Assert.Equal(0, group.RefCount);
+            group.AddRef();
+            Assert.Equal(1, group.RefCount);
+            group.AddRef();
+            Assert.Equal(2, group.RefCount);
+            Assert.False(group.Release());
+            Assert.Equal(1, group.RefCount);
+            Assert.False(group.IsDisposed);
+            group.AddRef();
+            Assert.Equal(2, group.RefCount);
+            Assert.False(group.Release());
+            Assert.Equal(1, group.RefCount);
+            Assert.False(group.IsDisposed);
+            Assert.True(group.Release());
+            Assert.Equal(0, group.RefCount);
+            Assert.True(group.IsDisposed);
+            Assert.Throws<ObjectDisposedException>(()=>group.AddRef());
+            Assert.False(group.Release());
+        }
+
 
 
         class TestSetup
