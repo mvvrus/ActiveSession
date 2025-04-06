@@ -962,7 +962,6 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             IStoreGroupItem? session_group = BaseId!=null && _sessionGroups.ContainsKey(BaseId) ? _sessionGroups[BaseId] : null;
             Boolean result = session_group?.Release()??false;
             if(result) {
-                session_group?.Dispose();
                 _sessionGroups.Remove(BaseId!);
             }
             #if TRACE
