@@ -299,7 +299,7 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
                 }
                 if(result!=null) {
                     #if TRACE
-                    _logger?.LogTraceStoreSessionLinkProvider(result.MakeSessionId(), trace_identifier);
+                    _logger?.LogTraceStoreGroupAccountForSession(result.MakeSessionId(), trace_identifier);
                     #endif
                     //Account for a reference from the active session object to be returned
                     ObtainSessionGroupAddRef(base_session_id, trace_identifier);
@@ -934,20 +934,20 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
             #if TRACE
-            _logger?.LogTraceGetEnvProviderAddRef(BaseId, TraceIdentifier);
+            _logger?.LogTraceObtainStoreGroupRef(BaseId, TraceIdentifier);
             #endif
             IStoreGroupItem session_group;
             if(!_sessionGroups.ContainsKey(BaseId)) {
                 session_group=new ActiveSessionGroup(BaseId, _rootServiceProvider);
                 _sessionGroups.Add(BaseId, session_group);
                 #if TRACE
-                _logger?.LogTraceCreateStoreProvider(BaseId, TraceIdentifier);
+                _logger?.LogTraceCreateStoreGroup(BaseId, TraceIdentifier);
                 #endif
             }
             else session_group=_sessionGroups[BaseId];
             session_group.AddRef();
             #if TRACE
-            _logger?.LogTraceGetEnvProviderAddRefExit(BaseId, TraceIdentifier);
+            _logger?.LogTraceObtainStoreGroupRefExit(BaseId, TraceIdentifier);
             #endif
             return session_group;
         }
@@ -957,15 +957,18 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             //Should always be called with _creationLock acquired
             Debug.Assert(Monitor.IsEntered(_creationLock));
             #if TRACE
-            _logger?.LogTraceReleaseEnvProviderRef(BaseId, TraceIdentifier);
+            _logger?.LogTraceReleaseStoreGroupRef(BaseId, TraceIdentifier);
             #endif
             IStoreGroupItem? session_group = BaseId!=null && _sessionGroups.ContainsKey(BaseId) ? _sessionGroups[BaseId] : null;
             Boolean result = session_group?.Release()??false;
             if(result) {
+                #if TRACE
+                _logger?.LogTraceRemoveStoreGroup(BaseId??UNKNOWN_SESSION_ID, TraceIdentifier);
+                #endif
                 _sessionGroups.Remove(BaseId!);
             }
             #if TRACE
-            _logger?.LogTraceReleaseEnvProviderRefExit(BaseId??UNKNOWN_SESSION_ID, TraceIdentifier);
+            _logger?.LogTraceReleaseStoreGroupRefExit(BaseId??UNKNOWN_SESSION_ID, TraceIdentifier);
             #endif
             return result;
         }

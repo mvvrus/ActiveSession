@@ -9,14 +9,16 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
 
         ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         SortedDictionary<TKey, TValue> _base = new SortedDictionary<TKey, TValue>();
+        public Boolean DisposeTimedOut { get; private set; } = false;
         internal /*Just for tests*/ Int32 _disposed_status = 0, _can_call_exit = 1;
         internal /*Just for tests*/ Int32 _dispose_timeout = DISPOSE_WAIT_MSECS;
-
+        
         public void Dispose()
         {
             Int32 disposed_status = Interlocked.Exchange(ref _disposed_status, 1);
             if(disposed_status == 0) {
-                if (_lock.TryEnterWriteLock(_dispose_timeout)) _lock.ExitWriteLock();
+                if(_lock.TryEnterWriteLock(_dispose_timeout)) _lock.ExitWriteLock();
+                else DisposeTimedOut=true;
                 Volatile.Write(ref _can_call_exit, 0);
                 _lock.Dispose();
             }

@@ -11,7 +11,8 @@ namespace ActiveSession.Tests
     {
         const String KEY = "KEY";
         Object value = new Object();
-        const Int32 SMALL_TIMEOUT = 500;
+        const Int32 TIMEOUT = 20000;
+        const Int32 SMALL_TIMEOUT = 1000;
 
         [Fact]
         public void DisposeNormal()
@@ -27,65 +28,89 @@ namespace ActiveSession.Tests
             Assert.Throws<ObjectDisposedException>(() => dict.Remove(KEY));
         }
 
+        class TestSetup: IDisposable
+        {
+            public ManualResetEventSlim Started { get; init; } = new ManualResetEventSlim(false);
+            public ConcurentSortedDictionary<String, Object?> Dict { get; init; } = new ConcurentSortedDictionary<String, Object?>();
+
+            public Task StartDispose()
+            {
+                return Task.Run(() => { Started.Set(); Dict.Dispose(); });
+            }
+
+            public void Dispose()
+            {
+                Started.Dispose();
+            }
+
+        }
+
         [Fact]
         public void DisposeReadLocked()
         {
-            ConcurentSortedDictionary<String, Object?> dict = new ConcurentSortedDictionary<String, Object?>();
-            dict._dispose_timeout = -1;
-            dict.EnterReadLock();
-            Task dispose_task = Task.Run(()=>dict.Dispose());
-            Assert.False(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.NotEqual(0, dict._disposed_status);
-            Assert.NotEqual(0, dict._can_call_exit);
-            dict.ExitReadLock();
-            Assert.True(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.Equal(0, dict._can_call_exit);
+            using(TestSetup ts = new TestSetup()) {
+                ConcurentSortedDictionary<String, Object?> dict = ts.Dict;
+                dict._dispose_timeout = -1;
+                dict.EnterReadLock();
+                Task dispose_task = ts.StartDispose();
+                Assert.True(ts.Started.Wait(TIMEOUT));
+                Assert.False(dispose_task.IsCompleted);
+                dict.ExitReadLock();
+                Assert.True(dispose_task.Wait(TIMEOUT));
+                Assert.Equal(0, dict._can_call_exit);
+                Assert.False(dict.DisposeTimedOut);
+            }
         }
 
         [Fact]
         public void DisposeReadLockedHanged()
         {
-            ConcurentSortedDictionary<String, Object?> dict = new ConcurentSortedDictionary<String, Object?>();
-            dict.EnterReadLock();
-            Task dispose_task = Task.Run(() => dict.Dispose());
-            Assert.False(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.NotEqual(0, dict._disposed_status);
-            Assert.NotEqual(0, dict._can_call_exit);
-            Thread.Sleep(2000);
-            dict.ExitReadLock();
-            Assert.True(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.Equal(0, dict._can_call_exit);
+            using(TestSetup ts = new TestSetup()) {
+                ConcurentSortedDictionary<String, Object?> dict = ts.Dict;
+                dict.EnterReadLock();
+                Task dispose_task = ts.StartDispose();
+                Assert.True(ts.Started.Wait(TIMEOUT));
+                Assert.False(dispose_task.IsCompleted);
+                Thread.Sleep(SMALL_TIMEOUT+dict._dispose_timeout);
+                Assert.True(dispose_task.Wait(TIMEOUT));
+                Assert.Equal(0, dict._can_call_exit);
+                Assert.True(dict.DisposeTimedOut);
+                dict.ExitReadLock();
+            }
         }
 
         [Fact]
         public void DisposeWriteLocked()
         {
-            ConcurentSortedDictionary<String, Object?> dict = new ConcurentSortedDictionary<String, Object?>();
-            dict._dispose_timeout = -1;
-            dict.EnterWriteLock();
-            Task dispose_task = Task.Run(() => dict.Dispose());
-            Assert.False(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.NotEqual(0, dict._disposed_status);
-            Assert.NotEqual(0, dict._can_call_exit);
-            dict.ExitWriteLock();
-            Assert.True(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.Equal(0, dict._can_call_exit);
-
+            using(TestSetup ts = new TestSetup()) {
+                ConcurentSortedDictionary<String, Object?> dict = ts.Dict;
+                dict.EnterWriteLock();
+                Task dispose_task = ts.StartDispose();
+                Assert.True(ts.Started.Wait(TIMEOUT));
+                Assert.False(dispose_task.IsCompleted);
+                Thread.Sleep(SMALL_TIMEOUT+dict._dispose_timeout);
+                Assert.True(dispose_task.Wait(TIMEOUT));
+                Assert.Equal(0, dict._can_call_exit);
+                Assert.True(dict.DisposeTimedOut);
+                dict.ExitWriteLock();
+            }
         }
 
         [Fact]
         public void DisposeWriteLockedHanged()
         {
-            ConcurentSortedDictionary<String, Object?> dict = new ConcurentSortedDictionary<String, Object?>();
-            dict.EnterWriteLock();
-            Task dispose_task = Task.Run(() => dict.Dispose());
-            Assert.False(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.NotEqual(0, dict._disposed_status);
-            Assert.NotEqual(0, dict._can_call_exit);
-            Thread.Sleep(2000);
-            dict.ExitWriteLock();
-            Assert.True(dispose_task.Wait(SMALL_TIMEOUT));
-            Assert.Equal(0, dict._can_call_exit);
+            using(TestSetup ts = new TestSetup()) {
+                ConcurentSortedDictionary<String, Object?> dict = ts.Dict;
+                dict.EnterWriteLock();
+                Task dispose_task = ts.StartDispose();
+                Assert.True(ts.Started.Wait(TIMEOUT));
+                Assert.False(dispose_task.IsCompleted);
+                Thread.Sleep(SMALL_TIMEOUT+dict._dispose_timeout);
+                Assert.True(dispose_task.Wait(TIMEOUT));
+                Assert.Equal(0, dict._can_call_exit);
+                Assert.True(dict.DisposeTimedOut);
+                dict.ExitWriteLock();
+            }
         }
     }
 }

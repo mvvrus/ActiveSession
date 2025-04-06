@@ -393,31 +393,34 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
         [LoggerMessage(T_STOREDOTERMINATEEXIT, Trace, "Exit ActiveSessionStore.DoTerminateSession, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}. ")]
         public static partial void LogTraceSessionDoTerminateExit(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVLINKPROVIDERS, Trace, "Linking environment provider for the active session created/found, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceStoreSessionLinkProvider(this ILogger Logger, String SessionId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPACCOUNTFORSESSION, Trace, "Count a refernce to the group object from the active session created/found, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceStoreGroupAccountForSession(this ILogger Logger, String SessionId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVGETSTOREPROVIDERADDREF, Trace, "Referencing a store environment provider, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceGetEnvProviderAddRef(this ILogger Logger, String BaseId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPOBTAINREF, Trace, "Obtaining a reference to the active session group object, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceObtainStoreGroupRef(this ILogger Logger, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVCREATESTOREPROVIDER, Trace, "No provider for the BaseId exist yet, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceCreateStoreProvider(this ILogger Logger, String BaseId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPCREATENEW, Trace, "Creating a new active session group, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceCreateStoreGroup(this ILogger Logger, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVGETSTOREPROVIDERADDREFEXIT, Trace, "Referencing a store environment provider - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceGetEnvProviderAddRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPOBTAINREFEXIT, Trace, "Obtaining a reference to the active session group object - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceObtainStoreGroupRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVRELEASESTOREPROVIDERREF, Trace, "Uneferencing a store environment provider, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceReleaseEnvProviderRef(this ILogger Logger, String BaseId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPRELEASEREF, Trace, "Releasing a reference to the active session group object, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceReleaseStoreGroupRef(this ILogger Logger, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVRELEASESESSIONPROVIDERREFEXIT, Trace, "Uneferencing a store environment provider - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
-        public static partial void LogTraceReleaseEnvProviderRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
+        [LoggerMessage(T_STOREGROUPREMOVE, Trace, "Removing the unreferenced active session group object from the list, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceRemoveStoreGroup(this ILogger Logger, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVUNLINKSESSIONPROVIDER, Trace, "Detaching active session from the environment store provider - acquiring lock, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        [LoggerMessage(T_STOREGROUPRELEASEREFEXIT, Trace, "Releasing a reference to the active session group object - exit, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        public static partial void LogTraceReleaseStoreGroupRefExit(this ILogger Logger, String BaseId, String TraceIdentifier);
+
+        [LoggerMessage(T_STOREGROUPDETACHSESSION, Trace, "Notifying that the active session object reference is not used anymore - acquiring lock, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
         public static partial void LogTraceStoreDetachSession(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVUNLINKSTOREPROVIDER, Trace, "Detaching active session from the environment store provider - lock acquired, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
+        [LoggerMessage(T_STOREGROUPDETACHSESSIONLOCKACQUIRED, Trace, "Notifying that the active session object reference is not used anymore - lock acquired, ActiveSessionId={SessionId}, BaseId={BaseId}, TraceIdentifier={TraceIdentifier}. ")]
         public static partial void LogTraceStoreDetachSessionLockAcqired(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
 
-        [LoggerMessage(T_STOREENVUNLINKSESSIONPROVIDEREXIT, Trace, "Detaching active session from the environment store provider - lock released, exit, ActiveSessionId={SessionId},BaseId={BaseId},  TraceIdentifier={TraceIdentifier}. ")]
+        [LoggerMessage(T_STOREGROUPDETACHSESSIONEXIT, Trace, "Notifying that the active session object reference is not used anymore - lock released, exit, ActiveSessionId={SessionId},BaseId={BaseId},  TraceIdentifier={TraceIdentifier}. ")]
         public static partial void LogTraceStoreDetachSessionExit(this ILogger Logger, String SessionId, String BaseId, String TraceIdentifier);
 
         [LoggerMessage(T_SESSIONCONS, Trace, "Enter ActiveSession Constructor, ActiveSessionId={SessionId}, TraceIdentifier={TraceIdentifier}.")]
