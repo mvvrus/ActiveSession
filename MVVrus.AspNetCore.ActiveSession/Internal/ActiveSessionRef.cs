@@ -6,14 +6,14 @@
         public virtual IServiceProvider Services { get; init;  }
         public virtual Boolean IsFromSession { get; init; }
         public virtual IActiveSession? ActiveSession { get; init; }
-        public virtual IActiveSessionServicesHelper? ActiveSessionInternal { get; init; }
+        public virtual ISessionServicesHelper? SessionServiceHelper { get; private set; }
         internal ActiveSessionRef() { Services=null!; } //For tests only
         public ActiveSessionRef(IHttpContextAccessor Accessor)
         {
             HttpContext context = Accessor.HttpContext??throw new InvalidOperationException("HttpContext is unaccessible");
             ActiveSession = context.GetActiveSession();
             if( !ActiveSession?.IsAvailable ?? false) ActiveSession = null;
-            ActiveSessionInternal = ActiveSession as IActiveSessionServicesHelper;
+            SessionServiceHelper = ActiveSession as ISessionServicesHelper;
             IsFromSession=ActiveSession != null;
             Services=IsFromSession ? ActiveSession!.SessionServices : context.RequestServices;
         }

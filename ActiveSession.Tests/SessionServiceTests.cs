@@ -62,7 +62,7 @@ namespace ActiveSession.Tests
             Mock<IServiceProvider> dummy_req_sp = new Mock<IServiceProvider>();
             Mock<IServiceProvider> dummy_session_sp = new Mock<IServiceProvider>();
             Mock<IActiveSession> stub_session = new Mock<IActiveSession>();
-            Mock<IActiveSessionServicesHelper> stub_internal = stub_session.As<IActiveSessionServicesHelper>();
+            Mock<ISessionServicesHelper> dummy_helper = stub_session.As<ISessionServicesHelper>();
             stub_session.SetupGet(s => s.SessionServices).Returns(dummy_session_sp.Object);
             stub_session.SetupGet(s => s.IsAvailable).Returns(() => avail);
             Mock<IActiveSessionFeature> stub_as_feature = new Mock<IActiveSessionFeature>();
@@ -81,7 +81,7 @@ namespace ActiveSession.Tests
             Assert.True(sp_ref.IsFromSession);
             Assert.Same(dummy_session_sp.Object, sp_ref.Services);
             Assert.Same(stub_session.Object, sp_ref.ActiveSession);
-            Assert.Same(stub_internal.Object, sp_ref.ActiveSessionInternal);
+            Assert.Same(dummy_helper.Object, sp_ref.SessionServiceHelper);
 
             //Test case: ActiveSession is not available
             //Arrange more
@@ -91,8 +91,7 @@ namespace ActiveSession.Tests
             //Assess
             Assert.False(sp_ref.IsFromSession);
             Assert.True(ReferenceEquals(dummy_req_sp.Object, sp_ref.Services));
-            Assert.Null(sp_ref.ActiveSession);
-            Assert.Null(sp_ref.ActiveSessionInternal);
+            Assert.Null(sp_ref.SessionServiceHelper);
         }
 
         //Test group: LockedSessionService
@@ -101,7 +100,7 @@ namespace ActiveSession.Tests
         {
             LockedSessionService<ITest> tls;
             //Test case: session service (locked)
-            Mock<IActiveSessionServicesHelper> stub_asi= new Mock<IActiveSessionServicesHelper>();
+            Mock<ISessionServicesHelper> stub_asi= new Mock<ISessionServicesHelper>();
             stub_asi.Setup(s => s.ReleaseService(It.IsAny<Type>()));
             ITest test_service = new CTest();
             tls=new LockedSessionService<ITest>(stub_asi.Object, test_service);
@@ -124,18 +123,18 @@ namespace ActiveSession.Tests
         //The function to setup SessionServiceLock test environment
         (
               Mock<IActiveSession>
-            , Mock<IActiveSessionServicesHelper>
+            , Mock<ISessionServicesHelper>
             , Mock<IServiceProvider>
             , ITest
             , Mock<ActiveSessionRef>
         ) SetupSessionServiceLock(
               Func<Boolean> FromSessionFunc
-            , Func<IActiveSessionServicesHelper> LockerFunc
+            , Func<ISessionServicesHelper> LockerFunc
             , SemaphoreSlim Semaphore
         )
         {
             Mock<IActiveSession> dummy_session = new Mock<IActiveSession>();
-            Mock<IActiveSessionServicesHelper> stub_asi = dummy_session.As<IActiveSessionServicesHelper>();
+            Mock<ISessionServicesHelper> stub_asi = dummy_session.As<ISessionServicesHelper>();
             Mock<IServiceProvider> stub_sp = new Mock<IServiceProvider>();
             ITest test_service = new CTest();
             stub_sp.Setup(s => s.GetService(It.IsAny<Type>())).Returns(null);
@@ -145,7 +144,7 @@ namespace ActiveSession.Tests
             stub_sessionref.SetupGet(s => s.IsFromSession).Returns(FromSessionFunc);
             stub_sessionref.SetupGet(s => s.Services).Returns(stub_sp.Object);
             stub_sessionref.SetupGet(s => s.ActiveSession).Returns(dummy_session.Object);
-            stub_sessionref.SetupGet(s => s.ActiveSessionInternal).Returns(LockerFunc);
+            stub_sessionref.SetupGet(s => s.SessionServiceHelper).Returns(LockerFunc);
             Task<Boolean> wait_task = Task.FromException<Boolean>(new InvalidOperationException("Return value uninitialized."));
             stub_asi.Setup(s => s.WaitForServiceAsync(It.IsAny<Type>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
                 .Callback((Type _, TimeSpan d, CancellationToken t) => { wait_task=MakeWaitTask(d, t); })
@@ -176,7 +175,7 @@ namespace ActiveSession.Tests
         public void SessionServiceLock_Single()
         {
             Boolean from_session = false;
-            IActiveSessionServicesHelper asi = null!;
+            ISessionServicesHelper asi = null!;
 
             SessionServiceLock<ITest> ssl;
             Task<ILockedSessionService<ITest>?> tlss;
@@ -186,7 +185,7 @@ namespace ActiveSession.Tests
             try {
                 (
                       Mock<IActiveSession> dummy_session
-                    , Mock<IActiveSessionServicesHelper> stub_asi
+                    , Mock<ISessionServicesHelper> stub_asi
                     , Mock<IServiceProvider> stub_sp
                     , ITest test_service
                     , Mock<ActiveSessionRef> stub_sessionref
@@ -285,14 +284,14 @@ namespace ActiveSession.Tests
         public async Task SessionServiceLock_Sequence()
         {
             Boolean from_session = false;
-            IActiveSessionServicesHelper asi = null!;
+            ISessionServicesHelper asi = null!;
 
 
             SemaphoreSlim semaphore = new SemaphoreSlim(1, 2);
             try {
                 (
                       Mock<IActiveSession> dummy_session
-                    , Mock<IActiveSessionServicesHelper> stub_asi
+                    , Mock<ISessionServicesHelper> stub_asi
                     , Mock<IServiceProvider> stub_sp
                     , ITest test_service
                     , Mock<ActiveSessionRef> stub_sessionref
