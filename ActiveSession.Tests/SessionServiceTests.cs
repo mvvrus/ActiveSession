@@ -61,10 +61,11 @@ namespace ActiveSession.Tests
             Boolean avail = true;
             Mock<IServiceProvider> dummy_req_sp = new Mock<IServiceProvider>();
             Mock<IServiceProvider> dummy_session_sp = new Mock<IServiceProvider>();
-            Mock<IActiveSession> stub_session = new Mock<IActiveSession>();
+            Mock<ILocalSession> stub_session = new Mock<ILocalSession>();
             Mock<ISessionServicesHelper> dummy_helper = stub_session.As<ISessionServicesHelper>();
             stub_session.SetupGet(s => s.SessionServices).Returns(dummy_session_sp.Object);
             stub_session.SetupGet(s => s.IsAvailable).Returns(() => avail);
+            /*
             Mock<IActiveSessionFeature> stub_as_feature = new Mock<IActiveSessionFeature>();
             stub_as_feature.SetupGet(s => s.ActiveSession).Returns(stub_session.Object);
             Mock<IFeatureCollection> stub_features_col = new Mock<IFeatureCollection>();
@@ -74,23 +75,36 @@ namespace ActiveSession.Tests
             stub_context.SetupGet(s => s.Features).Returns(stub_features_col.Object);
             Mock<IHttpContextAccessor> stub_accessor = new Mock<IHttpContextAccessor>();
             stub_accessor.SetupGet(s=>s.HttpContext).Returns(stub_context.Object);
-            //Test case: ActiveSession is available
+            */
+
+            ActiveSessionRef sp_ref;
+            //Test case: the session accessor object was not initialized.
+            //Act&assess
+            sp_ref = new ActiveSessionRef(dummy_req_sp.Object);
+            Assert.True(ReferenceEquals(dummy_req_sp.Object, sp_ref.Services));
+            Assert.False(sp_ref.IsFromSession);
+            Assert.Null(sp_ref.Session);
+            Assert.Null(sp_ref.SessionServiceHelper);
+            //Test case: ActiveSession is available.
             //Act
-            ActiveSessionRef sp_ref = new ActiveSessionRef(stub_accessor.Object);
+            sp_ref = new ActiveSessionRef(dummy_req_sp.Object);
+            sp_ref.Initialize(()=>stub_session.Object);
             //Assess
-            Assert.True(sp_ref.IsFromSession);
             Assert.Same(dummy_session_sp.Object, sp_ref.Services);
-            Assert.Same(stub_session.Object, sp_ref.ActiveSession);
+            Assert.True(sp_ref.IsFromSession);
+            Assert.Same(stub_session.Object, sp_ref.Session);
             Assert.Same(dummy_helper.Object, sp_ref.SessionServiceHelper);
 
             //Test case: ActiveSession is not available
             //Arrange more
             avail=false;
             //Act
-            sp_ref = new ActiveSessionRef(stub_accessor.Object);
+            sp_ref = new ActiveSessionRef(dummy_req_sp.Object);
+            sp_ref.Initialize(() => stub_session.Object);
             //Assess
-            Assert.False(sp_ref.IsFromSession);
             Assert.True(ReferenceEquals(dummy_req_sp.Object, sp_ref.Services));
+            Assert.False(sp_ref.IsFromSession);
+            Assert.Null(sp_ref.Session);
             Assert.Null(sp_ref.SessionServiceHelper);
         }
 
@@ -143,7 +157,7 @@ namespace ActiveSession.Tests
             Mock<ActiveSessionRef> stub_sessionref = new Mock<ActiveSessionRef>();
             stub_sessionref.SetupGet(s => s.IsFromSession).Returns(FromSessionFunc);
             stub_sessionref.SetupGet(s => s.Services).Returns(stub_sp.Object);
-            stub_sessionref.SetupGet(s => s.ActiveSession).Returns(dummy_session.Object);
+            stub_sessionref.SetupGet(s => s.Session).Returns(dummy_session.Object);
             stub_sessionref.SetupGet(s => s.SessionServiceHelper).Returns(LockerFunc);
             Task<Boolean> wait_task = Task.FromException<Boolean>(new InvalidOperationException("Return value uninitialized."));
             stub_asi.Setup(s => s.WaitForServiceAsync(It.IsAny<Type>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
