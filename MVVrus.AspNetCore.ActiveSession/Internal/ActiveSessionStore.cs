@@ -578,9 +578,17 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             } :null;
         }
 
-        public IActiveSessionFeatureImpl AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix)
+        public IActiveSessionFeatureImpl AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix, IServiceProvider RequestServices)
         {
-            return new ActiveSessionFeature(this, Session, _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), TraceIdentier, Suffix);
+            IActiveSessionFeatureImpl feature = new ActiveSessionFeature(this, 
+                Session, 
+                _loggerFactory?.CreateLogger(FEATURE_CATEGORY_NAME), 
+                TraceIdentier, 
+                Suffix);
+            ActiveSessionRef active_session_ref = RequestServices.GetRequiredService<ActiveSessionRef>();
+            ActiveSessionFeature? real_feature = feature as ActiveSessionFeature;
+            if(real_feature!=null) active_session_ref.Initialize(real_feature.GetFeatureSession);
+            return feature;
         }
 
         public void ReleaseFeatureObject(IActiveSessionFeatureImpl Feature)

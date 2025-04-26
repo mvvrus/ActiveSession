@@ -11,7 +11,7 @@
         readonly Lazy<ILocalSession?> _session;
         readonly IServiceProvider _requestServices;
         ILocalSession? _presetSession = null;
-        protected Func<ILocalSession?>? _getSessionFunc=null;
+        protected Func<ILocalSession>? _getSessionFunc=null;
 
         protected SessionRef(IServiceProvider RequestServices) 
         {
@@ -31,14 +31,17 @@
             _presetSession =_session.Value;  //Call _session initilaization delegate immediately
         }
 
-        ILocalSession? PresetSession() { return _presetSession; }
+        ILocalSession PresetSession() 
+        { 
+            return _presetSession??throw new InvalidOperationException("Error setting up SessionRef with predefined _sessiom value.");
+        }
 
         ILocalSession? GetAvailableSession()
         {
             if(_getSessionFunc==null) return null;
             else {
-                ILocalSession? t = _getSessionFunc(); 
-                return t?.IsAvailable??false ? t : null;
+                ILocalSession t = _getSessionFunc(); 
+                return t.IsAvailable ? t : null;
             }
         }
     }

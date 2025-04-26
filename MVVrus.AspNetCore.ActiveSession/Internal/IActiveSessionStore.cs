@@ -16,7 +16,7 @@
             Int32 RunnerNumber, String? TraceIdentifier, CancellationToken Token
         );
         public Task TerminateSession(ISession Sesion, IStoreActiveSessionItem Session, String? TraceIdentifier);
-        public IActiveSessionFeatureImpl AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix);
+        public IActiveSessionFeatureImpl AcquireFeatureObject(ISession? Session, String? TraceIdentier, String? Suffix, IServiceProvider RequestServices);
         public void ReleaseFeatureObject(IActiveSessionFeatureImpl Feature);
         public ActiveSessionStoreStats? GetCurrentStatistics();
     }

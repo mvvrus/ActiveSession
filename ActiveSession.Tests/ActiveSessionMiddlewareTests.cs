@@ -415,7 +415,7 @@ namespace ActiveSession.Tests
             String? _suffix = null;
             protected String? Suffix { get => _suffix; }
             public void ResetSuffix() { _suffix=null; }
-            void FetchCallback(ISession ignore1, String? ignore2, String? s) { _suffix=s; }
+            void FetchCallback(ISession ignore1, String? ignore2, String? s, IServiceProvider sp) { _suffix=s; }
 
 
             public MiddlewareInvokeTestSetup(ActiveSessionOptions Options, RequestDelegate? SpyDelegate=null)
@@ -441,8 +441,8 @@ namespace ActiveSession.Tests
                 StubSession.SetupGet(x => x.Id).Returns(FAKE_SESSION_ID);
                 StubSession.SetupGet(x => x.IsAvailable).Returns(true);
 
-                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String?>(), It.IsAny<String ?>()));
-                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String?>(), It.IsAny<String?>()))
+                StubStore.Setup(x => x.AcquireFeatureObject(It.IsAny<ISession>(), It.IsAny<String?>(), It.IsAny<String ?>(), It.IsAny<IServiceProvider>()));
+                StubStore.Setup(x => x.AcquireFeatureObject(StubSession.Object, It.IsAny<String?>(), It.IsAny<String?>(), It.IsAny<IServiceProvider>()))
                     .Callback(FetchCallback)
                     .Returns(MockFeature.Object);
 

@@ -189,7 +189,11 @@ namespace MVVrus.AspNetCore.ActiveSession.Internal
             return result;
         }
 
-        //(future) Implement LocalSession
+        //Function used to set up reference to ActiveSessionRef service implementation after the feature creation
+        internal ILocalSession GetFeatureSession()
+        {
+            return ActiveSession;
+        }
 
         static readonly internal NullActiveSession DummySession = new NullActiveSession();
         static readonly internal NullLocalSession DummyLocalSession = new NullLocalSession();

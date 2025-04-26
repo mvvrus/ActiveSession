@@ -65,18 +65,6 @@ namespace ActiveSession.Tests
             Mock<ISessionServicesHelper> dummy_helper = stub_session.As<ISessionServicesHelper>();
             stub_session.SetupGet(s => s.SessionServices).Returns(dummy_session_sp.Object);
             stub_session.SetupGet(s => s.IsAvailable).Returns(() => avail);
-            /*
-            Mock<IActiveSessionFeature> stub_as_feature = new Mock<IActiveSessionFeature>();
-            stub_as_feature.SetupGet(s => s.ActiveSession).Returns(stub_session.Object);
-            Mock<IFeatureCollection> stub_features_col = new Mock<IFeatureCollection>();
-            stub_features_col.Setup(s => s.Get<IActiveSessionFeature>()).Returns(stub_as_feature.Object);
-            Mock<HttpContext> stub_context = new Mock<HttpContext>();
-            stub_context.SetupGet(s => s.RequestServices).Returns(dummy_req_sp.Object);
-            stub_context.SetupGet(s => s.Features).Returns(stub_features_col.Object);
-            Mock<IHttpContextAccessor> stub_accessor = new Mock<IHttpContextAccessor>();
-            stub_accessor.SetupGet(s=>s.HttpContext).Returns(stub_context.Object);
-            */
-
             ActiveSessionRef sp_ref;
             //Test case: the session accessor object was not initialized.
             //Act&assess

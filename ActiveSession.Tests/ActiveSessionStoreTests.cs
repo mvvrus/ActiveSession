@@ -856,30 +856,72 @@ namespace ActiveSession.Tests
             }
         }
 
-        //Test group: call CreateFeatureObject method
+
+        //Test group: call AcquireFeatureObject method
         [Fact]
         public void CreateFeatureObject()
         {
             const string TEST_SUFFIX="TestSuffix";
             //Arrange
             Mock<ISession> dummy_session = new Mock<ISession>();
-            MockedCache cache_mock = new MockedCache();
-            ConstructorTestSetup ts = new ConstructorTestSetup(cache_mock.CacheMock);
+            AcquireFeatureTestSetup ts = new AcquireFeatureTestSetup();
             //Test case: no suffix
             using (ActiveSessionStore store=ts.CreateStore()) {
                 //Act
-                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, null);
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, null, ts.DummyServices.Object);
                 //Assess
                 Assert.IsType<ActiveSessionFeature>(feature);
                 Assert.Null(feature.Suffix);
+                ts.ResetActiveSessionRef();
             }
             //Test case: specify suffix
             using(ActiveSessionStore store = ts.CreateStore()) {
                 //Act
-                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX);
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(dummy_session.Object, null, TEST_SUFFIX, ts.DummyServices.Object);
                 //Assess
                 Assert.IsType<ActiveSessionFeature>(feature);
                 Assert.Equal(TEST_SUFFIX,feature.Suffix);
+                ts.ResetActiveSessionRef();
+            }
+        }
+
+        //Test group: Check service provider returned from from ActiveSessionRef set up by CreateFeatureObject method call
+        [Fact]
+        public void CreateFeatureObject_ActiveSessionRef()
+        {
+            ActiveSessionRef? active_session_ref;
+            IActiveSessionFeatureImpl feature;
+            IServiceProvider session_sp;
+            //Arrange
+            Mock<ISession> dummy_session = new Mock<ISession>();
+            Boolean is_available = true;
+            dummy_session.SetupGet(s => s.IsAvailable).Returns(() => is_available);
+            MockedCache cache_mock = new MockedCache();
+            AcquireFeatureTestSetup ts = new AcquireFeatureTestSetup();
+            //Test case: session is available
+            using(ActiveSessionStore store = ts.CreateStore()) {
+                //Act
+                feature = store.AcquireFeatureObject(dummy_session.Object, null, null, ts.DummyServices.Object);
+                //Assess
+                Assert.NotNull(feature);
+                active_session_ref = ts.DummyServices.Object.GetService<ActiveSessionRef>();
+                Assert.NotNull(active_session_ref);
+                Assert.True(active_session_ref.IsFromSession);
+                session_sp=feature.ActiveSession.SessionServices;
+                Assert.Same(session_sp, active_session_ref.Services);
+            }
+            //Test case: session is unavailable
+            ts.ResetActiveSessionRef();
+            using(ActiveSessionStore store = ts.CreateStore()) {
+                is_available = false;
+                //Act
+                feature = store.AcquireFeatureObject(dummy_session.Object, null, null, ts.DummyServices.Object);
+                //Assess
+                Assert.NotNull(feature);
+                active_session_ref = ts.DummyServices.Object.GetService<ActiveSessionRef>();
+                Assert.NotNull(active_session_ref);
+                Assert.False(active_session_ref.IsFromSession);
+                Assert.Same(ts.DummyServices.Object, active_session_ref.Services);
             }
         }
 
@@ -1420,6 +1462,7 @@ namespace ActiveSession.Tests
             IRunnerFactory<String, Int32> tf = new TestRunnerFactory();
             sp_stub.Setup(s => s.GetService(typeof(IRunnerFactory<String, Int32>))).Returns(tf);
             Mock<HttpContext> context_stub;
+            Mock<IServiceProvider> req_services_stub;
 
             IOptions<MemoryDistributedCacheOptions> cache_options = Options.Create(new MemoryDistributedCacheOptions { });
             IDistributedCache cache = new MemoryDistributedCache(cache_options);
@@ -1438,7 +1481,12 @@ namespace ActiveSession.Tests
                 context_stub=new Mock<HttpContext>();
                 context_stub.SetupGet(s => s.TraceIdentifier).Returns(UNKNOWN_TRACE_IDENTIFIER);
                 context_stub.SetupGet(s => s.Session).Returns(session);
-                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(session, null, null);
+                req_services_stub = new Mock<IServiceProvider>();
+                req_services_stub.Setup(s => s.GetService(typeof(IServiceProvider))).Returns(req_services_stub.Object);
+                req_services_stub.Setup(s => s.GetService(typeof(ActiveSessionRef)))
+                    .Returns(()=>new ActiveSessionRefMock(req_services_stub.Object).Ref); 
+                context_stub.SetupGet(s => s.RequestServices);
+                IActiveSessionFeatureImpl feature = store.AcquireFeatureObject(session, null, null,req_services_stub.Object );   
                 try {
                     await feature.LoadAsync();
                     //Create an ActiveSession in the first request 
@@ -1471,7 +1519,12 @@ namespace ActiveSession.Tests
                 context_stub=new Mock<HttpContext>();
                 context_stub.SetupGet(s => s.TraceIdentifier).Returns(UNKNOWN_TRACE_IDENTIFIER);
                 context_stub.SetupGet(s => s.Session).Returns(session);
-                feature = store.AcquireFeatureObject(session, null, null);
+                req_services_stub = new Mock<IServiceProvider>();
+                req_services_stub.Setup(s => s.GetService(typeof(IServiceProvider))).Returns(req_services_stub.Object);
+                req_services_stub.Setup(s => s.GetService(typeof(ActiveSessionRef)))
+                    .Returns(() => new ActiveSessionRefMock(req_services_stub.Object).Ref);
+                context_stub.SetupGet(s => s.RequestServices);
+                feature = store.AcquireFeatureObject(session, null, null, req_services_stub.Object); 
                 try {
                     await feature.LoadAsync();
                     //Acquire the ActiveSession in the second (simulated) request 
@@ -1494,7 +1547,11 @@ namespace ActiveSession.Tests
             //Clean up the test installation
         }
 
-        class TestRunnerFactory: DelegateRunnerFactory<String,Int32>
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        //Auxilary methods and clases
+        /////////////////////////////////////////////////////////////////////////////////////////////
+
+        class TestRunnerFactory : DelegateRunnerFactory<String,Int32>
         {
             static Func<String, IServiceProvider, RunnerId, IRunner<Int32>> _factory = (_, _, _) => new TestRunner();
             public TestRunnerFactory() : base(_factory) { }
@@ -1529,10 +1586,6 @@ namespace ActiveSession.Tests
                 Position=0;
             }
         }
-
-        /////////////////////////////////////////////////////////////////////////////////////////////
-        //Auxilary methods and clases
-        /////////////////////////////////////////////////////////////////////////////////////////////
 
         private static String SessionKey()
         {
@@ -1778,6 +1831,9 @@ namespace ActiveSession.Tests
 
         class ConstructorTestSetup
         {
+            public const String TEST_SESSION_ID = "TestSessionId";
+            public const String TEST_ACTIVESESSION_ID = "TestActiveSessionId";
+
             public ActiveSessionOptions ActSessOptions = new ActiveSessionOptions();
             public SessionOptions SessOptions = new SessionOptions();
             public readonly IOptions<ActiveSessionOptions> IActSessionOptions;
@@ -1842,12 +1898,41 @@ namespace ActiveSession.Tests
                     _loggerFactory.LoggerFactory);
             }
         }
+        class ActiveSessionRefMock
+        {
+            IServiceProvider _sp;
+            ActiveSessionRef? _ref = null;
+
+            public ActiveSessionRef Ref { get { return _ref??(_ref=new ActiveSessionRef(_sp)); } }
+            public ActiveSessionRefMock(IServiceProvider Sp) { _sp=Sp; }
+            public void ResetRef() { _ref = null; }
+        }
+
+        class AcquireFeatureTestSetup : ConstructorTestSetup
+        {
+            public Mock<IServiceProvider> DummyServices = new Mock<IServiceProvider>(MockBehavior.Strict);
+            public ActiveSessionRefMock _refMock;
+            readonly ServiceProviderMock _mockedSessionServiceProvider;
+
+            public AcquireFeatureTestSetup() : base((new MockedCache()).CacheMock)
+            {
+                DummyServices.Setup(s => s.GetService(typeof(IServiceProvider))).Returns(DummyServices.Object);
+                _refMock = new ActiveSessionRefMock(DummyServices.Object);
+                DummyServices.Setup(s => s.GetService(typeof(ActiveSessionRef)))
+                    .Returns(() => _refMock.Ref);
+                MockIdSupplier.Setup(s => s.GetBaseActiveSessionId(It.IsAny<ISession>())).Returns(TEST_ACTIVESESSION_ID);
+                _mockedSessionServiceProvider=new ServiceProviderMock(MockRootServiceProvider);
+            }
+
+            public void ResetActiveSessionRef()
+            {
+                _refMock.ResetRef();
+            }
+
+        }
 
         class SessionAndRunnerBaseTestSetup : ConstructorTestSetup
         {
-            public const String TEST_SESSION_ID = "TestSessionId";
-            public const String TEST_ACTIVESESSION_ID = "TestActiveSessionId";
-
             public readonly Mock<ISession> MockSession;
             public readonly Expression<Action<ISession>> SessionKeyRemoveExpression = s => s.Remove(It.IsAny<String>());
 
