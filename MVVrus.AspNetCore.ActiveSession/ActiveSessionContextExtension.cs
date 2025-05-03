@@ -23,19 +23,29 @@ namespace MVVrus.AspNetCore.ActiveSession
         }
 
         /// <summary>
-        /// Gives access to a Local Session for this request, if any.
+        /// Gives access to an active session group (AKA Local Session) for this request, if any.
         /// </summary>
         /// <param name="Context"><see cref="HttpContext"/>of the request.</param>
         /// <returns>
-        /// Reference of type <see cref="ILocalSession"/> to a local session object associated with the request if available, 
+        /// Reference of type <see cref="ILocalSession"/> to an active session group object associated with the request if available, 
         /// or to a dummy local session object which <see cref="ILocalSession.IsAvailable"/> property containing false.
         /// </returns>
-        public static ILocalSession GetLocalSession(this HttpContext Context)
+        public static ILocalSession GetActiveSessionGroup(this HttpContext Context)
         {
             ILocalSession? local_session = Context.Features.Get<IActiveSessionFeature>()?.LocalSession;
             if(local_session!=null&&local_session.IsAvailable) return local_session;
             else return ActiveSessionFeature.DummySession;
         }
+
+        /// <summary>
+        /// An alias for <see cref="GetActiveSessionGroup(HttpContext)"/>.
+        /// </summary>
+        /// <inheritdoc cref="GetActiveSessionGroup(HttpContext)"/>
+        public static ILocalSession GetLocalSession(this HttpContext Context)
+        {
+            return GetActiveSessionGroup(Context);
+        }
+
 
         /// <summary>
         /// Tries to update an active session object for this request if the previous one has been terminated.
