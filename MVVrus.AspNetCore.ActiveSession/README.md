@@ -36,7 +36,7 @@ Each runner is entirely responsible for the execution of its operation:
 - read and write shared data of this session;
 - terminate this session.
 
-Starting from v.1.1 the ActiveSession library supports multiple simultaneous active session associated with a single ASP.NET Core session. Each such an active session is represented by its own active session object. These objects are distinguished by active session identifier suffixes assigned to them. Scopes of these active sessions are determined by ActiveSession library infrastructure, based the library setup during application startup, as described in the documentation. 
+Starting from v.1.1 the ActiveSession library supports multiple simultaneous active sessions associated with a single ASP.NET Core session, or, starting from version 1.2 - a single session group. Each such an active session is represented by its own active session object. These objects are distinguished by active session identifier suffixes assigned to them. Scopes of these active sessions are determined by ActiveSession library infrastructure, based the library setup during application startup, as described in the documentation. 
 
 ### ActiveSession library infrastructure
 
@@ -45,9 +45,11 @@ In particular, the ActiveSession library infrastructure performs the following f
 - creates or finds an existing active session object to which the processed request belongs and provides a reference to this object to request handlers;
 - stores, tracks an expiration of a timeout and terminates (after the expiration or upon call from the application) active sessions, disposing their objects;
 - terminates all runners that were working in the terminated active session and disposes its active session object;
-- using runner factories (see below) registered in the application service container, creates new runners according to calls from active session objects to work in those sessions; 
+- creates, maintains make available and disposes after their expiration active session group objects (since version 1.2);
+- creates new runners using runner factories registered in the application service container, according to calls from active session objects to work in those sessions; 
 - stores runners, finds runners requested by active session objects and returns references to them;
-- track an expiration of a timeout and terminates the work of the runners after this time; - cleans up runners that have been terminated for one reason or another, if such cleaning is provided for the runner class;
+- tracks an expiration of a runner timeout and terminates runners and remove them from the store: upon runner completion or after the timeout expiration;
+- cleans up runners that have been terminated for one reason or another, if such cleaning is provided for the runner class;
 
 ### Runner factories
 

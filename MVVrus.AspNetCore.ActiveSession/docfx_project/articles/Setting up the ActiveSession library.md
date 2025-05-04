@@ -1,9 +1,30 @@
 # Setting up the ActiveSession library.
 
-Configuring the ActiveSession library is part of the overall application configuration. It consists of two stages. The first stage - setting up the library configuration and services - is performed during the application services configuration. The second part - addition and configuration of the ActiveSession library middleware - is performed during the setup application's pipeline middleware.
+Configuring the ActiveSession library is part of the overall application configuration. It consists of two stages. The first stage - configuring prerequisites and setting up the library configuration and services - is performed during the application services configuration. The second part - addition and configuration of the ActiveSession library middleware - is performed during the setup application's pipeline middleware.
+
+## Configuring prerequisites
+
+The initialization of an application that uses the ActiveSession library must first set up its prerequisites (see [Introduction](/articles/intro.html) ). 
 
 ## Setting up the ActiveSession library services and configuration.
 To make the ActiveSession library up and running in the ASP.NET Core application, one must add some services to the application's service container (AKA DI_container). The addition of services in an ASP.NET Core application is performed at the service configuration stage via registering services in the service collection of an application builder, which is of type [IServiceCollection](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection). The services registered in this collection are then added to the application's	 DI-container during the application build process. Technically, registration of services is usually performed by extension methods for the IServiceCollection interface.
+
+Here is an example of configuring prerequisites and registering services taken from one of example projects: 
+**Program.cs**
+````
+    WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+    
+    //Configure prerequisites in the application services container
+    builder.Services.AddMemoryCache();
+    builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSession();
+    //Add runner factories for each ActiveSession standard runner
+    builder.Services.AddEnumAdapter<SimSeqData>();
+    builder.Services.AddAsyncEnumAdapter<SimSeqData>();
+    builder.Services.AddTimeSeriesRunner<Int32>();
+    builder.Services.AddSessionProcessRunner<Int32>();
+    //... configure usage of other features in the application services container
+````
 
 ### Services to be registered for the ActiveSession library.
 
@@ -26,8 +47,27 @@ The goal of configuring the ActiveSession library during the middleware pipeline
 
 Adding ActiveSession middleware to the middleware pipeline and configuring it is done by one or more calls to one of the overloaded [UseActiveSessions](/api/MVVrus.AspNetCore.ActiveSession.ActiveSessionBuilderExtensions.html) extension methods for the [IApplicationBuilder](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.iapplicationbuilder) interface. The middleware is added to the pipeline at the point of the first call. Arguments of this first and other UseActiveSessions method calls are collected together and after necessary transformations passed to the constructor of the middleware instance to be added.
 
-Configuring ActiveSession middleware serves two purposes. First, it specifies for which requests a reference to the active session object will be added to the request context at all. Second, it specifies what suffix will be used in the active session identifier. Since version 1.1.0, ActiveSession supports multiple active sessions within a single ASP.NET Core session, and the active session identifier suffix is ​​what allows you to select the correct active session for the request handler.
+Here is a simple example of configuring the ActiveSession middleware from the example project: 
+**Program.cs**
+````
+    WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+    
+    //...configure prerequisites in the application services container 
+    //...configure usage of other features in the application services container
 
-The ActiveSession middleware constructor, when combining the set of arguments passed to it, with which all UseActiveSessions methods were called, acts logically (the implementation contains a number of optimizations) according to the following set of rules. First, the middleware checks each method call one by one, in the order they are called, whether the request passes the filter specified in the call being checked. If the request satisfies the filter, then the middleware notes that a reference to the active session object should be set for this request and, if this filter sets a suffix, then the suffix set should be used for the active session identifier. If the filter does not set a suffix at all (returns null as a suffix), then the search continues for the next filter that the request also satisfies and that sets a suffix. Note: if a filter sets the suffix to an empty string, then the suffix is ​​considered to be set and the search stops. If none of the filters sets a suffix, then an empty string will be used as the active session identifier suffix.
+    WebApplication app = builder.Build();
 
-The way the filter works and the suffix is ​​obtained is determined by the specific form of the called overloaded method [UseActiveSessions](/api/MVVrus.AspNetCore.ActiveSession.ActiveSessionBuilderExtensions.html). Calling this method in the form that has no parameters means that the filter of this call will be satisfied by any request, and this filter does not set any suffix.
+    //Configure prerequisites in the middleware pipeline
+    app.UseSession();
+    //Add ActiveSessions middleware to the middleware pipeline
+    app.UseActiveSessions();
+    //... configure usage of other features in the middleware pipeline
+
+    app.Run();
+````
+
+Configuring ActiveSession middleware serves two purposes. First, it specifies for which requests a reference to the active session object will be added to the request context at all. Second, since version 1.1, it may specify a suffix that will be used in the active session identifier: since version 1.1, ActiveSession supports multiple active sessions associated with a single active session group (introduced in version 1.2) or an ASP.NET Core session (in version 1.1). The suffix specified allows the ActiveSession middlware to choose the correct active session for the specific request handler from all active sessions associated with the same group or ASP.NET Core sessions.
+
+When building the application middleware pipeline parameters from all calls of the UseActiveSession methods are combined and passed to the ActiveSession middleware constructor. The constructor stores all filters and suffixes to be assigned by them from parameters of calls in the internal data structure of the middleware objects, so when the middleware is invoked to process a request, it effectively acts according to the following set of rules. First, the middleware checks each filter effectively one by one in the order they were specified in UseActiveSession calls to see whether the request passes each filter. If the request passes the filter, then the middleware notes that a reference to the active session object should be set for this request and, if this filter sets a suffix, then the suffix is set to be used for the active session identifier. If the particular filter that accepts the request does not set a suffix at all (returns null as a suffix), then the search for the next filter that also accepts the request and that sets a suffix continues (note: if a filter sets the suffix to an empty string, then the suffix is considered to be set and the search stops). If none of the filters that may accept the request sets a suffix, then an empty string will be used as the active session identifier suffix.
+
+The way the filter works and the suffix to be set is determined by the specific form of the called overloaded method [UseActiveSessions](/api/MVVrus.AspNetCore.ActiveSession.ActiveSessionBuilderExtensions.html). Calling this method in the form that has no parameters means that the filter of this call will be satisfied by any request, and that this filter does not set any suffix.

@@ -13,3 +13,9 @@ Unlike the other background execution mechanism in the ASP.NET Core application,
 2. [The library NuGet Package.](https://www.nuget.org/packages/MVVrus.AspNetCore.ActiveSession/) 
 3. [The repository with examples of the library usage.](https://github.com/mvvrus/ActiveSessionExamples) Most îf exmamples in this document (namely those, for which file names are specified) are taken from SampleApplication project in this repository. These file names are shown relative to this project's directory.
 
+## Prerequisites
+
+The ActiveSession library uses session state feature of ASP.NET Core framework, which in turn is based upon .NET distributed caching. To begin using ActiveSession Library these features must first be initialized and configured.
+
+
+
