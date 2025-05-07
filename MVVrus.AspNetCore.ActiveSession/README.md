@@ -172,6 +172,9 @@ An example of using the IActiveSession.Terminate method in an action method of a
     }
 
 ````
+
+To continue using the ActiveSessions library in a handler that previously called Terminate method the handler may (since version 1.2) call the RefreshActiveSession extension method for the request context and then obtain a reference to the newly created active session object in the usual way by calling GetActiveSession.
+
 #### Associate data with the active session and track the active session completion and cleanup.
 
 The Properties property of the active session interface IActiveSession allows to associate arbitrary objects with the active session. This property is a dictionary with a string as a key and an arbitrary object as a value. Objects can be added with their corresponding keys and retrieved by those keys. Concurent access to the Properties dictionary is allowed. If an active session object is disposable (i.e. implement the IDisposable and/or IAsyncDisposable interfaces),  then disposing it switches Properties to read-only mode: all existing objects at the corresponding keys will remain accessible, but no more objects can be added, and no existing objects can be removed from the Properties dictionary.

@@ -15,3 +15,17 @@
     href: Runners.md
   - name: Runner factories
     href: Runnerfactories.md
+- name: Using the ActiveSession library for handling web requests
+  href: HandlingRequests.md
+  items:
+  - name: Using active sessions
+    href: UsingActiveSessions.md
+  - name: Using external runner identifiers
+    href: UsingExternalRunnerIdentifiers.md
+  - name: Using active session groups
+    href: UsingActiveSessionGroups.md
+  - name: Associate data with an active session or a group 
+    href: AssociateDataWithASession.md
+  - name: Using dependency injection with active sessions
+    href: UsingDependencyInjection.md
+
