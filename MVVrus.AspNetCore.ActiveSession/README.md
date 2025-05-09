@@ -898,13 +898,19 @@ Second, tasks created using delegates can either return a result of type TResult
 
 ## Release Notes
 
-current - Make minor improvements to the EnumAdapterRunner and AsyncEnumAdapterrunner classes implememntations. Add end-to-end tests for these classes.
+1.2.0:
 
- Add IActiveSessionFeature.RefreshActiveSession method that allows obtaining a new active session after terminating the current one within the same request handler. Also add a new extension method with the same name to HttpContext class to use this feature.
+ Make minor improvements to the EnumAdapterRunner and AsyncEnumAdapterrunner classes implememntations. Add end-to-end tests for these classes.
 
- Semi-breaking change: move the properties - Id and CompletionToken - into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the librey always does use these interfaces together, no code using the library is expected to be broken, so I decide that this change does not deserve the new major version.
+ Add IActiveSessionFeature.RefreshActiveSession method that allows obtaining a new active session after terminating the current one within the same request handler. Also add a new extension method with the same name to HttpContext class to use this feature [documentation](https://mvvrus.github.io/api/MVVrus.AspNetCore.ActiveSession.ActiveSessionContextExtension.RefreshActiveSession.html).
 
- Allow read-only access to the Properties dictionary of an active session object after the object is disposed.
+ Semi-breaking changes: move two properties - Id and CompletionToken - into the ILocalSession interface and property BaseId - into the IActiveSession interface. But because the previous versions of the library always does use these interfaces together, no code using the library is expected to be broken, so I decide that these changes does not deserve a new major version.
+
+ Introduce an active session group object, containing references to items common to the whole user session and implementing ILocalSession interface ([documentation](https://mvvrus.github.io/articles/UsingActiveSessionGroups.html)).
+
+ Allow read-only access to the Properties dictionary of an active session object or an active session group object after the object is disposed.
+
+ Introduce TakeOwnership extension method for ILocalSession interface that passes responsibility of disposing a disposable object associated with an active session or an active session group after thir disposing to this active session or group [documentation](https://mvvrus.github.io/api/MVVrus.AspNetCore.ActiveSession.LocalSessionExtensions.TakeOwnership.html).
 
 1.1.1 - Set correct release notes in the package description.
 

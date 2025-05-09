@@ -9,18 +9,20 @@
     <Authors>MVVRus</Authors>
     <Title>ActiveSession library</Title>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <VersionPrefix>1.1.1</VersionPrefix>
+    <VersionPrefix>1.2.0</VersionPrefix>
     <Description>The ActiveSession library is designed to execute code in the background that provides results for several logically related HTTP requests and to share data between them.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/mvvrus/ActiveSession</RepositoryUrl>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PackageReleaseNotes>No code changes from previous version,
-Just set correct release notes in the package description field  that relate to the previous version, namely:
--Add support for multiple active sessions within one ASP.NET Core session via active session identifier suffixes
--Add a documentation article concerning ActiveSession configuration, including this new feature.
-</PackageReleaseNotes>
+    <PackageReleaseNotes>
+        - Add IActiveSessionFeature.RefreshActiveSession.
+        - Move some properties between ILocalSession and its descendant IActiveSession interfaces.
+        - Introduce an active session group object implementing ILocalSession interface.
+        - Allow read-only access to the ILocalSession.Properties dictionary after the object is disposed.
+        - Introduce TakeOwnership extension method for the ILocalSession interface.
+    </PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
